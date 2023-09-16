@@ -2,7 +2,7 @@
 // validate data and return usable errors. It implements the most common
 // data types.
 //
-// This main package is used for convinience.
+// This main package is used for convenience.
 // You can also import packages independently from the subdirectories and
 // implement your own rules and rule sets.
 package validate
@@ -14,13 +14,13 @@ import (
 	"proto.zip/studio/validate/pkg/rules/strings"
 )
 
-// Array ruturns a new rule set that can be used to validate arrays of a
+// Array returns a new rule set that can be used to validate arrays of a
 // specific type.
 func Array[T any]() *arrays.ArrayRuleSet[T] {
 	return arrays.New[T]()
 }
 
-// ArrayAny ruturns a new rule set that can be used to validate arrays of
+// ArrayAny returns a new rule set that can be used to validate arrays of
 // any type.
 //
 // These are useful for array that come from untyped formats such as Json.

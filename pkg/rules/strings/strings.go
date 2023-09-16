@@ -1,4 +1,4 @@
-// Package string provides a RuleSet implementation that can be used to validate bstring values.
+// Package string provides a RuleSet implementation that can be used to validate string values.
 //
 // It implements standard rules and allows the developer to set a rule set used to validate items.
 package strings
@@ -49,16 +49,16 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a stringvalue or
+// Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
 func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
 	return v.ValidateWithContext(value, context.Background())
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a stringvalue or
+// Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
+// Also, takes a Context which can be used by rules and error formatting.
 func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (string, errors.ValidationErrorCollection) {
 	allErrors := errors.Collection()
 

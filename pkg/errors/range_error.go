@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// NewCoercionError createa a new ValidationError with the CodeRange code given a
+// NewCoercionError creates a new ValidationError with the CodeRange code given a
 // a target data type.
 //
 // Use when you understand the provided type and can convert from it but there is too

@@ -60,7 +60,7 @@ func (v *ArrayRuleSet[T]) Validate(value any) ([]T, errors.ValidationErrorCollec
 // ValidateWithContext performs a validation of a RuleSet against a value and returns an array of the correct type or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
+// Also, takes a Context which can be used by rules and error formatting.
 func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([]T, errors.ValidationErrorCollection) {
 
 	valueOf := reflect.ValueOf(value)

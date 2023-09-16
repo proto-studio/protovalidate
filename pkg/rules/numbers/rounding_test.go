@@ -17,7 +17,7 @@ func TestRoundingIntNone(t *testing.T) {
 
 	testhelpers.MustBeInvalid(t, ruleSet, float64(123.12), errors.CodeType)
 
-	// Within tollerence
+	// Within tolerance
 
 	testhelpers.MustBeValid(t, ruleSet, float32(123+1e-10), expected)
 	testhelpers.MustBeValid(t, ruleSet, float32(123-1e-10), expected)
@@ -34,7 +34,7 @@ func TestRoundingFloatNone(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected err to be nil, got: %s", err)
 	} else if delta := math.Abs(out.(float64) - expected); delta > 10e-5 {
-		t.Errorf("Expected result to be within tollerence got: %f (%f - %f)", delta, expected, out)
+		t.Errorf("Expected result to be within tolerance got: %f (%f - %f)", delta, expected, out)
 	}
 
 	testhelpers.MustBeValid(t, ruleSet.Any(), float64(expected), expected)

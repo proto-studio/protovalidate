@@ -1,5 +1,4 @@
 // A simple example of using translations for your rules.
-// This is otherwise the same as the strings example.
 package main
 
 import (

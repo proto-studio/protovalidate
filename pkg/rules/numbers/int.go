@@ -96,7 +96,7 @@ func NewUint64() *IntRuleSet[uint64] {
 // A strict rule will only validate if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
-// deturministically and without loss.
+// deterministically and without loss.
 func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   true,

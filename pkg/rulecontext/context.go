@@ -59,7 +59,7 @@ func WithRuleSet(parent context.Context, ruleSet any) context.Context {
 // RuleSet returns the most resent rule set.
 //
 // For nested objects there may be more than one but only the most recent
-// can be retreived.
+// can be retrieved.
 func RuleSet(ctx context.Context) any {
 	if ctx == nil {
 		return nil

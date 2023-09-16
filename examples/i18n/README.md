@@ -1,6 +1,6 @@
 # Internationalization (i18n) Example
 
-This is an example app demostrating translating rule sets for internationalization (i18n).
+This is an example app demonstrating translating rule sets for internationalization (i18n).
 
 It uses the `text/messages` package to perform the translations.
 
@@ -24,7 +24,7 @@ go install golang.org/x/text/cmd/gotext@latest
 go generate translations/translations.go
 ```
 
-3rd, send the files in `locales` to a translation servcice then place the translated files in the directory.
+3rd, send the files in `locales` to a translation service then place the translated files in the directory.
 For example purposes we'll just copy them as is and edit in place:
 ```bash
 cp translations/locales/en-US/out.gotext.json translations/locales/en-US/messages.gotext.json
@@ -39,7 +39,7 @@ Every time you edit the files you will need to rerun `go generate`:
 go generate translations/translations.go
 ```
 
-Don't worry, this will not overrwrite your existing translations.
+Don't worry, this will not overwrite your existing translations.
 
 Now you can run the example:
 ```bash

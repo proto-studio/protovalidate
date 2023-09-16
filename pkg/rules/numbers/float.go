@@ -38,7 +38,7 @@ func NewFloat64() *FloatRuleSet[float64] {
 // A strict rule will only validate if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
-// deturministically and without loss.
+// deterministically and without loss.
 func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    true,
@@ -77,7 +77,7 @@ func (v *FloatRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollecti
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
+// Also, takes a Context which can be used by rules and error formatting.
 func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
 	allErrors := errors.Collection()
 

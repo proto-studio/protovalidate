@@ -1,8 +1,10 @@
-# Go Validate
+# Proto Validate
 
-[![Tests](https://github.com/proto-studio/go-validate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/go-validate/actions/workflows/tests.yml)
+[![Tests](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/leaanthony/clir/blob/master/LICENSE)
 [![Discord Chat](https://img.shields.io/badge/Discord-chat-blue?logo=Discord&logoColor=white)](https://proto.studio/social/discord)
+[![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/proto.zip/studio/validate)
 
 A fluent data validation and normalization library for Go.
 
@@ -26,9 +28,9 @@ Common use cases:
 
 ## Versioning
 
-This package follows conventional Go versioning. Any version up to version 1.0.0 is condered "unstable" and the API may change.
+This package follows conventional Go versioning. Any version up to version 1.0.0 is considered "unstable" and the API may change.
 
-We put a lot of thought into the design of this library and don't expect there to be any breaking chamges. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
+We put a lot of thought into the design of this library and don't expect there to be any breaking changes. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
 
 ## Usage
 
@@ -73,4 +75,4 @@ See the `examples` folder for more samples.
 
 Go-Validate is built for mission critical code. We want you to get all the support you need.
 
-For community support join the [Proto Studio Discord Community](https://discord.gg/vdmHhx47). If you require commercial support please contact our premium support partner [Curioso Industries](https://curiosoindustries.com).
+For community support join the [ProtoStudio Discord Community](https://discord.gg/vdmHhx47). If you require commercial support please contact our premium support partner [Curioso Industries](https://curiosoindustries.com).

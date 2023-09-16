@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// NewCoercionError createa a new ValidationError with the CodeType code given an
+// NewCoercionError creates a new ValidationError with the CodeType code given an
 // expected and received type name.
 //
 // Use when you expected one type and received another.

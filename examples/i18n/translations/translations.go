@@ -1,4 +1,4 @@
-// This package provides the actual translations.
+// This package provides translations for the i18n example code.
 // See README.md for details.
 package translations
 

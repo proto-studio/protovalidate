@@ -1,6 +1,6 @@
 package numbers
 
-// Rounding type is used to specify how a floating point number should be convered to
+// Rounding type is used to specify how a floating point number should be converted to
 // a number with lower precision.
 //
 // These values are not guaranteed to be unchanged between versions. Don't use for serialization or cross-process communication.
@@ -18,7 +18,7 @@ const (
 //
 // Notes on floating point numbers:
 // The RuleSet will attempt to convert floating point numbers to integers even if rounding is not enabled.
-// If the number is not within tollerence (1e-9) of a whole number, an error will be returned.
+// If the number is not within tolerance (1e-9) of a whole number, an error will be returned.
 func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   v.strict,
@@ -32,7 +32,7 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 // WithRounding returns a new child RuleSet with the rounding rule set to the supplied value.
 //
 // Standard warnings for floating point numbers apply:
-// - Some numbers cannot be represented precicely with floating points.
+// - Some numbers cannot be represented precisely with floating points.
 // - Sometimes the rounded result may have additional precision when the rounded number cannot be exactly represented.
 // - For best results, consider using int for your math and data storage/transfer.
 func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatRuleSet[T] {

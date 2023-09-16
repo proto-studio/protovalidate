@@ -19,7 +19,7 @@ func ruleSet() rules.RuleSet[string] {
 		WithMaxLen(7)
 }
 
-// checkAll itterates over an array of strings and calls the rule set for each one.
+// checkAll iterates over an array of strings and calls the rule set for each one.
 func checkAll(w io.Writer, str ...string) {
 	if len(str) == 0 {
 		fmt.Fprintf(w, "Enter 1 or more strings on the command line.\n")
