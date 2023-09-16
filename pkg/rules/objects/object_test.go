@@ -64,7 +64,7 @@ func TestObjectRuleSet(t *testing.T) {
 func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
-	out, err := objects.ObjectMap[any]().
+	out, err := objects.NewObjectMap[any]().
 		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
 		Key("Y", numbers.NewInt().Any()).
 		Validate(in)
@@ -134,7 +134,7 @@ func TestObjectFromStructToMap(t *testing.T) {
 	in.X = 10
 	in.Y = 20
 
-	out, err := objects.ObjectMap[any]().
+	out, err := objects.NewObjectMap[any]().
 		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
 		Key("Y", numbers.NewInt().Any()).
 		Validate(in)
@@ -258,7 +258,7 @@ func TestObjectMapping(t *testing.T) {
 }
 
 func TestMissingField(t *testing.T) {
-	out, err := objects.ObjectMap[int]().
+	out, err := objects.NewObjectMap[int]().
 		Key("A", numbers.NewInt().Any()).
 		Key("B", numbers.NewInt().Any()).
 		Validate(map[string]any{"A": 123})
@@ -286,7 +286,7 @@ func TestMissingField(t *testing.T) {
 }
 
 func TestMissingRequiredField(t *testing.T) {
-	_, err := objects.ObjectMap[int]().
+	_, err := objects.NewObjectMap[int]().
 		Key("A", numbers.NewInt().Any()).
 		Key("B", numbers.NewInt().WithRequired().Any()).
 		Validate(map[string]any{"A": 123})
@@ -298,7 +298,7 @@ func TestMissingRequiredField(t *testing.T) {
 }
 
 func TestWithRequired(t *testing.T) {
-	ruleSet := objects.ObjectMap[int]()
+	ruleSet := objects.NewObjectMap[int]()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -312,12 +312,12 @@ func TestWithRequired(t *testing.T) {
 }
 
 func TestUnknownFields(t *testing.T) {
-	ruleSet := objects.ObjectMap[int]().Key("A", numbers.NewInt().Any())
+	ruleSet := objects.NewObjectMap[int]().Key("A", numbers.NewInt().Any())
 	value := map[string]any{"A": 123, "C": 456}
 
 	testhelpers.MustBeInvalid(t, ruleSet.Any(), value, errors.CodeUnexpected)
 
-	ruleSet = ruleSet.WithUknown()
+	ruleSet = ruleSet.WithUnknown()
 	testhelpers.MustBeValidFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
 }
 
@@ -331,7 +331,7 @@ func TestInputNotObjectLike(t *testing.T) {
 }
 
 func TestReturnsAllErrors(t *testing.T) {
-	_, err := objects.ObjectMap[int]().
+	_, err := objects.NewObjectMap[int]().
 		Key("A", numbers.NewInt().WithMax(2).Any()).
 		Key("B", numbers.NewInt().Any()).
 		Key("C", strings.New().WithStrict().Any()).
@@ -347,7 +347,7 @@ func TestReturnsAllErrors(t *testing.T) {
 func TestReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
-	_, err := objects.ObjectMap[int]().
+	_, err := objects.NewObjectMap[int]().
 		Key("A", numbers.NewInt().WithMax(2).Any()).
 		Key("B", numbers.NewInt().Any()).
 		Key("C", strings.New().WithStrict().Any()).
@@ -380,7 +380,7 @@ func TestReturnsCorrectPaths(t *testing.T) {
 }
 
 func TesMixedMap(t *testing.T) {
-	_, err := objects.ObjectMap[any]().
+	_, err := objects.NewObjectMap[any]().
 		Key("A", numbers.NewInt().Any()).
 		Key("B", numbers.NewInt().Any()).
 		Key("C", strings.New().Any()).

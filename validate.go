@@ -91,7 +91,7 @@ func Float64() *numbers.FloatRuleSet[float64] {
 // Map returns a new rule set that can be used to validate a map containing
 // a string as a key and a single data type as the value.
 func Map[T any]() *objects.ObjectRuleSet[map[string]T] {
-	return objects.ObjectMap[T]()
+	return objects.NewObjectMap[T]()
 }
 
 // Map returns a new rule set that can be used to validate a map containing
@@ -99,7 +99,7 @@ func Map[T any]() *objects.ObjectRuleSet[map[string]T] {
 //
 // These are useful for maps that come from untyped formats such as Json.
 func MapAny() *objects.ObjectRuleSet[map[string]any] {
-	return objects.ObjectMap[any]()
+	return objects.NewObjectMap[any]()
 }
 
 // Object returns a validator that can be used to validate an object of an

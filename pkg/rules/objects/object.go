@@ -13,7 +13,7 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-const anotation = "validate"
+const annotation = "validate"
 
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any] struct {
@@ -58,7 +58,7 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 			continue
 		}
 
-		tagValue, ok := field.Tag.Lookup(anotation)
+		tagValue, ok := field.Tag.Lookup(annotation)
 		emptyTag := tagValue == ""
 
 		// Ignore empty tags if they exist
@@ -94,9 +94,9 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 	return ruleSet
 }
 
-// ObjectMap returns a new RuleSet that can be used to validate maps with strings as the
+// NewObjectMap returns a new RuleSet that can be used to validate maps with strings as the
 // keys and the specified data type (which can be "any") as the values.
-func ObjectMap[T any]() *ObjectRuleSet[map[string]T] {
+func NewObjectMap[T any]() *ObjectRuleSet[map[string]T] {
 	return &ObjectRuleSet[map[string]T]{
 		init: func() map[string]T {
 			return make(map[string]T)
@@ -115,18 +115,18 @@ func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 	}
 }
 
-// WithUknown returns a new RuleSet with the "unknown" flag set.
+// WithUnknown returns a new RuleSet with the "unknown" flag set.
 //
-// By default if the validator fines an uknown key on a map it will return an error.
+// By default if the validator fines an unknown key on a map it will return an error.
 // Setting the unknown flag will allow keys that aren't defined to be present in the map.
 // This is useful for parsing arbitrary Json where additional keys may be included.
-func (v *ObjectRuleSet[T]) WithUknown() *ObjectRuleSet[T] {
+func (v *ObjectRuleSet[T]) WithUnknown() *ObjectRuleSet[T] {
 	newRuleSet := v.withParent()
 	newRuleSet.allowUnknown = true
 	return newRuleSet
 }
 
-// fullMappting is a helper function that returns the full object field mappings as a map.
+// fullMapping is a helper function that returns the full object field mappings as a map.
 func (v *ObjectRuleSet[T]) fullMapping() map[string]string {
 	mapping := make(map[string]string)
 
