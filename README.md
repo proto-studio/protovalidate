@@ -2,9 +2,10 @@
 
 [![Tests](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/leaanthony/clir/blob/master/LICENSE)
-[![Discord Chat](https://img.shields.io/badge/Discord-chat-blue?logo=Discord&logoColor=white)](https://proto.studio/social/discord)
-[![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/proto.zip/studio/validate)
+[![codecov](https://codecov.io/gh/proto-studio/protovalidate/graph/badge.svg?token=K6MR10DKYX)](https://codecov.io/gh/proto-studio/protovalidate)
+[![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
+[![Discord Chat](https://img.shields.io/badge/Discord-chat-blue?logo=Discord&logoColor=white)](https://proto.studio/social/discord)
 
 A fluent data validation and normalization library for Go.
 
