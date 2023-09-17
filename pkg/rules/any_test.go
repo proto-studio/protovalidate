@@ -3,36 +3,38 @@ package rules_test
 import (
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// Requirements:
+// - Implements the RuleSet interface.
+// - Does not error when default configured.
+// - Returns the value with the correct type.
 func TestAnyRuleSet(t *testing.T) {
-	anyval, err := rules.Any().Validate(123)
+	ruleSet := rules.Any()
 
-	ok := testhelpers.CheckRuleSetInterface[any](rules.Any())
+	ok := testhelpers.CheckRuleSetInterface[any](ruleSet)
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 	}
 
-	if err != nil {
-		t.Fatal("Expected errors to be empty")
-		return
-	}
-
-	if anyval != 123 {
-		t.Errorf("Expected 123 to be returned. Got: %v", anyval)
-	}
+	testhelpers.MustBeValid(t, ruleSet, 123, 123)
 }
 
+// Requirements:
+// - Sets the required flag when calling WithForbidden.
+// - Returns error when forbidden.
 func TestAnyForbidden(t *testing.T) {
-	_, err := rules.Any().WithForbidden().Validate(123)
+	ruleSet := rules.Any().WithForbidden()
 
-	if err.Size() == 0 {
-		t.Error("Expected errors to not be empty")
-	}
+	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnexpected)
 }
 
+// Requirements:
+// - Required defaults to false.
+// - Calling WithRequired sets the required flag.
 func TestAnyRequired(t *testing.T) {
 	ruleSet := rules.Any()
 
@@ -47,30 +49,26 @@ func TestAnyRequired(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - Custom rules are executed.
+// - Custom rules can return errors.
+// - Mutated values from the custom rules are returned.
 func TestAnyCustom(t *testing.T) {
-	_, err := rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1)).
-		Validate("123")
+	ruleSet := rules.Any().
+		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
 
-	if err.Size() == 0 {
-		t.Fatal("Expected errors to not be empty")
-	}
+	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
 
 	expected := "abc"
 
-	actual, err := rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0)).
-		Validate("123")
+	ruleSet = rules.Any().
+		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
 
-	if err != nil {
-		t.Fatal("Expected errors to be empty")
-	}
-
-	if expected != actual {
-		t.Errorf("Expected '%s' to equal '%s'", actual, expected)
-	}
+	testhelpers.MustBeValid(t, ruleSet, "123", expected)
 }
 
+// Requirement:
+// - Implementations of RuleSet[any] should return themselves when calling the Any method.
 func TestAnyReturnsIdentity(t *testing.T) {
 	ruleSet1 := rules.Any()
 	ruleSet2 := ruleSet1.Any()

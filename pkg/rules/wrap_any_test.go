@@ -3,10 +3,15 @@ package rules_test
 import (
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// Requirements:
+// - Does not error when default configured.
+// - Returns the value with the correct type.
+// - Implements the RuleSet interface.
 func TestWrapWrapAnyRuleSet(t *testing.T) {
 	innerRuleSet := rules.Any()
 	anyval, err := rules.WrapAny[any](innerRuleSet).Validate(123)
@@ -27,6 +32,10 @@ func TestWrapWrapAnyRuleSet(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - The required flag defaults to false.
+// - WithRequired sets the required flag.
+// - Require returns true only when the required flag is set.
 func TestWrapAnyRequired(t *testing.T) {
 	innerRuleSet1 := rules.Any().WithRequired()
 	ruleSet1 := rules.WrapAny[any](innerRuleSet1)
@@ -49,45 +58,39 @@ func TestWrapAnyRequired(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - The inner rule set rules are called.
+// - Errors in inner the rule set are passed to the wrapper.
 func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
 	innerRuleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
 
-	_, err := rules.WrapAny[any](innerRuleSet).Validate(123)
+	ruleSet := rules.WrapAny[any](innerRuleSet)
 
-	if err == nil {
-		t.Error("Expected errors to not be empty")
-	}
+	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
 }
 
+// Requirements:
+// - Custom rules are executed.
+// - Custom rules can return errors.
+// - Mutated values from the custom rules are returned.
 func TestWrapAnyCustom(t *testing.T) {
 	innerRuleSet := rules.Any()
 
-	_, err := rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1)).
-		Validate("123")
+	ruleSet := rules.WrapAny[any](innerRuleSet).
+		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
 
-	if err.Size() == 0 {
-		t.Error("Expected errors to not be empty")
-		return
-	}
+	testhelpers.MustBeInvalid(t, ruleSet, "123", errors.CodeUnknown)
 
 	expected := "abc"
 
-	actual, err := rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0)).
-		Validate("123")
+	ruleSet = rules.WrapAny[any](innerRuleSet).
+		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
 
-	if err != nil {
-		t.Error("Expected errors to be empty")
-		return
-	}
-
-	if expected != actual {
-		t.Errorf("Expected '%s' to equal '%s'", actual, expected)
-		return
-	}
+	testhelpers.MustBeValid(t, ruleSet, expected, expected)
 }
 
+// Requirement:
+// - Implementations of RuleSet[any] should return themselves when calling the Any method.
 func TestWrapAnyReturnsIdentity(t *testing.T) {
 	innerRuleSet := rules.Any()
 

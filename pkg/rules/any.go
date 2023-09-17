@@ -57,7 +57,7 @@ func (v *AnyRuleSet) Validate(value interface{}) (any, errors.ValidationErrorCol
 // ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
 // or a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
+// Also, takes a Context which can be used by rules and error formatting.
 func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
 	if v.forbidden {
 		return nil, errors.Collection(errors.Errorf(errors.CodeUnexpected, ctx, "value is not allowed"))
