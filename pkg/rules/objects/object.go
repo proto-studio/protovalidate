@@ -6,6 +6,7 @@ package objects
 import (
 	"context"
 	standardErrors "errors"
+	"fmt"
 	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -70,7 +71,7 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 		if emptyTag {
 			key = field.Name
 
-			// Don't allow the refined field name to override the tagged mapping
+			// Don't allow the property names name to override the tagged mapping
 			_, ok := mapped[key]
 			if ok {
 				continue
@@ -156,18 +157,18 @@ func (v *ObjectRuleSet[T]) Key(key string, ruleSet rules.RuleSet[any]) *ObjectRu
 	if v.outputType != nil {
 		destKey, ok := v.mappingFor(key)
 		if !ok {
-			panic(standardErrors.New("missing mapping for key"))
+			panic(fmt.Errorf("missing mapping for key: %s", key))
 		}
 		field, ok := v.outputType.FieldByName(destKey)
 		if !ok {
 			// Should never get here since the only way to make mappings is in the New method.
 			// But better to be defensive.
-			panic(standardErrors.New("missing destination mapping for field"))
+			panic(fmt.Errorf("missing destination mapping for field: %s", destKey))
 		}
 		if !field.IsExported() {
 			// Should also never get here since the only way to make mappings is in the New method
 			// and New ignores unexported fields.
-			panic(standardErrors.New("field is not exported"))
+			panic(fmt.Errorf("field is not exported: %s", destKey))
 		}
 	}
 
@@ -203,7 +204,17 @@ func (v *ObjectRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollect
 func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
 	out := v.init()
 
-	outValue := reflect.Indirect(reflect.ValueOf(out))
+	var outValue reflect.Value
+
+	// We can't use reflect.Set on a non-pointer struct so if the output is not a pointer
+	// we want to make a pointer to work with.
+	isPointer := reflect.ValueOf(out).Kind() == reflect.Ptr
+	if isPointer {
+		outValue = reflect.Indirect(reflect.ValueOf(out))
+	} else {
+		outValue = reflect.Indirect(reflect.ValueOf(&out))
+	}
+
 	outKind := outValue.Kind()
 
 	inValue := reflect.Indirect(reflect.ValueOf(in))

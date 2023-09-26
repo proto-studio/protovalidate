@@ -33,7 +33,7 @@ func TestMissingMapping(t *testing.T) {
 
 		if err == nil || !ok {
 			t.Error("Expected panic with error interface")
-		} else if err.Error() != "missing destination mapping for field" {
+		} else if err.Error() != "missing destination mapping for field: A" {
 			t.Errorf("Expected missing mapping error, got: %s", err)
 		}
 	}()
@@ -47,7 +47,7 @@ func TestUnexportedField(t *testing.T) {
 
 		if err == nil || !ok {
 			t.Error("Expected panic with error interface")
-		} else if err.Error() != "field is not exported" {
+		} else if err.Error() != "field is not exported: z" {
 			t.Errorf("Expected field is not exported error, got: %s", err)
 		}
 	}()

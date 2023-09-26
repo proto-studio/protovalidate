@@ -217,7 +217,7 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 
 		if err == nil || !ok {
 			t.Error("Expected panic with error interface")
-		} else if err.Error() != "missing mapping for key" {
+		} else if err.Error() != "missing mapping for key: a" {
 			t.Errorf("Expected missing mapping error, got: %s", err)
 		}
 	}()
@@ -443,5 +443,30 @@ func TestPointer(t *testing.T) {
 		t.Errorf("Expected obj.W to not be nil")
 	} else if *obj.W != 123 {
 		t.Errorf("Expected obj.W to be 123, got: %d", obj.W)
+	}
+}
+
+type testStructMappedBug struct {
+	Email string `validate:"email"`
+}
+
+// This tests for an issue where the value could be set when the struct is not a pointer.
+//
+// See: https://github.com/proto-studio/protovalidate/issues/1
+func TestBug001(t *testing.T) {
+	n := func() testStructMappedBug { return testStructMappedBug{} }
+	ruleSet := objects.New[testStructMappedBug](n).
+		Key("email", strings.New().Any())
+
+	expected := "hello@example.com"
+
+	out, err := ruleSet.Validate(map[string]any{
+		"email": expected,
+	})
+
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	} else if out.Email != expected {
+		t.Errorf("Expected email to  be '%s', got: '%s'", expected, out.Email)
 	}
 }
