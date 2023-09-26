@@ -149,10 +149,10 @@ func (v *ObjectRuleSet[T]) mappingFor(key string) (string, bool) {
 	return "", false
 }
 
-// Key returns a new RuleSet with a validation rule for the specified key.
+// WithKey returns a new RuleSet with a validation rule for the specified key.
 //
-// If more than one call is made to Key with the same key then only the final one will be used.
-func (v *ObjectRuleSet[T]) Key(key string, ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
+// If more than one call is made to WithKey with the same key then only the final one will be used.
+func (v *ObjectRuleSet[T]) WithKey(key string, ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
 	// Only check mapping if output type is a struct (not a map)
 	if v.outputType != nil {
 		destKey, ok := v.mappingFor(key)
@@ -176,6 +176,11 @@ func (v *ObjectRuleSet[T]) Key(key string, ruleSet rules.RuleSet[any]) *ObjectRu
 	newRuleSet.key = key
 	newRuleSet.rule = ruleSet
 	return newRuleSet
+}
+
+// Deprecated: Key is deprecated and will be removed in v1.0.0. Use WithKey instead.
+func (v *ObjectRuleSet[T]) Key(key string, ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
+	return v.WithKey(key, ruleSet)
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.

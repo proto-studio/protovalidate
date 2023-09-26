@@ -24,7 +24,7 @@ func TestMissingMapping(t *testing.T) {
 	ruleSet.mapping = "A"
 
 	// This should work
-	ruleSet = ruleSet.Key("X", numbers.NewInt().Any())
+	ruleSet = ruleSet.WithKey("X", numbers.NewInt().Any())
 
 	// This should panic
 
@@ -38,7 +38,7 @@ func TestMissingMapping(t *testing.T) {
 		}
 	}()
 
-	ruleSet = ruleSet.Key("A", numbers.NewInt().Any())
+	ruleSet = ruleSet.WithKey("A", numbers.NewInt().Any())
 }
 
 func TestUnexportedField(t *testing.T) {
@@ -58,5 +58,5 @@ func TestUnexportedField(t *testing.T) {
 	ruleSet.key = "z"
 	ruleSet.mapping = "z"
 
-	ruleSet = ruleSet.Key("z", numbers.NewInt().Any())
+	ruleSet = ruleSet.WithKey("z", numbers.NewInt().Any())
 }

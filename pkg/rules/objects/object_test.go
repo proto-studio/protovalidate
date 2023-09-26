@@ -45,8 +45,8 @@ func testStructMappedInit() *testStructMapped {
 
 func TestObjectRuleSet(t *testing.T) {
 	_, err := objects.New(testStructInit).
-		Key("X", numbers.NewInt().Any()).
-		Key("Y", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		Validate(testMap())
 
 	if err != nil {
@@ -65,8 +65,8 @@ func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
 	out, err := objects.NewObjectMap[any]().
-		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
-		Key("Y", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
 	if err != nil {
@@ -99,8 +99,8 @@ func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
 	out, err := objects.New(testStructInit).
-		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
-		Key("Y", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
 	if err != nil {
@@ -135,8 +135,8 @@ func TestObjectFromStructToMap(t *testing.T) {
 	in.Y = 20
 
 	out, err := objects.NewObjectMap[any]().
-		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
-		Key("Y", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
 	if err != nil {
@@ -171,8 +171,8 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	in.Y = 20
 
 	out, err := objects.New(testStructInit).
-		Key("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
-		Key("Y", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
 	if err != nil {
@@ -222,13 +222,13 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 		}
 	}()
 
-	objects.New(testStructInit).Key("a", strings.New().Any())
+	objects.New(testStructInit).WithKey("a", strings.New().Any())
 }
 
 func TestObjectMapping(t *testing.T) {
 	out, err := objects.New(testStructMappedInit).
-		Key("A", numbers.NewInt().Any()).
-		Key("C", numbers.NewInt().Any()).
+		WithKey("A", numbers.NewInt().Any()).
+		WithKey("C", numbers.NewInt().Any()).
 		Validate(map[string]any{"A": 123, "C": 456})
 
 	if err != nil {
@@ -259,8 +259,8 @@ func TestObjectMapping(t *testing.T) {
 
 func TestMissingField(t *testing.T) {
 	out, err := objects.NewObjectMap[int]().
-		Key("A", numbers.NewInt().Any()).
-		Key("B", numbers.NewInt().Any()).
+		WithKey("A", numbers.NewInt().Any()).
+		WithKey("B", numbers.NewInt().Any()).
 		Validate(map[string]any{"A": 123})
 
 	if err != nil {
@@ -287,8 +287,8 @@ func TestMissingField(t *testing.T) {
 
 func TestMissingRequiredField(t *testing.T) {
 	_, err := objects.NewObjectMap[int]().
-		Key("A", numbers.NewInt().Any()).
-		Key("B", numbers.NewInt().WithRequired().Any()).
+		WithKey("A", numbers.NewInt().Any()).
+		WithKey("B", numbers.NewInt().WithRequired().Any()).
 		Validate(map[string]any{"A": 123})
 
 	if err.Size() == 0 {
@@ -312,7 +312,7 @@ func TestWithRequired(t *testing.T) {
 }
 
 func TestUnknownFields(t *testing.T) {
-	ruleSet := objects.NewObjectMap[int]().Key("A", numbers.NewInt().Any())
+	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt().Any())
 	value := map[string]any{"A": 123, "C": 456}
 
 	testhelpers.MustBeInvalid(t, ruleSet.Any(), value, errors.CodeUnexpected)
@@ -332,9 +332,9 @@ func TestInputNotObjectLike(t *testing.T) {
 
 func TestReturnsAllErrors(t *testing.T) {
 	_, err := objects.NewObjectMap[int]().
-		Key("A", numbers.NewInt().WithMax(2).Any()).
-		Key("B", numbers.NewInt().Any()).
-		Key("C", strings.New().WithStrict().Any()).
+		WithKey("A", numbers.NewInt().WithMax(2).Any()).
+		WithKey("B", numbers.NewInt().Any()).
+		WithKey("C", strings.New().WithStrict().Any()).
 		Validate(map[string]any{"A": 123, "B": 456, "C": 789})
 
 	if err == nil {
@@ -348,9 +348,9 @@ func TestReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
 	_, err := objects.NewObjectMap[int]().
-		Key("A", numbers.NewInt().WithMax(2).Any()).
-		Key("B", numbers.NewInt().Any()).
-		Key("C", strings.New().WithStrict().Any()).
+		WithKey("A", numbers.NewInt().WithMax(2).Any()).
+		WithKey("B", numbers.NewInt().Any()).
+		WithKey("C", strings.New().WithStrict().Any()).
 		ValidateWithContext(map[string]any{"A": 123, "B": 456, "C": 789}, ctx)
 
 	if err == nil {
@@ -381,9 +381,9 @@ func TestReturnsCorrectPaths(t *testing.T) {
 
 func TesMixedMap(t *testing.T) {
 	_, err := objects.NewObjectMap[any]().
-		Key("A", numbers.NewInt().Any()).
-		Key("B", numbers.NewInt().Any()).
-		Key("C", strings.New().Any()).
+		WithKey("A", numbers.NewInt().Any()).
+		WithKey("B", numbers.NewInt().Any()).
+		WithKey("C", strings.New().Any()).
 		Validate(map[string]any{"A": 123, "B": 456, "C": "789"})
 
 	if err != nil {
@@ -433,7 +433,7 @@ func TestAny(t *testing.T) {
 
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
-	ruleSet := objects.New(testStructInit).Key("W", numbers.NewInt().Any())
+	ruleSet := objects.New(testStructInit).WithKey("W", numbers.NewInt().Any())
 
 	obj, err := ruleSet.Validate(map[string]any{"W": 123})
 
@@ -456,7 +456,7 @@ type testStructMappedBug struct {
 func TestBug001(t *testing.T) {
 	n := func() testStructMappedBug { return testStructMappedBug{} }
 	ruleSet := objects.New[testStructMappedBug](n).
-		Key("email", strings.New().Any())
+		WithKey("email", strings.New().Any())
 
 	expected := "hello@example.com"
 
