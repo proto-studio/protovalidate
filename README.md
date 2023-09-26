@@ -36,7 +36,7 @@ We put a lot of thought into the design of this library and don't expect there t
 ## Usage
 
 ```bash
-go get proto.zip/protostudio/go-validate
+go get proto.zip/studio/validate
 ```
 
 Simple usage:
@@ -44,7 +44,7 @@ Simple usage:
 ```go
 package main
 
-import "proto.zip/protostudio/go-validator"
+import "proto.zip/studio/validate"
 
 func checkString(str string) error {
   ruleSet := validate.String().
@@ -74,6 +74,6 @@ See the `examples` folder for more samples.
 
 ## Support
 
-Go-Validate is built for mission critical code. We want you to get all the support you need.
+Proto Validate is built for mission critical code. We want you to get all the support you need.
 
-For community support join the [ProtoStudio Discord Community](https://discord.gg/vdmHhx47). If you require commercial support please contact our premium support partner [Curioso Industries](https://curiosoindustries.com).
+For community support join the [ProtoStudio Discord Community](https://proto.studio/social/discord). If you require commercial support please contact our premium support partner [Curioso Industries](https://curiosoindustries.com).
