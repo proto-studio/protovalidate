@@ -22,7 +22,7 @@ func TestMinLen(t *testing.T) {
 	_, err = ruleSet.Validate([]int{1})
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
-	} else if err.Size() != 1 {
-		t.Errorf("Expected 1 error got %d", err.Size())
+	} else if len(err) != 1 {
+		t.Errorf("Expected 1 error got %d", len(err))
 	}
 }

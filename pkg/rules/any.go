@@ -73,7 +73,7 @@ func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context)
 		if currentRuleSet.rule != nil {
 			newStr, err := currentRuleSet.rule.Evaluate(ctx, retValue)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				retValue = newStr
 			}
@@ -82,7 +82,7 @@ func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context)
 		currentRuleSet = currentRuleSet.parent
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return retValue, allErrors
 	} else {
 		return retValue, nil

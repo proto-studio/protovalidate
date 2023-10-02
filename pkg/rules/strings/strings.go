@@ -1,6 +1,4 @@
 // Package string provides a RuleSet implementation that can be used to validate string values.
-//
-// It implements standard rules and allows the developer to set a rule set used to validate items.
 package strings
 
 import (
@@ -65,7 +63,7 @@ func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Conte
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {
-		allErrors.Add(validationErr)
+		allErrors = append(allErrors, validationErr)
 		return "", allErrors
 	}
 
@@ -76,7 +74,7 @@ func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Conte
 		if currentRuleSet.rule != nil {
 			newStr, errs := currentRuleSet.rule.Evaluate(ctx, str)
 			if errs != nil {
-				allErrors.Add(errs.All()...)
+				allErrors = append(allErrors, errs...)
 			} else {
 				str = newStr
 			}
@@ -85,7 +83,7 @@ func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Conte
 		currentRuleSet = currentRuleSet.parent
 	}
 
-	if allErrors.Size() > 0 {
+	if len(allErrors) > 0 {
 		return str, allErrors
 	} else {
 		return str, nil

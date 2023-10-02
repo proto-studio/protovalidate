@@ -155,7 +155,7 @@ func (v *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, 
 	intval, validationErr := v.coerceInt(value, ctx)
 
 	if validationErr != nil {
-		allErrors.Add(validationErr)
+		allErrors = append(allErrors, validationErr)
 		return 0, allErrors
 	}
 
@@ -163,14 +163,14 @@ func (v *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, 
 		if currentRuleSet.rule != nil {
 			newStr, err := currentRuleSet.rule.Evaluate(ctx, intval)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				intval = newStr
 			}
 		}
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return intval, allErrors
 	} else {
 		return intval, nil

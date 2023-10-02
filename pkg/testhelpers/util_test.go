@@ -141,7 +141,7 @@ func TestCustomRule(t *testing.T) {
 	_, err = rule2(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := err.Size(); s != 1 {
+	} else if s := len(err); s != 1 {
 		t.Errorf("Expected error collection size to be %d, got: %d", 1, s)
 	}
 
@@ -150,7 +150,7 @@ func TestCustomRule(t *testing.T) {
 	_, err = rule3(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := err.Size(); s != 2 {
+	} else if s := len(err); s != 2 {
 		t.Errorf("Expected error collection size to be %d, got: %d", 2, s)
 	}
 }

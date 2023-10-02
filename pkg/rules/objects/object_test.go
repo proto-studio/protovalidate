@@ -291,7 +291,7 @@ func TestMissingRequiredField(t *testing.T) {
 		WithKey("B", numbers.NewInt().WithRequired().Any()).
 		Validate(map[string]any{"A": 123})
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -339,8 +339,8 @@ func TestReturnsAllErrors(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if err.Size() != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", err.Size(), err.Error())
+	} else if len(err) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
 	}
 }
 
@@ -355,27 +355,27 @@ func TestReturnsCorrectPaths(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if err.Size() != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", err.Size(), err.Error())
+	} else if len(err) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
 		return
 	}
 
-	errA := err.For("myobj.A")
+	errA := err.For("/myobj/A")
 	if errA == nil {
-		t.Errorf("Expected error for myobj.A to not be nil")
-	} else if errA.Size() != 1 {
-		t.Errorf("Expected exactly 1 error for myobj.A got %d", errA.Size())
-	} else if errA.First().Path() != "myobj.A" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "myobj.A", errA.First().Path())
+		t.Errorf("Expected error for /myobj/A to not be nil")
+	} else if len(errA) != 1 {
+		t.Errorf("Expected exactly 1 error for /myobj/A got %d: %s", len(err), err)
+	} else if errA.First().Path() != "/myobj/A" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/A", errA.First().Path())
 	}
 
-	errC := err.For("myobj.C")
+	errC := err.For("/myobj/C")
 	if errC == nil {
-		t.Errorf("Expected error for myobj.C to not be nil")
-	} else if errC.Size() != 1 {
-		t.Errorf("Expected exactly 1 error for myobj.C got %d", errC.Size())
-	} else if errC.First().Path() != "myobj.C" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "myobj.C", errC.First().Path())
+		t.Errorf("Expected error for /myobj/C to not be nil")
+	} else if len(errC) != 1 {
+		t.Errorf("Expected exactly 1 error for /myobj/C got %d: %s", len(err), err)
+	} else if errC.First().Path() != "/myobj/C" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/C", errC.First().Path())
 	}
 }
 
@@ -400,7 +400,7 @@ func TestCustom(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
-	} else if err.Size() == 0 {
+	} else if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 	}
 }

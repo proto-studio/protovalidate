@@ -70,16 +70,16 @@ func TestParentIndex(t *testing.T) {
 	if firstPath == nil {
 		t.Fatalf("Expected first path to not be nil")
 	}
-	if str := firstPath.String(); str != "[2]" {
-		t.Errorf("Expected first path be 'pathb', got: '%s'", str)
+	if str := firstPath.String(); str != "2" {
+		t.Errorf("Expected first path be '2', got: '%s'", str)
 	}
 
 	secondPath := firstPath.Parent()
 	if secondPath == nil {
 		t.Fatalf("Expected second path to not be nil")
 	}
-	if str := secondPath.String(); str != "[1]" {
-		t.Errorf("Expected second path be 'patha', got: '%s'", str)
+	if str := secondPath.String(); str != "1" {
+		t.Errorf("Expected second path be '1', got: '%s'", str)
 	}
 
 	thirdPath := firstPath.Parent()
@@ -90,17 +90,17 @@ func TestParentIndex(t *testing.T) {
 
 func TestWithPathCombined(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "patha")
-	fullPathHelper(t, ctx, "patha")
+	fullPathHelper(t, ctx, "/patha")
 
 	ctx = rulecontext.WithPathString(ctx, "pathb")
-	fullPathHelper(t, ctx, "patha.pathb")
+	fullPathHelper(t, ctx, "/patha/pathb")
 
 	ctx = rulecontext.WithPathIndex(ctx, 1)
-	fullPathHelper(t, ctx, "patha.pathb[1]")
+	fullPathHelper(t, ctx, "/patha/pathb/1")
 
 	ctx = rulecontext.WithPathIndex(ctx, 2)
-	fullPathHelper(t, ctx, "patha.pathb[1][2]")
+	fullPathHelper(t, ctx, "/patha/pathb/1/2")
 
 	ctx = rulecontext.WithPathString(ctx, "pathc")
-	fullPathHelper(t, ctx, "patha.pathb[1][2].pathc")
+	fullPathHelper(t, ctx, "/patha/pathb/1/2/pathc")
 }

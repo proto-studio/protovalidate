@@ -31,7 +31,7 @@ func TestFloatRuleSet(t *testing.T) {
 func TestFloatStrictError(t *testing.T) {
 	_, err := numbers.NewFloat64().WithStrict().Validate("123.0")
 
-	if err == nil || err.Size() == 0 {
+	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -81,7 +81,7 @@ func TestFloatCustom(t *testing.T) {
 		WithRuleFunc(testhelpers.MockCustomRule(123.0, 1)).
 		Validate("123.0")
 
-	if err == nil || err.Size() == 0 {
+	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}

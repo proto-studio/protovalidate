@@ -52,7 +52,7 @@ func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 // Validate performs a validation of a RuleSet against a value and returns a value of the same type
 // as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
 // added directly to the WrapAnyRuleSet.
-func (v *WrapAnyRuleSet[T]) Validate(value interface{}) (any, errors.ValidationErrorCollection) {
+func (v *WrapAnyRuleSet[T]) Validate(value any) (any, errors.ValidationErrorCollection) {
 	return v.ValidateWithContext(value, context.Background())
 }
 
@@ -60,8 +60,8 @@ func (v *WrapAnyRuleSet[T]) Validate(value interface{}) (any, errors.ValidationE
 // as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
 // added directly to the WrapAnyRuleSet.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
-func (v *WrapAnyRuleSet[T]) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
+// Also, takes a Context which can be used by validation rules and error formatting.
+func (v *WrapAnyRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
 	var retValue any
 
 	retValue, innerErrors := v.inner.ValidateWithContext(value, ctx)
@@ -69,7 +69,7 @@ func (v *WrapAnyRuleSet[T]) ValidateWithContext(value interface{}, ctx context.C
 	allErrors := errors.Collection()
 
 	if innerErrors != nil {
-		allErrors.Add(innerErrors.All()...)
+		allErrors = append(allErrors, innerErrors...)
 	}
 
 	currentRuleSet := v
@@ -79,7 +79,7 @@ func (v *WrapAnyRuleSet[T]) ValidateWithContext(value interface{}, ctx context.C
 		if currentRuleSet.rule != nil {
 			newValue, err := currentRuleSet.rule.Evaluate(ctx, retValue)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				retValue = newValue
 			}
@@ -88,7 +88,7 @@ func (v *WrapAnyRuleSet[T]) ValidateWithContext(value interface{}, ctx context.C
 		currentRuleSet = currentRuleSet.parent
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return retValue, allErrors
 	} else {
 		return retValue, nil

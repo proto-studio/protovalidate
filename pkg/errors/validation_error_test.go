@@ -29,8 +29,8 @@ func TestErrorfContainsFullPath(t *testing.T) {
 	ctx = rulecontext.WithPathString(ctx, "b")
 	err := errors.Errorf(errors.CodeUnknown, ctx, "error")
 
-	if err.Path() != "a.b" {
-		t.Errorf("Expected full path to be set, got: %s", err.Path())
+	if err.Path() != "/a/b" {
+		t.Errorf("Expected full path to be /a/b, got: %s", err.Path())
 	}
 }
 

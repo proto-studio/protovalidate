@@ -2,51 +2,36 @@ package errors
 
 import "fmt"
 
-// ValidationErrorCollection interface is used to return 1 or more validation errors
-// from a function while preserving all the details.
-type ValidationErrorCollection interface {
-	Add(err ...ValidationError)
-	First() ValidationError
-	All() []ValidationError
-	For(path string) ValidationErrorCollection
-	Error() string
-	Size() int
-}
-
 // ValidationErrorCollection implements a standard Error interface and also ValidationErrorCollection interface
 // while preserving the validation data.
-type validationErrorCollection struct {
-	errors []ValidationError
-}
+type ValidationErrorCollection []ValidationError
 
 // Collection takes one or more ValidationError pointers and creates a new instance of a collection.
 func Collection(errs ...ValidationError) ValidationErrorCollection {
+	var arr []ValidationError
+
 	if errs == nil {
-		return &validationErrorCollection{
-			errors: make([]ValidationError, 0),
-		}
+		arr = make([]ValidationError, 0)
+	} else {
+		arr = errs[:]
 	}
 
-	return &validationErrorCollection{
-		errors: errs[:],
-	}
-}
-
-// Add appends a new error onto the end of the collection.
-// This method is not thread safe. RuleSets must provide their own locking.
-func (collection *validationErrorCollection) Add(errs ...ValidationError) {
-	collection.errors = append(collection.errors, errs...)
+	return ValidationErrorCollection(arr)
 }
 
 // Size returns the number of errors in the collection.
-func (collection *validationErrorCollection) Size() int {
-	return len(collection.errors)
+//
+// Deprecated: Size is deprecated and will be removed in v1.0.0. Use len(collection) instead.
+func (collection ValidationErrorCollection) Size() int {
+	return len(collection)
 }
 
 // All returns an array of all the errors in the collection.
 // If there is more than one error, the order they are returned is not guaranteed to be deterministic.
-func (collection *validationErrorCollection) All() []ValidationError {
-	return collection.errors
+//
+// Deprecated: All is deprecated and will be removed in v1.0.0. Use as you would a normal slice instead.
+func (collection ValidationErrorCollection) All() []ValidationError {
+	return collection
 }
 
 // Error implements the standard Error interface to return a string.
@@ -59,13 +44,13 @@ func (collection *validationErrorCollection) All() []ValidationError {
 // As with the First() method, if there is more than one error, which error is displayed is not guaranteed to be deterministic.
 //
 // An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
-func (collection *validationErrorCollection) Error() string {
-	if len(collection.errors) > 1 {
-		return fmt.Sprintf("%s (and %d more)", collection.errors[0].Error(), len(collection.errors)-1)
+func (collection ValidationErrorCollection) Error() string {
+	if len(collection) > 1 {
+		return fmt.Sprintf("%s (and %d more)", []ValidationError(collection)[0].Error(), len(collection)-1)
 	}
 
-	if len(collection.errors) > 0 {
-		return collection.errors[0].Error()
+	if len(collection) > 0 {
+		return []ValidationError(collection)[0].Error()
 	}
 
 	panic("Empty collection")
@@ -73,22 +58,22 @@ func (collection *validationErrorCollection) Error() string {
 
 // First returns only the first error.
 // If there is more than one error, the error returned is not guaranteed to be deterministic.
-func (collection *validationErrorCollection) First() ValidationError {
-	if len(collection.errors) == 0 {
+func (collection ValidationErrorCollection) First() ValidationError {
+	if len(collection) == 0 {
 		return nil
 	}
 
-	return collection.errors[0]
+	return collection[0]
 }
 
 // For returns a new collection containing only errors for a specific path.
-func (collection *validationErrorCollection) For(path string) ValidationErrorCollection {
-	if len(collection.errors) == 0 {
+func (collection ValidationErrorCollection) For(path string) ValidationErrorCollection {
+	if len(collection) == 0 {
 		return nil
 	}
 
 	var filteredErrors []ValidationError
-	for _, err := range collection.errors {
+	for _, err := range collection {
 		if err.Path() == path {
 			filteredErrors = append(filteredErrors, err)
 		}

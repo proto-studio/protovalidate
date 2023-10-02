@@ -84,7 +84,7 @@ func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T
 	floatval, validationErr := v.coerceFloat(value, ctx)
 
 	if validationErr != nil {
-		allErrors.Add(validationErr)
+		allErrors = append(allErrors, validationErr)
 		return 0, allErrors
 	}
 
@@ -111,14 +111,14 @@ func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T
 		if currentRuleSet.rule != nil {
 			newStr, err := currentRuleSet.rule.Evaluate(ctx, floatval)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				floatval = newStr
 			}
 		}
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return floatval, allErrors
 	} else {
 		return floatval, nil

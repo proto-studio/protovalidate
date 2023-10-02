@@ -25,12 +25,10 @@ func MockCustomRule[T any](retval T, errorCount int) func(_ context.Context, _ T
 	var errs errors.ValidationErrorCollection
 
 	if errorCount > 0 {
-		errs = errors.Collection()
+		errs = make(errors.ValidationErrorCollection, errorCount)
 
 		for i := 0; i < errorCount; i++ {
-			errs.Add(
-				errors.Errorf(errors.CodeUnknown, context.Background(), "test"),
-			)
+			errs[i] = errors.Errorf(errors.CodeUnknown, context.Background(), "test")
 		}
 	}
 

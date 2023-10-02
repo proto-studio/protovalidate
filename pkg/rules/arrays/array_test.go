@@ -34,7 +34,7 @@ func TestArrayRuleSet(t *testing.T) {
 func TestArrayRuleSetTypeError(t *testing.T) {
 	_, err := arrays.New[string]().Validate(123)
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -52,7 +52,7 @@ func TestArrayItemRuleSetSuccess(t *testing.T) {
 func TestArrayItemCastError(t *testing.T) {
 	_, err := arrays.New[string]().Validate([]int{1, 2, 3})
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Errorf("Expected errors to not be empty.")
 		return
 	}
@@ -61,8 +61,8 @@ func TestArrayItemCastError(t *testing.T) {
 func TestArrayItemRuleSetError(t *testing.T) {
 	_, err := arrays.New[string]().WithItemRuleSet(strings.New().WithMinLen(2)).Validate([]string{"", "a", "ab", "abc"})
 
-	if err.Size() != 2 {
-		t.Errorf("Expected 2 errors and got %d.", err.Size())
+	if len(err) != 2 {
+		t.Errorf("Expected 2 errors and got %d.", len(err))
 		return
 	}
 }
@@ -92,7 +92,7 @@ func TestCustom(t *testing.T) {
 		return
 	}
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -104,27 +104,27 @@ func TestReturnsCorrectPaths(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if err.Size() != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", err.Size(), err.Error())
+	} else if len(err) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
 		return
 	}
 
-	errA := err.For("myarray[0]")
+	errA := err.For("/myarray/0")
 	if errA == nil {
-		t.Errorf("Expected error for myarray[0] to not be nil")
-	} else if errA.Size() != 1 {
-		t.Errorf("Expected exactly 1 error for myarray[0] got %d", errA.Size())
-	} else if errA.First().Path() != "myarray[0]" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "myarray[0]", errA.First().Path())
+		t.Errorf("Expected error for /myarray/0 to not be nil")
+	} else if len(errA) != 1 {
+		t.Errorf("Expected exactly 1 error for /myarray/0 got %d", len(err))
+	} else if errA.First().Path() != "/myarray/0" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/0", errA.First().Path())
 	}
 
-	errC := err.For("myarray[1]")
+	errC := err.For("/myarray/1")
 	if errC == nil {
-		t.Errorf("Expected error for myarray[1] to not be nil")
-	} else if errC.Size() != 1 {
-		t.Errorf("Expected exactly 1 error for myarray[1] got %d", errC.Size())
-	} else if errC.First().Path() != "myarray[1]" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "myarray[1]", errC.First().Path())
+		t.Errorf("Expected error for /myarray/1 to not be nil")
+	} else if len(errC) != 1 {
+		t.Errorf("Expected exactly 1 error for /myarray/1 got %d", len(err))
+	} else if errC.First().Path() != "/myarray/1" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/1", errC.First().Path())
 	}
 }
 

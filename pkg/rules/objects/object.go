@@ -205,7 +205,7 @@ func (v *ObjectRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollect
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
+// Also, takes a Context which can be used by validation rules and error formatting.
 func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
 	out := v.init()
 
@@ -269,14 +269,14 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 
 		if inFieldValue.Kind() == reflect.Invalid {
 			if rule.Required() {
-				allErrors.Add(errors.Errorf(errors.CodeRequired, subContext, "field is required"))
+				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "field is required"))
 			}
 
 		} else {
 			val, errs := rule.ValidateWithContext(inFieldValue.Interface(), subContext)
 
 			if errs != nil {
-				allErrors.Add(errs.All()...)
+				allErrors = append(allErrors, errs...)
 				continue
 			}
 
@@ -301,7 +301,7 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 		if currentRuleSet.objRule != nil {
 			newOutput, err := currentRuleSet.objRule.Evaluate(ctx, out)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				out = newOutput
 			}
@@ -314,12 +314,12 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 			_, ok := knownKeys[keyStr]
 			if !ok {
 				subContext := rulecontext.WithPathString(ctx, keyStr)
-				allErrors.Add(errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
+				allErrors = append(allErrors, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
 			}
 		}
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return out, allErrors
 	} else {
 		return out, nil

@@ -31,7 +31,7 @@ func TestIntRuleSet(t *testing.T) {
 func TestIntStrictError(t *testing.T) {
 	_, err := numbers.NewInt().WithStrict().Validate("123")
 
-	if err == nil || err.Size() == 0 {
+	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -78,7 +78,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 
 	_, err = numbers.NewInt().WithBase(16).Validate("XYZ")
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -87,7 +87,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 func TestIntCoercionFromFloatWithError(t *testing.T) {
 	_, err := numbers.NewInt().Validate(1.000001)
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -112,7 +112,7 @@ func TestIntCustom(t *testing.T) {
 		WithRuleFunc(testhelpers.MockCustomRule(123, 1)).
 		Validate("123")
 
-	if err.Size() == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}

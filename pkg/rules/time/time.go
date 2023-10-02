@@ -91,7 +91,7 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		}
 
 		if !ok {
-			allErrors.Add(errors.NewCoercionError(ctx, "date time", "string"))
+			allErrors = append(allErrors, errors.NewCoercionError(ctx, "date time", "string"))
 			return t, allErrors
 		}
 	default:
@@ -105,7 +105,7 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		if currentRuleSet.rule != nil {
 			newTime, errs := currentRuleSet.rule.Evaluate(ctx, t)
 			if errs != nil {
-				allErrors.Add(errs.All()...)
+				allErrors = append(allErrors, errs...)
 			} else {
 				t = newTime
 			}
@@ -114,7 +114,7 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		currentRuleSet = currentRuleSet.parent
 	}
 
-	if allErrors.Size() > 0 {
+	if len(allErrors) > 0 {
 		return t, allErrors
 	} else {
 		return t, nil

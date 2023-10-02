@@ -100,7 +100,7 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 					expected = reflect.TypeOf(new(T)).Name()
 				}
 				actual := valueOf.Index(i).Kind().String()
-				allErrors.Add(errors.NewCoercionError(subContext, expected, actual))
+				allErrors = append(allErrors, errors.NewCoercionError(subContext, expected, actual))
 			}
 		}
 	} else {
@@ -109,7 +109,7 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 			subContext := rulecontext.WithPathIndex(ctx, i)
 			output[i], itemErrors = itemRuleSet.ValidateWithContext(valueOf.Index(i).Interface(), subContext)
 			if itemErrors != nil {
-				allErrors.Add(itemErrors.All()...)
+				allErrors = append(allErrors, itemErrors...)
 			}
 		}
 	}
@@ -120,14 +120,14 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 		if currentRuleSet.rule != nil {
 			newOutput, err := currentRuleSet.rule.Evaluate(ctx, output)
 			if err != nil {
-				allErrors.Add(err.All()...)
+				allErrors = append(allErrors, err...)
 			} else {
 				output = newOutput
 			}
 		}
 	}
 
-	if allErrors.Size() != 0 {
+	if len(allErrors) != 0 {
 		return output, allErrors
 	} else {
 		return output, nil

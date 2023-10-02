@@ -34,9 +34,9 @@ func (s *pathSegmentString) String() string {
 // FullString returns the full path until there are no more parent segments.
 func (s *pathSegmentString) FullString() string {
 	if s.parent != nil {
-		return s.parent.FullString() + "." + s.String()
+		return s.parent.FullString() + "/" + s.String()
 	}
-	return s.String()
+	return "/" + s.String()
 }
 
 // Parent returns the previous path segment
@@ -48,13 +48,13 @@ func (s *pathSegmentIndex) Parent() PathSegment {
 //
 // Example: [0] or [3]
 func (s *pathSegmentIndex) String() string {
-	return fmt.Sprintf("[%d]", s.segment)
+	return fmt.Sprintf("%d", s.segment)
 }
 
 // FullString returns the full path until there are no more parent segments.
 func (s *pathSegmentIndex) FullString() string {
 	if s.parent != nil {
-		return s.parent.FullString() + s.String()
+		return s.parent.FullString() + "/" + s.String()
 	}
 	return s.String()
 }

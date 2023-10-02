@@ -11,7 +11,7 @@ type minRule[T integer | floating] struct {
 	min T
 }
 
-// Evaluate takes a context and integer value and returns an error if it is not equal or lower than the specified value.
+// Evaluate takes a context and integer value and returns an error if it is not equal or greater than the specified value.
 func (rule *minRule[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
 	if value < rule.min {
 		return value, errors.Collection(

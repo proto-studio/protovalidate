@@ -121,7 +121,7 @@ func TestPathRuleSet(t *testing.T) {
 
 	ctx = rulecontext.WithPathString(ctx, segmentB)
 	p = rulecontext.Path(ctx)
-	expectedFullPath := segmentA + "." + segmentB
+	expectedFullPath := "/" + segmentA + "/" + segmentB
 
 	if p == nil {
 		t.Error("Expected path segment to not be nil")

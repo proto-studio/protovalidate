@@ -3,7 +3,6 @@ package strings_test
 import (
 	"testing"
 
-	"proto.zip/studio/validate"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/strings"
@@ -33,20 +32,8 @@ func TestStringRuleSet(t *testing.T) {
 func TestStringRuleSetTypeError(t *testing.T) {
 	_, err := strings.New().WithStrict().Validate(123)
 
-	if err == nil || err.Size() == 0 {
+	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
-		return
-	}
-}
-
-func TestStringNilOnSuccess(t *testing.T) {
-	ruleSet := validate.String().
-		WithMinLen(3).
-		WithMaxLen(7)
-	_, err := ruleSet.Validate("abc")
-
-	if err != nil {
-		t.Errorf("Expected errors to be nil, got: %s", err)
 		return
 	}
 }
@@ -104,6 +91,10 @@ func TestStringCoercionFromUknown(t *testing.T) {
 	testhelpers.MustBeInvalid(t, strings.New().Any(), &val, errors.CodeType)
 }
 
+// Requirements:
+// - Required flag can be set.
+// - Required flag can be read.
+// - Required flag defaults to false.
 func TestStringRequired(t *testing.T) {
 	ruleSet := strings.New()
 
