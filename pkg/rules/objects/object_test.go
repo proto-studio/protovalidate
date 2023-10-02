@@ -225,6 +225,40 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 	objects.New(testStructInit).WithKey("a", strings.New().Any())
 }
 
+// This function is deprecated and will be removed in v1.0.0.
+// Until then, make sure it still works.
+func TestKeyFunction(t *testing.T) {
+	out, err := objects.New(testStructMappedInit).
+		Key("A", numbers.NewInt().Any()).
+		Key("C", numbers.NewInt().Any()).
+		Validate(map[string]any{"A": 123, "C": 456})
+
+	if err != nil {
+		t.Error("Expected errors to be empty")
+		return
+	}
+
+	if out == nil {
+		t.Error("Expected output to not be nil")
+		return
+	}
+
+	if out.A != 123 {
+		t.Errorf("Expected output A to be 123 but got %v", out.A)
+		return
+	}
+
+	if out.B != 456 {
+		t.Errorf("Expected output B to be 456 but got %v", out.B)
+		return
+	}
+
+	if out.C != 0 {
+		t.Errorf("Expected output C to be 0 but got %v", out.C)
+		return
+	}
+}
+
 func TestObjectMapping(t *testing.T) {
 	out, err := objects.New(testStructMappedInit).
 		WithKey("A", numbers.NewInt().Any()).
