@@ -319,6 +319,40 @@ func TestMissingField(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - Works when the input is a type whose underlying implementation is a map with string keys
+func TestUnderlyingMapField(t *testing.T) {
+
+	type underlyingMap map[string]string
+	input := underlyingMap(map[string]string{"A": "123"})
+
+	out, err := objects.NewObjectMap[int]().
+		WithKey("A", numbers.NewInt().Any()).
+		WithKey("B", numbers.NewInt().Any()).
+		Validate(input)
+
+	if err != nil {
+		t.Error("Expected errors to be empty")
+		return
+	}
+
+	if out == nil {
+		t.Error("Expected output to not be nil")
+		return
+	}
+
+	if out["A"] != 123 {
+		t.Errorf("Expected output A to be 123 but got %v", out["A"])
+		return
+	}
+
+	b, ok := out["B"]
+	if ok {
+		t.Errorf("Expected output B to be missing but got %v", b)
+		return
+	}
+}
+
 func TestMissingRequiredField(t *testing.T) {
 	_, err := objects.NewObjectMap[int]().
 		WithKey("A", numbers.NewInt().Any()).
