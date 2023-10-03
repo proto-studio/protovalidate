@@ -3,26 +3,16 @@ package strings_test
 import (
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
 func TestMaxLen(t *testing.T) {
-	ruleSet := strings.New().WithMaxLen(2)
+	ruleSet := strings.New().WithMaxLen(2).Any()
 
-	_, err := ruleSet.Validate("a")
-	if err != nil {
-		t.Errorf("Expected error to be nil, got %s", err)
-	}
+	testhelpers.MustBeValid(t, ruleSet, "a", "a")
+	testhelpers.MustBeValid(t, ruleSet, "ab", "ab")
+	testhelpers.MustBeInvalid(t, ruleSet, "abc", errors.CodeMax)
 
-	_, err = ruleSet.Validate("ab")
-	if err != nil {
-		t.Errorf("Expected error to be nil, got %s", err)
-	}
-
-	_, err = ruleSet.Validate("abc")
-	if err == nil {
-		t.Errorf("Expected error to not be nil")
-	} else if s := len(err); s != 1 {
-		t.Errorf("Expected 1 error got %d", s)
-	}
 }
