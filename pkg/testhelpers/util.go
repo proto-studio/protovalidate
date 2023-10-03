@@ -83,7 +83,7 @@ func MustBeInvalid(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCod
 		t.Error("Expected error to not be nil")
 		return nil
 	} else if err.First().Code() != errorCode {
-		t.Errorf("Expected error code of %d got %d (%s)", errorCode, err.First().Code(), err)
+		t.Errorf("Expected error code of %s got %s (%s)", errorCode, err.First().Code(), err)
 		return nil
 	}
 

@@ -12,7 +12,7 @@ func TestNew(t *testing.T) {
 	err := errors.New(errors.CodeMin, "a.b.c", "testmessage")
 
 	if err.Code() != errors.CodeMin {
-		t.Errorf("Expected code to be %d, got: %d", errors.CodeMin, err.Code())
+		t.Errorf("Expected code to be %s, got: %s", errors.CodeMin, err.Code())
 	}
 
 	if err.Path() != "a.b.c" {
@@ -41,13 +41,13 @@ func TestErrorfContainsCode(t *testing.T) {
 	err := errors.Errorf(errors.CodeUnknown, ctx, "error")
 
 	if err.Code() != errors.CodeUnknown {
-		t.Errorf("Expected code to be %d, got: %d", errors.CodeUnknown, err.Code())
+		t.Errorf("Expected code to be %s, got: %s", errors.CodeUnknown, err.Code())
 	}
 
 	err = errors.Errorf(errors.CodeMin, ctx, "error")
 
 	if err.Code() != errors.CodeMin {
-		t.Errorf("Expected code to be %d, got: %d", errors.CodeMin, err.Code())
+		t.Errorf("Expected code to be %s, got: %s", errors.CodeMin, err.Code())
 	}
 }
 

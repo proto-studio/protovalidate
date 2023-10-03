@@ -15,6 +15,6 @@ func TestNewCoercionError(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	} else if err.Code() != errors.CodeType {
-		t.Errorf("Expected error to have code %d, got %d", errors.CodeType, err.Code())
+		t.Errorf("Expected error to have code %s, got %s", errors.CodeType, err.Code())
 	}
 }
