@@ -24,6 +24,55 @@ func TestCollectionWrapper(t *testing.T) {
 	}
 }
 
+// Legacy method. Will be removed in v1.0.0
+func TestCollectionAll(t *testing.T) {
+	ctx := context.Background()
+
+	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+
+	colErr := errors.Collection(
+		err1,
+		err2,
+	)
+
+	if colErr == nil {
+		t.Fatal("Expected error to not be nil")
+	} else if s := colErr.Size(); s != 2 {
+		t.Fatalf("Expected error to have size %d, got %d", 2, s)
+	}
+
+	all := colErr.All()
+
+	if l := len(all); l != 2 {
+		t.Fatalf("Expected error to have length %d, got %d", 2, l)
+	}
+
+	if !((all[0] == err1 && all[1] == err2) || (all[0] == err2 && all[1] == err1)) {
+		t.Errorf("Expected both errors to be returned")
+	}
+}
+
+// Legacy method. Will be removed in v1.0.0
+func TestCollectionSize(t *testing.T) {
+	ctx := context.Background()
+
+	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+
+	colErr := errors.Collection(err1)
+
+	if s := colErr.Size(); s != 1 {
+		t.Errorf("Expected size to be 1, got: %d", s)
+	}
+
+	colErr = append(colErr, err2)
+
+	if s := colErr.Size(); s != 2 {
+		t.Errorf("Expected size to be 2, got: %d", s)
+	}
+}
+
 func TestCollectionFirst(t *testing.T) {
 	ctx := context.Background()
 	err1 := errors.NewCoercionError(ctx, "int", "float32")
