@@ -18,3 +18,6 @@ coverage-html: coverage
 
 reportcard:
 	goreportcard-cli -v
+
+generated:
+	go generate ./pkg/...

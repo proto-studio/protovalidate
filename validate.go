@@ -9,6 +9,7 @@ package validate
 
 import (
 	"proto.zip/studio/validate/pkg/rules/arrays"
+	"proto.zip/studio/validate/pkg/rules/net"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/objects"
 	"proto.zip/studio/validate/pkg/rules/strings"
@@ -118,4 +119,14 @@ func Object[T any](initFn func() T) *objects.ObjectRuleSet[T] {
 // String returns a new rule set that can be used to validate strings.
 func String() *strings.StringRuleSet {
 	return strings.New()
+}
+
+// Domain returns a new rule set that can be used to validate domain names.
+func Domain() *net.DomainRuleSet {
+	return net.NewDomain()
+}
+
+// Email returns a new rule set that can be used to validate domain names.
+func Email() *net.EmailRuleSet {
+	return net.NewEmail()
 }

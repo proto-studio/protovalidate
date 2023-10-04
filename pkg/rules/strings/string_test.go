@@ -38,17 +38,9 @@ func TestStringRuleSetTypeError(t *testing.T) {
 	}
 }
 
-func tryStringCoercion(t *testing.T, val interface{}, expected string) {
-	actual, err := strings.New().Validate(val)
-
-	if err != nil {
-		t.Errorf("Expected errors to be empty and got '%s'", err)
-		return
-	}
-	if expected != actual {
-		t.Errorf("Expected '%s' and got '%s'", expected, actual)
-		return
-	}
+func tryStringCoercion(t testing.TB, val interface{}, expected string) {
+	ruleSet := strings.New()
+	testhelpers.MustBeValid(t, ruleSet.Any(), val, expected)
 }
 
 func TestStringCoercionFromInt(t *testing.T) {

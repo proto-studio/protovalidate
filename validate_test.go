@@ -135,3 +135,17 @@ func TestString(t *testing.T) {
 		t.Error("Expected rule set to not be nil")
 	}
 }
+
+func TestDomain(t *testing.T) {
+	ruleSet := validate.Domain()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
+func TestEmail(t *testing.T) {
+	ruleSet := validate.Email()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
