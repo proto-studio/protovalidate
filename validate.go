@@ -13,6 +13,7 @@ import (
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/objects"
 	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/rules/time"
 )
 
 // Array returns a new rule set that can be used to validate arrays of a
@@ -129,4 +130,28 @@ func Domain() *net.DomainRuleSet {
 // Email returns a new rule set that can be used to validate domain names.
 func Email() *net.EmailRuleSet {
 	return net.NewEmail()
+}
+
+// Time returns a new rule set that can be used to validate time.Time objects.
+// Input can be either a time.Time instance or a string.
+//
+// When accepting string as an input make sure to call WithLayouts to specify the
+// desired input formats.
+func Time() *time.TimeRuleSet {
+	return time.NewTime()
+}
+
+// Time returns a new rule set that can be used to validate time objects.
+// This behaves identical to Time except that the value returned from validation
+// is a string representation of the time.
+//
+// It takes the desired output layout as an argument.
+// See: time.Format
+//
+// Input can be either a time.Time instance or a string.
+//
+// When accepting string it will default the same same format as the output. You can
+// call WithLayouts to override the default behavior.
+func TimeString(layout string) *time.TimeStringRuleSet {
+	return time.NewTimeString(layout)
 }

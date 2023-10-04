@@ -2,6 +2,7 @@ package validate_test
 
 import (
 	"testing"
+	"time"
 
 	"proto.zip/studio/validate"
 )
@@ -145,6 +146,20 @@ func TestDomain(t *testing.T) {
 
 func TestEmail(t *testing.T) {
 	ruleSet := validate.Email()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
+func TestTime(t *testing.T) {
+	ruleSet := validate.Time()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
+func TestTimeString(t *testing.T) {
+	ruleSet := validate.TimeString(time.RFC3339)
 	if ruleSet == nil {
 		t.Error("Expected rule set to not be nil")
 	}
