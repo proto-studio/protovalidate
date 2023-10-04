@@ -31,7 +31,7 @@ Common use cases:
 
 This package follows conventional Go versioning. Any version up to version 1.0.0 is considered "unstable" and the API may change.
 
-We put a lot of thought into the design of this library and don't expect there to be any breaking changes. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
+We put a lot of thought into the design of this library and don't expect there to be many breaking changes. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
 
 ## Usage
 
@@ -46,19 +46,15 @@ package main
 
 import "proto.zip/studio/validate"
 
-func checkString(str string) error {
-  ruleSet := validate.String().
-		WithMinLen(3).
-		WithMaxLen(7)
-  _, err := ruleSet.Validate(str)
-  return err
-}
+ruleSet := validate.String().
+	WithMinLen(3).
+	WithMaxLen(7)
 
 // Try changing the string to see different results
 func main() {
 	str := "a"
 
-	if err := checkString(str); err != nil {
+	if _, err := ruleSet.Validate(str); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
