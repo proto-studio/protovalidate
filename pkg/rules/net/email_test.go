@@ -1,9 +1,11 @@
 package net_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules/net"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -150,5 +152,24 @@ func TestEmailRequiredString(t *testing.T) {
 	expected := "EmailRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Context is passed to domain
+func TestEmailDomainContext(t *testing.T) {
+	ruleSet := net.NewEmail().Any()
+
+	ctx := rulecontext.WithPathString(context.Background(), "tests")
+	ctx = rulecontext.WithPathString(ctx, "email")
+
+	_, err := ruleSet.ValidateWithContext("hello@example.bogusbogus", ctx)
+
+	expected := "/tests/email"
+
+	if err == nil {
+		t.Error("Expected error to not be nil")
+	} else if s := err.First().Path(); s != expected {
+		t.Errorf("Expected path to be %s, got: %s", expected, s)
 	}
 }

@@ -75,7 +75,7 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 		domainRuleSet = NewDomain().WithTLD().Any()
 	}
 
-	_, domainErrs := domainRuleSet.Validate(domain)
+	_, domainErrs := domainRuleSet.ValidateWithContext(domain, ctx)
 
 	if len(domainErrs) > 0 {
 		allErrors = append(allErrors, domainErrs...)
