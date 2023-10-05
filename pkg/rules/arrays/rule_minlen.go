@@ -2,8 +2,10 @@ package arrays
 
 import (
 	"context"
+	"fmt"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for minimum length
@@ -20,6 +22,18 @@ func (rule *minLenRule[T]) Evaluate(ctx context.Context, value []T) ([]T, errors
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any minimum length rule.
+func (rule *minLenRule[T]) Conflict(x rules.Rule[[]T]) bool {
+	_, ok := x.(*minLenRule[T])
+	return ok
+}
+
+// String returns the string representation of the minimum length rule.
+// Example: WithMinLen(2)
+func (rule *minLenRule[T]) String() string {
+	return fmt.Sprintf("WithMinLen(%d)", rule.min)
 }
 
 // WithMaxLen returns a new child RuleSet that is constrained to the provided minimum array/slice length.

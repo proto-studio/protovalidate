@@ -1,6 +1,7 @@
 package net_test
 
 import (
+	"fmt"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -46,4 +47,39 @@ func TestSuffixPunycodeError(t *testing.T) {
 	// idna: invalid label "é"
 	str := "example.xn--é.com"
 	net.NewDomain().WithSuffix(str)
+}
+
+// Requirements:
+// - Only one suffix list is preserved.
+// - WithSuffix will serialize up to 3 suffix values.
+// - Suffix values are comma separated.
+// - Suffix values are quoted.
+// - If there are more than 3, the test " ... and X more" is used.
+// - Suffix values are normalized.
+func TestLayoutsSerialize(t *testing.T) {
+	values := []string{
+		"studio",
+		"com",
+		"😊",
+		"edu",
+		"co.uk",
+	}
+
+	ruleSet := net.NewDomain().WithSuffix(values[0], values[1]).WithRequired()
+	expected := fmt.Sprintf("DomainRuleSet.WithSuffix(\"STUDIO\", \"COM\").WithRequired()")
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	ruleSet = ruleSet.WithSuffix(values[0], values[1:3]...)
+	expected = fmt.Sprintf("DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\")")
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	ruleSet = ruleSet.WithSuffix(values[0], values[1:]...)
+	expected = fmt.Sprintf("DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\" ... and 2 more)")
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
 }

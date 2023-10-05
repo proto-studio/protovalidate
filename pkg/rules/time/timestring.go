@@ -16,6 +16,11 @@ type TimeStringRuleSet struct {
 	layout string
 }
 
+// backgroundTimeRuleSet is the base time rule set. Since rule sets are immutable.
+var backgroundTimeStringRuleSet TimeRuleSet = TimeRuleSet{
+	label: "TimeStringRuleSet",
+}
+
 // NewTime creates a new time.Time RuleSet.
 // Layout contains the target string date time format.
 //
@@ -24,7 +29,7 @@ type TimeStringRuleSet struct {
 func NewTimeString(layout string) *TimeStringRuleSet {
 	return &TimeStringRuleSet{
 		layout: layout,
-		inner:  NewTime().WithLayouts(layout),
+		inner:  backgroundTimeStringRuleSet.WithLayouts(layout),
 	}
 }
 
@@ -105,6 +110,13 @@ func (v *TimeStringRuleSet) WithRuleFunc(rule rules.RuleFunc[time.Time]) *TimeSt
 	return v.WithRule(rule)
 }
 
+// Any returns a new RuleSet that wraps the domain RuleSet in any Any rule set
+// which can then be used in nested validation.
 func (ruleSet *TimeStringRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[string](ruleSet)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *TimeStringRuleSet) String() string {
+	return ruleSet.inner.String()
 }

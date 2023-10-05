@@ -1,5 +1,7 @@
 package numbers
 
+import "fmt"
+
 // Rounding type is used to specify how a floating point number should be converted to
 // a number with lower precision.
 //
@@ -14,6 +16,23 @@ const (
 	RoundingHalfUp                   // Always round half values up.
 )
 
+// String returns the string value for the rounding. Useful for debugging.
+func (r Rounding) String() string {
+	switch r {
+	case RoundingNone:
+		return "None"
+	case RoundingUp:
+		return "Up"
+	case RoundingDown:
+		return "Down"
+	case RoundingHalfEven:
+		return "HalfEven"
+	case RoundingHalfUp:
+		return "HalfUp"
+	}
+	return "Unknown"
+}
+
 // WithRounding returns a new child RuleSet with the rounding rule set to the supplied value.
 //
 // Notes on floating point numbers:
@@ -26,6 +45,7 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 		base:     v.base,
 		required: v.required,
 		rounding: rounding,
+		label:    fmt.Sprintf("WithRounding(%s)", rounding.String()),
 	}
 }
 
@@ -39,9 +59,9 @@ func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatR
 	return &FloatRuleSet[T]{
 		strict:    v.strict,
 		parent:    v,
-		base:      v.base,
 		required:  v.required,
 		rounding:  rounding,
 		precision: precision,
+		label:     fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision),
 	}
 }

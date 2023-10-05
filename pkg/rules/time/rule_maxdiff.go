@@ -2,9 +2,11 @@ package time
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for minimum
@@ -22,6 +24,18 @@ func (rule *maxDiffRule) Evaluate(ctx context.Context, value time.Time) (time.Ti
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any maximum diff rule.
+func (rule *maxDiffRule) Conflict(x rules.Rule[time.Time]) bool {
+	_, ok := x.(*maxDiffRule)
+	return ok
+}
+
+// String returns the string representation of the maximum diff rule.
+// Example: WithMaxDiff(1w2d)
+func (rule *maxDiffRule) String() string {
+	return fmt.Sprintf("WithMaxDiff(%s)", rule.max)
 }
 
 // WithMaxDiff returns a new child RuleSet that is constrained to the provided maximum time as a difference from the current

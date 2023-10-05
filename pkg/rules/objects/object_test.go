@@ -538,3 +538,50 @@ func TestBug001(t *testing.T) {
 		t.Errorf("Expected email to  be '%s', got: '%s'", expected, out.Email)
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestRequiredString(t *testing.T) {
+	ruleSet := objects.New(testStructInit).WithRequired()
+
+	expected := "ObjectRuleSet[struct].WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithUnknown()
+func TestAllowUnknownString(t *testing.T) {
+	ruleSet := objects.New(testStructInit).WithUnknown()
+
+	expected := "ObjectRuleSet[struct].WithUnknown()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithItemRuleSet()
+func TestWithItemRuleSetString(t *testing.T) {
+	ruleSet := objects.New(testStructInit).
+		WithKey("X", numbers.NewInt().Any()).
+		WithKey("Y", numbers.NewInt().Any())
+
+	expected := "ObjectRuleSet[struct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithRule()
+func TestWithRuleString(t *testing.T) {
+	ruleSet := objects.New(testStructInit).
+		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 0))
+
+	expected := "ObjectRuleSet[struct].WithRuleFunc(...)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

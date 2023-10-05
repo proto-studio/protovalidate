@@ -2,6 +2,7 @@ package arrays
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -16,11 +17,16 @@ type ArrayRuleSet[T any] struct {
 	rule      rules.Rule[[]T]
 	required  bool
 	parent    *ArrayRuleSet[T]
+	label     string
 }
 
 // NewInt creates a new array RuleSet.
 func New[T any]() *ArrayRuleSet[T] {
-	return &ArrayRuleSet[T]{}
+	var empty [0]T
+
+	return &ArrayRuleSet[T]{
+		label: fmt.Sprintf("ArrayRuleSet[%s]", reflect.TypeOf(empty).Elem().Kind()),
+	}
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -35,6 +41,7 @@ func (v *ArrayRuleSet[T]) WithRequired() *ArrayRuleSet[T] {
 	return &ArrayRuleSet[T]{
 		parent:   v,
 		required: true,
+		label:    "WithRequired()",
 	}
 }
 
@@ -134,6 +141,38 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 	}
 }
 
+// noConflict returns the new array rule set with all conflicting rules removed.
+// Does not mutate the existing rule sets.
+func (ruleSet *ArrayRuleSet[T]) noConflict(rule rules.Rule[[]T]) *ArrayRuleSet[T] {
+
+	if ruleSet.rule != nil {
+
+		// Conflicting rules, skip this and return the parent
+		if rule.Conflict(ruleSet.rule) {
+			return ruleSet.parent.noConflict(rule)
+		}
+
+	}
+
+	if ruleSet.parent == nil {
+		return ruleSet
+	}
+
+	newParent := ruleSet.parent.noConflict(rule)
+
+	if newParent == ruleSet.parent {
+		return ruleSet
+	}
+
+	return &ArrayRuleSet[T]{
+		rule:      ruleSet.rule,
+		parent:    newParent,
+		required:  ruleSet.required,
+		itemRules: ruleSet.itemRules,
+		label:     ruleSet.label,
+	}
+}
+
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given array and item type.
@@ -142,7 +181,7 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 func (v *ArrayRuleSet[T]) WithRule(rule rules.Rule[[]T]) *ArrayRuleSet[T] {
 	return &ArrayRuleSet[T]{
 		rule:     rule,
-		parent:   v,
+		parent:   v.noConflict(rule),
 		required: v.required,
 	}
 }
@@ -160,4 +199,22 @@ func (v *ArrayRuleSet[T]) WithRuleFunc(rule rules.RuleFunc[[]T]) *ArrayRuleSet[T
 // which can then be used in nested validation.
 func (v *ArrayRuleSet[T]) Any() rules.RuleSet[any] {
 	return rules.WrapAny[[]T](v)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *ArrayRuleSet[T]) String() string {
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = ruleSet.rule.String()
+		} else if ruleSet.itemRules != nil {
+			label = fmt.Sprintf("WithItemRuleSet(%s)", ruleSet.itemRules)
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

@@ -29,7 +29,7 @@ func TestAnyRuleSet(t *testing.T) {
 func TestAnyForbidden(t *testing.T) {
 	ruleSet := rules.Any().WithForbidden()
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnexpected)
+	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeForbidden)
 }
 
 // Requirements:
@@ -75,5 +75,38 @@ func TestAnyReturnsIdentity(t *testing.T) {
 
 	if ruleSet1 != ruleSet2 {
 		t.Error("Expected Any to be an identity function")
+	}
+}
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestAnyRequiredString(t *testing.T) {
+	ruleSet := rules.Any().WithRequired()
+
+	expected := "AnyRuleSet.WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithForbidden()
+func TestAnyForbiddenString(t *testing.T) {
+	ruleSet := rules.Any().WithForbidden()
+
+	expected := "AnyRuleSet.WithForbidden()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithRule(...)
+func TestAnyRuleString(t *testing.T) {
+	ruleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+
+	expected := "AnyRuleSet.WithRuleFunc(...)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }

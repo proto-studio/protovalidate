@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"fmt"
 	"testing"
 	internalTime "time"
 
@@ -92,5 +93,17 @@ func TestTimeStringAny(t *testing.T) {
 		t.Error("Expected Any not be nil")
 	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
 		t.Error("Expected Any not implement RuleSet[any]")
+	}
+}
+
+// Requirements:
+// - Serializes the same as Time but with TimeString instead
+// - Serialized value contains WithLayouts()
+func TestTimeStringSerialize(t *testing.T) {
+	ruleSet := time.NewTimeString(internalTime.RFC3339)
+
+	expected := fmt.Sprintf("TimeStringRuleSet.WithLayouts(\"%s\")", internalTime.RFC3339)
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }

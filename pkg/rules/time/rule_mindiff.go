@@ -2,9 +2,11 @@ package time
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for minimum
@@ -17,11 +19,23 @@ type minDiffRule struct {
 func (rule *minDiffRule) Evaluate(ctx context.Context, value time.Time) (time.Time, errors.ValidationErrorCollection) {
 	if value.Sub(time.Now()) < rule.min {
 		return value, errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "field must be on or after %s  from now", rule.min),
+			errors.Errorf(errors.CodeMin, ctx, "field must be on or after %s from now", rule.min),
 		)
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any minimum diff rule.
+func (rule *minDiffRule) Conflict(x rules.Rule[time.Time]) bool {
+	_, ok := x.(*minDiffRule)
+	return ok
+}
+
+// String returns the string representation of the minimum diff rule.
+// Example: WithMinDiff(1w2d)
+func (rule *minDiffRule) String() string {
+	return fmt.Sprintf("WithMinDiff(%s)", rule.min)
 }
 
 // WithMinDiff returns a new child RuleSet that is constrained to the provided minimum time as a difference from the current

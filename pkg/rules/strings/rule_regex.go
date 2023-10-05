@@ -2,9 +2,11 @@ package strings
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for regular expressions.
@@ -22,6 +24,17 @@ func (rule *regexpRule) Evaluate(ctx context.Context, value string) (string, err
 	}
 
 	return value, nil
+}
+
+// Conflict always returns false. Regex can be stacked.
+func (rule *regexpRule) Conflict(x rules.Rule[string]) bool {
+	return false
+}
+
+// String returns the string representation of the regex rule.
+// Example: WithRegexp(2)
+func (rule *regexpRule) String() string {
+	return fmt.Sprintf("WithRegexp(%s)", rule.exp)
 }
 
 // WithRegexpString returns a new child RuleSet that is constrained to the provided regular expression.

@@ -399,3 +399,38 @@ func TestRoundingFloatHalfEvenPrecision2(t *testing.T) {
 
 	testhelpers.MustBeValid(t, ruleSet, float64(-124.115), expected)
 }
+
+// Requirements:
+// - Serializes all the rounding levels
+func TestRoundingSerialization(t *testing.T) {
+	expected := "None"
+	if s := numbers.RoundingNone.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+
+	expected = "Up"
+	if s := numbers.RoundingUp.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+
+	expected = "Down"
+	if s := numbers.RoundingDown.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+
+	expected = "HalfUp"
+	if s := numbers.RoundingHalfUp.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+
+	expected = "HalfEven"
+	if s := numbers.RoundingHalfEven.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+
+	expected = "Unknown"
+	r := numbers.Rounding(-1)
+	if s := r.String(); s != expected {
+		t.Errorf("Expected %s, got %s", expected, s)
+	}
+}

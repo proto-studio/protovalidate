@@ -112,3 +112,36 @@ func TestAnyFloat(t *testing.T) {
 		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestFloatRequiredString(t *testing.T) {
+	ruleSet := numbers.NewFloat64().WithRequired()
+
+	expected := "FloatRuleSet[float64].WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithStrict()
+func TestFloatStrictString(t *testing.T) {
+	ruleSet := numbers.NewFloat64().WithStrict()
+
+	expected := "FloatRuleSet[float64].WithStrict()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithRounding(...)
+func TestFloatRoundingString(t *testing.T) {
+	ruleSet := numbers.NewFloat64().WithRounding(numbers.RoundingHalfEven, 5)
+
+	expected := "FloatRuleSet[float64].WithRounding(HalfEven, 5)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

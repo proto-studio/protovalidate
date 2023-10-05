@@ -51,3 +51,14 @@ func TestRegex(t *testing.T) {
 		}
 	}
 }
+
+// Requirements:
+// - Serializes to WithRegex(...)
+func TestRegexStringSerialize(t *testing.T) {
+	ruleSet := strings.New().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
+
+	expected := "StringRuleSet.WithRegexp([a-z]).WithRegexp([0-9])"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

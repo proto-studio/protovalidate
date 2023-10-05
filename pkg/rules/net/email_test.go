@@ -79,7 +79,13 @@ func TestEmailCustom(t *testing.T) {
 		return
 	}
 
-	expected := "name@example.com"
+	str := net.NewEmail().WithRuleFunc(testhelpers.MockCustomRule("name@example.com", 1)).String()
+	expected := "EmailRuleSet.WithRuleFunc(...)"
+	if str != expected {
+		t.Errorf("Expected %s, got %s", expected, str)
+	}
+
+	expected = "name@example.com"
 
 	actual, err := net.NewEmail().
 		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
@@ -134,4 +140,15 @@ func TestEmailEmptyLocal(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
 	testhelpers.MustBeInvalid(t, ruleSet, "@example.com", errors.CodePattern)
+}
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestEmailRequiredString(t *testing.T) {
+	ruleSet := net.NewEmail().WithRequired()
+
+	expected := "EmailRuleSet.WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
 }

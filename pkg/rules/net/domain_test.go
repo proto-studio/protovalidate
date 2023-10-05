@@ -118,3 +118,14 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestDomainRequiredString(t *testing.T) {
+	ruleSet := net.NewDomain().WithRequired()
+
+	expected := "DomainRuleSet.WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

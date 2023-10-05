@@ -27,6 +27,7 @@ type ObjectRuleSet[T any] struct {
 	outputType   reflect.Type
 	required     bool
 	parent       *ObjectRuleSet[T]
+	label        string
 }
 
 // New returns a validator that can be used to validate an object of an
@@ -49,6 +50,15 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 	templateType := templateValue.Type()
 
 	ruleSet := &ObjectRuleSet[T]{}
+
+	var empty [0]T
+	t := reflect.TypeOf(empty).Elem()
+
+	if t.Kind() == reflect.Ptr {
+		ruleSet.label = fmt.Sprintf("ObjectRuleSet[%s]", t.Elem().Kind())
+	} else {
+		ruleSet.label = fmt.Sprintf("ObjectRuleSet[%s]", t.Kind())
+	}
 
 	mapped := make(map[string]bool)
 
@@ -124,6 +134,7 @@ func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 func (v *ObjectRuleSet[T]) WithUnknown() *ObjectRuleSet[T] {
 	newRuleSet := v.withParent()
 	newRuleSet.allowUnknown = true
+	newRuleSet.label = "WithUnknown()"
 	return newRuleSet
 }
 
@@ -193,6 +204,7 @@ func (v *ObjectRuleSet[T]) Required() bool {
 func (v *ObjectRuleSet[T]) WithRequired() *ObjectRuleSet[T] {
 	newRuleSet := v.withParent()
 	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -350,4 +362,27 @@ func (v *ObjectRuleSet[T]) WithRuleFunc(rule rules.RuleFunc[T]) *ObjectRuleSet[T
 // which can then be used in nested validation.
 func (v *ObjectRuleSet[T]) Any() rules.RuleSet[any] {
 	return rules.WrapAny[T](v)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *ObjectRuleSet[T]) String() string {
+	// Pass through mappings
+	if ruleSet.mapping != "" {
+		return ruleSet.parent.String()
+	}
+
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = fmt.Sprintf("WithKey(\"%s\", %s)", ruleSet.key, ruleSet.rule)
+		} else if ruleSet.objRule != nil {
+			label = ruleSet.objRule.String()
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

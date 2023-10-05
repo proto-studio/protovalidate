@@ -2,8 +2,10 @@ package strings
 
 import (
 	"context"
+	"fmt"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for maximum length
@@ -20,6 +22,18 @@ func (rule *maxLenRule) Evaluate(ctx context.Context, value string) (string, err
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any maximum length rule.
+func (rule *maxLenRule) Conflict(x rules.Rule[string]) bool {
+	_, ok := x.(*maxLenRule)
+	return ok
+}
+
+// String returns the string representation of the maximum length rule.
+// Example: WithMaxLen(2)
+func (rule *maxLenRule) String() string {
+	return fmt.Sprintf("WithMaxLen(%d)", rule.max)
 }
 
 // WithMaxLen returns a new child RuleSet that is constrained to the provided maximum string length.

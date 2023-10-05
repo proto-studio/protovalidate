@@ -16,11 +16,17 @@ type EmailRuleSet struct {
 	parent        *EmailRuleSet
 	rule          rules.Rule[string]
 	domainRuleSet rules.RuleSet[any]
+	label         string
+}
+
+// backgroundEmailRuleSet is the base email rule set. Since rule sets are immutable.
+var backgroundEmailRuleSet EmailRuleSet = EmailRuleSet{
+	label: "EmailRuleSet",
 }
 
 // NewEmail creates a new domain RuleSet
 func NewEmail() *EmailRuleSet {
-	return &EmailRuleSet{}
+	return &backgroundEmailRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -35,6 +41,7 @@ func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 		required:      true,
 		parent:        ruleSet,
 		domainRuleSet: ruleSet.domainRuleSet,
+		label:         "WithRequired()",
 	}
 }
 
@@ -172,6 +179,24 @@ func (v *EmailRuleSet) WithRuleFunc(rule rules.RuleFunc[string]) *EmailRuleSet {
 	return v.WithRule(rule)
 }
 
+// Any returns a new RuleSet that wraps the domain RuleSet in any Any rule set
+// which can then be used in nested validation.
 func (ruleSet *EmailRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[string](ruleSet)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *EmailRuleSet) String() string {
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = ruleSet.rule.String()
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

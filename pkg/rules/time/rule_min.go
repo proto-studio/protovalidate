@@ -2,9 +2,11 @@ package time
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for minimum
@@ -21,6 +23,18 @@ func (rule *minTimeRule) Evaluate(ctx context.Context, value time.Time) (time.Ti
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any minimum rule.
+func (rule *minTimeRule) Conflict(x rules.Rule[time.Time]) bool {
+	_, ok := x.(*minTimeRule)
+	return ok
+}
+
+// String returns the string representation of the minimum rule.
+// Example: WithMin(2023...)
+func (rule *minTimeRule) String() string {
+	return fmt.Sprintf("WithMin(%s)", rule.min)
 }
 
 // WithMin returns a new child RuleSet that is constrained to the provided minimum time value.

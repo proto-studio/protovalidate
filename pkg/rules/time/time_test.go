@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"fmt"
 	"testing"
 	internalTime "time"
 
@@ -122,4 +123,37 @@ func TestBadType(t *testing.T) {
 	type x struct{}
 
 	testhelpers.MustBeInvalid(t, ruleSet.Any(), new(x), errors.CodeType)
+}
+
+// Requirements:
+// - WithLayouts will serialize up to 3 layouts.
+// - Layouts are comma separated.
+// - Layout values are quoted.
+// - If there are more than 3, the test " ... and X more" is used.
+func TestLayoutsSerialize(t *testing.T) {
+	layouts := []string{
+		internalTime.DateOnly,
+		internalTime.TimeOnly,
+		internalTime.Stamp,
+		internalTime.RFC3339,
+		internalTime.RFC1123,
+	}
+
+	ruleSet := time.NewTime().WithLayouts(layouts[0], layouts[1])
+	expected := fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\")", layouts[0], layouts[1])
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:3]...)
+	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\")", layouts[0], layouts[1], layouts[2])
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:]...)
+	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\" ... and 2 more)", layouts[0], layouts[1], layouts[2])
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
 }

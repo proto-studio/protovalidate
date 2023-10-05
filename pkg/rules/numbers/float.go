@@ -16,22 +16,26 @@ type floating interface {
 // Implementation of RuleSet for floats.
 type FloatRuleSet[T floating] struct {
 	strict    bool
-	base      int
 	rule      rules.Rule[T]
 	required  bool
 	parent    *FloatRuleSet[T]
 	rounding  Rounding
 	precision int
+	label     string
 }
 
 // NewFloat32 creates a new float32 RuleSet.
 func NewFloat32() *FloatRuleSet[float32] {
-	return &FloatRuleSet[float32]{}
+	return &FloatRuleSet[float32]{
+		label: "FloatRuleSet[float32]",
+	}
 }
 
 // NewFloat64 creates a new float64 RuleSet.
 func NewFloat64() *FloatRuleSet[float64] {
-	return &FloatRuleSet[float64]{}
+	return &FloatRuleSet[float64]{
+		label: "FloatRuleSet[float64]",
+	}
 }
 
 // WithStrict returns a new child RuleSet with the strict flag applied.
@@ -43,10 +47,10 @@ func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    true,
 		parent:    v,
-		base:      v.base,
 		required:  v.required,
 		rounding:  v.rounding,
 		precision: v.precision,
+		label:     "WithStrict()",
 	}
 }
 
@@ -61,10 +65,10 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    v.strict,
 		parent:    v,
-		base:      v.base,
 		required:  true,
 		rounding:  v.rounding,
 		precision: v.precision,
+		label:     "WithRequired()",
 	}
 }
 
@@ -125,20 +129,52 @@ func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T
 	}
 }
 
+// noConflict returns the new array rule set with all conflicting rules removed.
+// Does not mutate the existing rule sets.
+func (ruleSet *FloatRuleSet[T]) noConflict(rule rules.Rule[T]) *FloatRuleSet[T] {
+	if ruleSet.rule != nil {
+
+		// Conflicting rules, skip this and return the parent
+		if rule.Conflict(ruleSet.rule) {
+			return ruleSet.parent.noConflict(rule)
+		}
+
+	}
+
+	if ruleSet.parent == nil {
+		return ruleSet
+	}
+
+	newParent := ruleSet.parent.noConflict(rule)
+
+	if newParent == ruleSet.parent {
+		return ruleSet
+	}
+
+	return &FloatRuleSet[T]{
+		strict:    ruleSet.strict,
+		rule:      ruleSet.rule,
+		required:  ruleSet.required,
+		parent:    newParent,
+		rounding:  ruleSet.rounding,
+		precision: ruleSet.precision,
+		label:     ruleSet.label,
+	}
+}
+
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given number type.
 //
 // Use this when implementing custom rules.
-func (v *FloatRuleSet[T]) WithRule(rule rules.Rule[T]) *FloatRuleSet[T] {
+func (ruleSet *FloatRuleSet[T]) WithRule(rule rules.Rule[T]) *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    v.strict,
-		parent:    v,
-		base:      v.base,
+		strict:    ruleSet.strict,
+		parent:    ruleSet.noConflict(rule),
 		rule:      rule,
 		required:  true,
-		rounding:  v.rounding,
-		precision: v.precision,
+		rounding:  ruleSet.rounding,
+		precision: ruleSet.precision,
 	}
 }
 
@@ -161,4 +197,18 @@ func (v *FloatRuleSet[T]) Any() rules.RuleSet[any] {
 // Used for error message formatting.
 func (v *FloatRuleSet[T]) typeName() string {
 	return reflect.ValueOf(*new(T)).Kind().String()
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *FloatRuleSet[T]) String() string {
+	label := ruleSet.label
+
+	if label == "" && ruleSet.rule != nil {
+		label = ruleSet.rule.String()
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

@@ -17,6 +17,7 @@ type WrapAnyRuleSet[T any] struct {
 	inner    RuleSet[T]
 	rule     Rule[any]
 	parent   *WrapAnyRuleSet[T]
+	label    string
 }
 
 // WrapAny wraps an existing RuleSet in an "Any" rule set which can then be used to pass into nested validators
@@ -46,6 +47,7 @@ func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 		required: true,
 		inner:    v.inner,
 		parent:   v,
+		label:    "WithRequired()",
 	}
 }
 
@@ -125,4 +127,21 @@ func (v *WrapAnyRuleSet[T]) WithRuleFunc(rule RuleFunc[any]) *WrapAnyRuleSet[T] 
 // Any is an identity function for this implementation and returns the current rule set.
 func (v *WrapAnyRuleSet[T]) Any() RuleSet[any] {
 	return v
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *WrapAnyRuleSet[T]) String() string {
+	if ruleSet.parent != nil {
+		label := ruleSet.label
+
+		if label == "" {
+			if ruleSet.rule != nil {
+				label = ruleSet.rule.String()
+			}
+		}
+
+		return ruleSet.parent.String() + "." + label
+	}
+
+	return ruleSet.inner.String() + ".Any()"
 }

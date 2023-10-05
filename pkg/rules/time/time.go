@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
@@ -16,11 +17,17 @@ type TimeRuleSet struct {
 	layouts  []string
 	parent   *TimeRuleSet
 	rule     rules.Rule[time.Time]
+	label    string
+}
+
+// backgroundTimeRuleSet is the base time rule set. Since rule sets are immutable.
+var backgroundTimeRuleSet TimeRuleSet = TimeRuleSet{
+	label: "TimeRuleSet",
 }
 
 // NewTime creates a new time.Time RuleSet
 func NewTime() *TimeRuleSet {
-	return &TimeRuleSet{}
+	return &backgroundTimeRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -52,6 +59,7 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 		required: ruleSet.required,
 		layouts:  layouts,
 		parent:   ruleSet,
+		label:    util.StringsToRuleOutput("WithLayouts", layouts),
 	}
 }
 
@@ -121,6 +129,37 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 	}
 }
 
+// noConflict returns the new array rule set with all conflicting rules removed.
+// Does not mutate the existing rule sets.
+func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet {
+	if ruleSet.rule != nil {
+
+		// Conflicting rules, skip this and return the parent
+		if rule.Conflict(ruleSet.rule) {
+			return ruleSet.parent.noConflict(rule)
+		}
+
+	}
+
+	if ruleSet.parent == nil {
+		return ruleSet
+	}
+
+	newParent := ruleSet.parent.noConflict(rule)
+
+	if newParent == ruleSet.parent {
+		return ruleSet
+	}
+
+	return &TimeRuleSet{
+		rule:     ruleSet.rule,
+		layouts:  ruleSet.layouts,
+		parent:   newParent,
+		required: ruleSet.required,
+		label:    ruleSet.label,
+	}
+}
+
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the time.Time type.
@@ -129,7 +168,7 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
 	return &TimeRuleSet{
 		rule:     rule,
-		parent:   ruleSet,
+		parent:   ruleSet.noConflict(rule),
 		required: ruleSet.required,
 	}
 }
@@ -143,6 +182,24 @@ func (v *TimeRuleSet) WithRuleFunc(rule rules.RuleFunc[time.Time]) *TimeRuleSet 
 	return v.WithRule(rule)
 }
 
+// Any returns a new RuleSet that wraps the domain RuleSet in any Any rule set
+// which can then be used in nested validation.
 func (ruleSet *TimeRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[time.Time](ruleSet)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *TimeRuleSet) String() string {
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = ruleSet.rule.String()
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

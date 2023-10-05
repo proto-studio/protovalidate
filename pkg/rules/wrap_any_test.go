@@ -101,3 +101,27 @@ func TestWrapAnyReturnsIdentity(t *testing.T) {
 		t.Error("Expected Any to be an identity function")
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestWrapAnyRequiredString(t *testing.T) {
+	innerRuleSet := rules.Any()
+	ruleSet := rules.WrapAny[any](innerRuleSet).WithRequired()
+
+	expected := "AnyRuleSet.Any().WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithRule(...)
+func TestWrapAnyRuleString(t *testing.T) {
+	innerRuleSet := rules.Any()
+	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+
+	expected := "AnyRuleSet.Any().WithRuleFunc(...)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

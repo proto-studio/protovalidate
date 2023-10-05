@@ -143,3 +143,47 @@ func TestAnyInt(t *testing.T) {
 		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestIntRequiredString(t *testing.T) {
+	ruleSet := numbers.NewInt().WithRequired()
+
+	expected := "IntRuleSet[int].WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithStrict()
+func TestIntStrictString(t *testing.T) {
+	ruleSet := numbers.NewInt().WithStrict()
+
+	expected := "IntRuleSet[int].WithStrict()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithBase(16)
+func TestIntBaseString(t *testing.T) {
+	ruleSet := numbers.NewInt().WithBase(16)
+
+	expected := "IntRuleSet[int].WithBase(16)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithRounding(...)
+func TestIntRoundingString(t *testing.T) {
+	ruleSet := numbers.NewInt().WithRounding(numbers.RoundingHalfEven)
+
+	expected := "IntRuleSet[int].WithRounding(HalfEven)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

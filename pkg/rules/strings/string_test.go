@@ -137,3 +137,25 @@ func TestAny(t *testing.T) {
 		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestRequiredString(t *testing.T) {
+	ruleSet := strings.New().WithRequired()
+
+	expected := "StringRuleSet.WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithStrict()
+func TestStrictString(t *testing.T) {
+	ruleSet := strings.New().WithStrict()
+
+	expected := "StringRuleSet.WithStrict()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

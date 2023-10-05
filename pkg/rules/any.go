@@ -16,11 +16,18 @@ type AnyRuleSet struct {
 	forbidden bool
 	rule      Rule[any]
 	parent    *AnyRuleSet
+	label     string
+}
+
+// backgroundAnyRUleSet is the main AnyRuleSet.
+// Any returns this since rule sets are immutable and AnyRuleSet does not contain generics.
+var backgroundAnyRuleSet AnyRuleSet = AnyRuleSet{
+	label: "AnyRuleSet",
 }
 
 // Any creates a new Any rule set.
 func Any() *AnyRuleSet {
-	return &AnyRuleSet{}
+	return &backgroundAnyRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -35,6 +42,7 @@ func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 		required:  true,
 		forbidden: v.forbidden,
 		parent:    v,
+		label:     "WithRequired()",
 	}
 }
 
@@ -45,6 +53,7 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 		required:  v.required,
 		forbidden: true,
 		parent:    v,
+		label:     "WithForbidden()",
 	}
 }
 
@@ -60,7 +69,7 @@ func (v *AnyRuleSet) Validate(value interface{}) (any, errors.ValidationErrorCol
 // Also, takes a Context which can be used by rules and error formatting.
 func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
 	if v.forbidden {
-		return nil, errors.Collection(errors.Errorf(errors.CodeUnexpected, ctx, "value is not allowed"))
+		return nil, errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
 	}
 
 	allErrors := errors.Collection()
@@ -115,4 +124,20 @@ func (v *AnyRuleSet) WithRuleFunc(rule RuleFunc[any]) *AnyRuleSet {
 // Any is an identity function for this implementation and returns the current rule set.
 func (v *AnyRuleSet) Any() RuleSet[any] {
 	return v
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *AnyRuleSet) String() string {
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = ruleSet.rule.String()
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

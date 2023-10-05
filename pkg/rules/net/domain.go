@@ -12,19 +12,25 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
+var backgroundDomainRuleSet DomainRuleSet = DomainRuleSet{
+	label: "DomainRuleSet",
+}
+
 // domainLabelPattern matches valid domains after they have been converted to punycode
-var domainLabelPatter = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$`)
+var domainLabelPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$`)
 
 // DomainRuleSet implements the RuleSet interface for the domain names.
 type DomainRuleSet struct {
 	required bool
 	parent   *DomainRuleSet
 	rule     rules.Rule[string]
+	label    string
 }
 
 // NewDomain creates a new domain RuleSet
 func NewDomain() *DomainRuleSet {
-	return &DomainRuleSet{}
+	return &backgroundDomainRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -38,6 +44,7 @@ func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	return &DomainRuleSet{
 		required: true,
 		parent:   ruleSet,
+		label:    "WithRequired()",
 	}
 }
 
@@ -70,7 +77,7 @@ func validateBasicDomain(ctx context.Context, value string) errors.ValidationErr
 	parts := strings.Split(punycode, ".")
 
 	for _, part := range parts {
-		if !domainLabelPatter.MatchString(part) {
+		if !domainLabelPattern.MatchString(part) {
 			allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "domain segment is invalid"))
 			break
 		}
@@ -120,6 +127,36 @@ func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context
 	}
 }
 
+// noConflict returns the new array rule set with all conflicting rules removed.
+// Does not mutate the existing rule sets.
+func (ruleSet *DomainRuleSet) noConflict(rule rules.Rule[string]) *DomainRuleSet {
+	if ruleSet.rule != nil {
+
+		// Conflicting rules, skip this and return the parent
+		if rule.Conflict(ruleSet.rule) {
+			return ruleSet.parent.noConflict(rule)
+		}
+
+	}
+
+	if ruleSet.parent == nil {
+		return ruleSet
+	}
+
+	newParent := ruleSet.parent.noConflict(rule)
+
+	if newParent == ruleSet.parent {
+		return ruleSet
+	}
+
+	return &DomainRuleSet{
+		rule:     ruleSet.rule,
+		parent:   newParent,
+		required: ruleSet.required,
+		label:    ruleSet.label,
+	}
+}
+
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the string type.
@@ -128,7 +165,7 @@ func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context
 func (ruleSet *DomainRuleSet) WithRule(rule rules.Rule[string]) *DomainRuleSet {
 	return &DomainRuleSet{
 		rule:     rule,
-		parent:   ruleSet,
+		parent:   ruleSet.noConflict(rule),
 		required: ruleSet.required,
 	}
 }
@@ -142,6 +179,24 @@ func (v *DomainRuleSet) WithRuleFunc(rule rules.RuleFunc[string]) *DomainRuleSet
 	return v.WithRule(rule)
 }
 
+// Any returns a new RuleSet that wraps the domain RuleSet in any Any rule set
+// which can then be used in nested validation.
 func (ruleSet *DomainRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[string](ruleSet)
+}
+
+// String returns a string representation of the rule set suitable for debugging.
+func (ruleSet *DomainRuleSet) String() string {
+	label := ruleSet.label
+
+	if label == "" {
+		if ruleSet.rule != nil {
+			label = ruleSet.rule.String()
+		}
+	}
+
+	if ruleSet.parent != nil {
+		return ruleSet.parent.String() + "." + label
+	}
+	return label
 }

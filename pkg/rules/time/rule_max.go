@@ -2,9 +2,11 @@ package time
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for maximum
@@ -21,6 +23,18 @@ func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) (time.Ti
 	}
 
 	return value, nil
+}
+
+// Conflict returns true for any maximum rule.
+func (rule *maxTimeRule) Conflict(x rules.Rule[time.Time]) bool {
+	_, ok := x.(*maxTimeRule)
+	return ok
+}
+
+// String returns the string representation of the maximum rule.
+// Example: WithMax(2023...)
+func (rule *maxTimeRule) String() string {
+	return fmt.Sprintf("WithMax(%s)", rule.max)
 }
 
 // WithMin returns a new child RuleSet that is constrained to the provided minimum time value.

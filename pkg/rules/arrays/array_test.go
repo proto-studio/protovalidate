@@ -7,6 +7,7 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/arrays"
+	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -135,5 +136,27 @@ func TestAny(t *testing.T) {
 		t.Error("Expected Any not be nil")
 	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
 		t.Error("Expected Any not implement RuleSet[any]")
+	}
+}
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestRequiredString(t *testing.T) {
+	ruleSet := arrays.New[int]().WithRequired()
+
+	expected := "ArrayRuleSet[int].WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Serializes to WithItemRuleSet()
+func TestWithItemRuleSetString(t *testing.T) {
+	ruleSet := arrays.New[int]().WithItemRuleSet(numbers.NewInt().WithMin(2))
+
+	expected := "ArrayRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
