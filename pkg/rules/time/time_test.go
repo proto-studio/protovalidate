@@ -157,3 +157,14 @@ func TestLayoutsSerialize(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestRequiredString(t *testing.T) {
+	ruleSet := time.NewTime().WithRequired()
+
+	expected := "TimeRuleSet.WithRequired()"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

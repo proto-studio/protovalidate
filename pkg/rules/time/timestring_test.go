@@ -107,3 +107,21 @@ func TestTimeStringSerialize(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+func TestTimeStringRFC3339WithTimezone(t *testing.T) {
+	s := "2023-10-05T16:20:43-04:00"
+
+	ruleSet := time.NewTimeString(internalTime.RFC3339).WithRequired()
+	testhelpers.MustBeValid(t, ruleSet.Any(), s, s)
+}
+
+// Requirements:
+// - Serializes to WithRequired()
+func TestStringRequiredString(t *testing.T) {
+	ruleSet := time.NewTimeString(internalTime.RFC3339).WithRequired()
+
+	expected := fmt.Sprintf("TimeStringRuleSet.WithLayouts(\"%s\").WithRequired()", internalTime.RFC3339)
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}

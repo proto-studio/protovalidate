@@ -41,6 +41,7 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	return &TimeRuleSet{
 		required: true,
 		parent:   ruleSet,
+		label:    "WithRequired()",
 	}
 }
 
@@ -86,8 +87,9 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		ok := false
 
 		for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-			if ruleSet.layouts != nil {
-				for _, layout := range ruleSet.layouts {
+			if currentRuleSet.layouts != nil {
+				for _, layout := range currentRuleSet.layouts {
+
 					var err error
 					t, err = time.Parse(layout, x)
 					if err == nil {
