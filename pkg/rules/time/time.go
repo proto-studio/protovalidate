@@ -97,6 +97,7 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 						break
 					}
 				}
+				break
 			}
 		}
 

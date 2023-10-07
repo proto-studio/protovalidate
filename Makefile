@@ -1,5 +1,7 @@
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
+.PHONY: test test-docker bench coverage coverage-html reportcard generated
+
 test:
 	go test ./...
 

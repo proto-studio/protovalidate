@@ -27,7 +27,7 @@ type Rule[T any] interface {
 }
 
 // RuleFunc implements the Rule interface for functions.
-type RuleFunc[T any] func(tx context.Context, value T) (T, errors.ValidationErrorCollection)
+type RuleFunc[T any] func(ctx context.Context, value T) (T, errors.ValidationErrorCollection)
 
 // Evaluate calls the rule function and returns the results.
 func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {

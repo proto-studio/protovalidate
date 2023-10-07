@@ -2,7 +2,7 @@ package strings
 
 import (
 	"context"
-	"slices"
+	"sort"
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
@@ -113,7 +113,8 @@ func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *S
 		values = append(values, existing.values...)
 	}
 
-	slices.Sort(values)
+	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 2.20.
+	sort.Strings(values)
 
 	return ruleSet.WithRule(&valuesRule{
 		values,
@@ -128,7 +129,8 @@ func (ruleSet *StringRuleSet) WithRejectedValues(value string, rest ...string) *
 	values = append(values, value)
 	values = append(values, rest...)
 
-	slices.Sort(values)
+	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 2.20.
+	sort.Strings(values)
 
 	return ruleSet.WithRule(&valuesRule{
 		values,
