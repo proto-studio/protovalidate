@@ -41,7 +41,7 @@ func (collection ValidationErrorCollection) All() []ValidationError {
 //
 // When possible you should use the ValidationError object since this method loses contextual data.
 //
-// As with the First() method, if there is more than one error, which error is displayed is not guaranteed to be deterministic.
+// If there is more than one error, which error is displayed is not guaranteed to be deterministic.
 //
 // An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
 func (collection ValidationErrorCollection) Error() string {
@@ -54,6 +54,17 @@ func (collection ValidationErrorCollection) Error() string {
 	}
 
 	panic("Empty collection")
+}
+
+// Unwrap implements the wrapped Error interface to return an array of errors.
+//
+// An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
+func (collection ValidationErrorCollection) Unwrap() []error {
+	errs := make([]error, len(collection))
+	for i, _ := range collection {
+		errs[i] = collection[i]
+	}
+	return errs
 }
 
 // First returns only the first error.

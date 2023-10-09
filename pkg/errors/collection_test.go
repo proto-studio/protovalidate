@@ -183,3 +183,19 @@ func TestPanicCollectionMessageEmpty(t *testing.T) {
 
 	_ = errors.Collection().Error()
 }
+
+func TestCollectionUnwrap(t *testing.T) {
+	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
+
+	col := errors.Collection(err)
+
+	if msg := col.Error(); msg != "error123" {
+		t.Errorf("Expected error message to be %s, got: %s", "error123", msg)
+	}
+
+	col = append(col, errors.Errorf(errors.CodeUnknown, context.Background(), "error123"))
+
+	if msg := col.Error(); !strings.Contains(msg, "(and 1 more)") {
+		t.Errorf("Expected error message to contain the string '(and 1 more)', got: %s", msg)
+	}
+}
