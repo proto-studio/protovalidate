@@ -12,6 +12,7 @@ import (
 
 // EmailRuleSet implements the RuleSet interface for the domain names.
 type EmailRuleSet struct {
+	rules.NoConflict[string]
 	required      bool
 	parent        *EmailRuleSet
 	rule          rules.Rule[string]
@@ -113,10 +114,17 @@ func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context)
 		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
 	}
 
-	allErrors := ruleSet.validateBasicEmail(ctx, valueStr)
+	return ruleSet.Evaluate(ctx, valueStr)
+}
+
+// Evaluate performs a validation of a RuleSet against a string and returns an object value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+
+	allErrors := ruleSet.validateBasicEmail(ctx, value)
 
 	if len(allErrors) > 0 {
-		return valueStr, allErrors
+		return value, allErrors
 	}
 
 	currentRuleSet := ruleSet
@@ -124,11 +132,11 @@ func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context)
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, valueStr)
+			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
 			if errs != nil {
 				allErrors = append(allErrors, errs...)
 			} else {
-				valueStr = newStr
+				value = newStr
 			}
 		}
 
@@ -136,9 +144,9 @@ func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context)
 	}
 
 	if len(allErrors) > 0 {
-		return valueStr, allErrors
+		return value, allErrors
 	} else {
-		return valueStr, nil
+		return value, nil
 	}
 }
 

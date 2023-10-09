@@ -11,6 +11,7 @@ import (
 
 // Implementation of RuleSet for strings.
 type StringRuleSet struct {
+	rules.NoConflict[string]
 	strict   bool
 	rule     rules.Rule[string]
 	required bool
@@ -67,25 +68,30 @@ func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorColle
 //
 // Also, takes a Context which can be used by rules and error formatting.
 func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (string, errors.ValidationErrorCollection) {
-	allErrors := errors.Collection()
-
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {
-		allErrors = append(allErrors, validationErr)
-		return "", allErrors
+		return "", errors.Collection(validationErr)
 	}
+
+	return v.Evaluate(ctx, str)
+}
+
+// Evaluate performs a validation of a RuleSet against a string value and returns a string value or
+// a ValidationErrorCollection.
+func (v *StringRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+	allErrors := errors.Collection()
 
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, str)
+			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
 			if errs != nil {
 				allErrors = append(allErrors, errs...)
 			} else {
-				str = newStr
+				value = newStr
 			}
 		}
 
@@ -93,9 +99,9 @@ func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Conte
 	}
 
 	if len(allErrors) > 0 {
-		return str, allErrors
+		return value, allErrors
 	} else {
-		return str, nil
+		return value, nil
 	}
 }
 

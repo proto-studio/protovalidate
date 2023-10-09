@@ -13,6 +13,7 @@ import (
 
 // TimeRuleSet implements the RuleSet interface for the time.Time struct.
 type TimeRuleSet struct {
+	rules.NoConflict[time.Time]
 	required bool
 	layouts  []string
 	parent   *TimeRuleSet
@@ -76,7 +77,6 @@ func (ruleSet *TimeRuleSet) Validate(value any) (time.Time, errors.ValidationErr
 // Also, takes a Context which can be used by rules and error formatting.
 func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) (time.Time, errors.ValidationErrorCollection) {
 	var t time.Time
-	allErrors := errors.Collection()
 
 	switch x := value.(type) {
 	case time.Time:
@@ -102,23 +102,30 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		}
 
 		if !ok {
-			allErrors = append(allErrors, errors.NewCoercionError(ctx, "date time", "string"))
-			return t, allErrors
+			return t, errors.Collection(errors.NewCoercionError(ctx, "date time", "string"))
 		}
 	default:
 		return t, errors.Collection(errors.NewCoercionError(ctx, "date time", reflect.ValueOf(value).Kind().String()))
 	}
+
+	return ruleSet.Evaluate(ctx, t)
+}
+
+// Evaluate performs a validation of a RuleSet against a time.Time value and returns a time.Time value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) (time.Time, errors.ValidationErrorCollection) {
+	allErrors := errors.Collection()
 
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newTime, errs := currentRuleSet.rule.Evaluate(ctx, t)
+			newTime, errs := currentRuleSet.rule.Evaluate(ctx, value)
 			if errs != nil {
 				allErrors = append(allErrors, errs...)
 			} else {
-				t = newTime
+				value = newTime
 			}
 		}
 
@@ -126,9 +133,9 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 	}
 
 	if len(allErrors) > 0 {
-		return t, allErrors
+		return value, allErrors
 	} else {
-		return t, nil
+		return value, nil
 	}
 }
 

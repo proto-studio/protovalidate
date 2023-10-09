@@ -2,6 +2,7 @@ package objects_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -583,5 +584,30 @@ func TestWithRuleString(t *testing.T) {
 	expected := "ObjectRuleSet[struct].WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Evaluate behaves like ValidateWithContext
+func TestEvaluate(t *testing.T) {
+	ctx := context.Background()
+
+	ruleSet := objects.New(testStructInit).
+		WithKey("X", numbers.NewInt().Any()).
+		WithKey("Y", numbers.NewInt().Any())
+
+	input := testStructInit()
+	input.X = 12
+	input.Y = 34
+
+	v1, err1 := ruleSet.Evaluate(ctx, input)
+	v2, err2 := ruleSet.ValidateWithContext(input, ctx)
+
+	if !reflect.DeepEqual(v1, v2) {
+		t.Errorf("Expected values to match, got %v and %v", v1, v2)
+	}
+
+	if err1 != nil || err2 != nil {
+		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
 	}
 }

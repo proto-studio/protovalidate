@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -123,5 +124,25 @@ func TestStringRequiredString(t *testing.T) {
 	expected := fmt.Sprintf("TimeStringRuleSet.WithLayouts(\"%s\").WithRequired()", internalTime.RFC3339)
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Evaluate behaves like ValidateWithContext
+func TestTimeStringEvaluate(t *testing.T) {
+	s := "2023-09-29T18:57:42Z"
+	ctx := context.Background()
+
+	ruleSet := time.NewTimeString(internalTime.RFC3339)
+
+	v1, err1 := ruleSet.Evaluate(ctx, s)
+	v2, err2 := ruleSet.ValidateWithContext(s, ctx)
+
+	if v1 != v2 {
+		t.Errorf("Expected values to match, got %s and %s", v1, v2)
+	}
+
+	if err1 != nil || err2 != nil {
+		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
 	}
 }

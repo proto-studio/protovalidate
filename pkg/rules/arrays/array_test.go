@@ -2,6 +2,7 @@ package arrays_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -158,5 +159,25 @@ func TestWithItemRuleSetString(t *testing.T) {
 	expected := "ArrayRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirements:
+// - Evaluate behaves like ValidateWithContext
+func TestEvaluate(t *testing.T) {
+	v := []int{123, 456}
+	ctx := context.Background()
+
+	ruleSet := arrays.New[int]().WithItemRuleSet(numbers.NewInt().WithMin(2))
+
+	v1, err1 := ruleSet.Evaluate(ctx, v)
+	v2, err2 := ruleSet.ValidateWithContext(v, ctx)
+
+	if !reflect.DeepEqual(v1, v2) {
+		t.Errorf("Expected values to match, got %v and %v", v1, v2)
+	}
+
+	if err1 != nil || err2 != nil {
+		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
 	}
 }

@@ -12,6 +12,7 @@ import (
 //
 // See also: WrapAny which also implements the "any" interface and wraps another RuleSet.
 type AnyRuleSet struct {
+	NoConflict[any]
 	required  bool
 	forbidden bool
 	rule      Rule[any]
@@ -68,6 +69,15 @@ func (v *AnyRuleSet) Validate(value interface{}) (any, errors.ValidationErrorCol
 //
 // Also, takes a Context which can be used by rules and error formatting.
 func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
+	return v.Evaluate(ctx, value)
+}
+
+// Evaluate performs a validation of a RuleSet against a value and returns a value of the same type
+// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
+// added directly to the WrapAnyRuleSet.
+//
+// For WrapAny, Evaluate is identical to ValidateWithContext except for the argument order.
+func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
 	if v.forbidden {
 		return nil, errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
 	}

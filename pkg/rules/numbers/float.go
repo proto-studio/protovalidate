@@ -15,6 +15,7 @@ type floating interface {
 
 // Implementation of RuleSet for floats.
 type FloatRuleSet[T floating] struct {
+	rules.NoConflict[T]
 	strict    bool
 	rule      rules.Rule[T]
 	required  bool
@@ -83,18 +84,21 @@ func (v *FloatRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollecti
 //
 // Also, takes a Context which can be used by rules and error formatting.
 func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	allErrors := errors.Collection()
-
 	floatval, validationErr := v.coerceFloat(value, ctx)
 
 	if validationErr != nil {
-		allErrors = append(allErrors, validationErr)
-		return 0, allErrors
+		return 0, errors.Collection(validationErr)
 	}
 
+	return v.Evaluate(ctx, floatval)
+}
+
+// Evaluate performs a validation of a RuleSet against a float value and returns a float value of the
+// same type or a ValidationErrorCollection.
+func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
 	if v.rounding != RoundingNone {
 		mul := math.Pow10(v.precision)
-		tempFloatval := float64(floatval) * mul
+		tempFloatval := float64(value) * mul
 
 		switch v.rounding {
 		case RoundingDown:
@@ -108,24 +112,26 @@ func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T
 		}
 
 		tempFloatval /= mul
-		floatval = T(tempFloatval)
+		value = T(tempFloatval)
 	}
+
+	allErrors := errors.Collection()
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			newStr, err := currentRuleSet.rule.Evaluate(ctx, floatval)
+			newFloat, err := currentRuleSet.rule.Evaluate(ctx, value)
 			if err != nil {
 				allErrors = append(allErrors, err...)
 			} else {
-				floatval = newStr
+				value = newFloat
 			}
 		}
 	}
 
 	if len(allErrors) != 0 {
-		return floatval, allErrors
+		return value, allErrors
 	} else {
-		return floatval, nil
+		return value, nil
 	}
 }
 

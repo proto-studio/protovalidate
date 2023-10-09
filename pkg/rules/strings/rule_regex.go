@@ -11,6 +11,7 @@ import (
 
 // Implements the Rule interface for regular expressions.
 type regexpRule struct {
+	rules.NoConflict[string]
 	exp *regexp.Regexp
 	msg string
 }
@@ -26,11 +27,6 @@ func (rule *regexpRule) Evaluate(ctx context.Context, value string) (string, err
 	return value, nil
 }
 
-// Conflict always returns false. Regex can be stacked.
-func (rule *regexpRule) Conflict(x rules.Rule[string]) bool {
-	return false
-}
-
 // String returns the string representation of the regex rule.
 // Example: WithRegexp(2)
 func (rule *regexpRule) String() string {
@@ -42,19 +38,14 @@ func (rule *regexpRule) String() string {
 //
 // This method panics if the expression cannot be compiled.
 func (v *StringRuleSet) WithRegexpString(exp, errorMsg string) *StringRuleSet {
-	compiledExp := regexp.MustCompile(exp)
-
-	return v.WithRule(&regexpRule{
-		compiledExp,
-		errorMsg,
-	})
+	return v.WithRegexp(regexp.MustCompile(exp), errorMsg)
 }
 
 // WithRegexp returns a new child RuleSet that is constrained to the provided regular expression.
 // The second parameter is the error text, which will be localized if a translation is available.
 func (v *StringRuleSet) WithRegexp(exp *regexp.Regexp, errorMsg string) *StringRuleSet {
 	return v.WithRule(&regexpRule{
-		exp,
-		errorMsg,
+		exp: exp,
+		msg: errorMsg,
 	})
 }

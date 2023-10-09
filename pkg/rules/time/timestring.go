@@ -12,6 +12,7 @@ import (
 // time.Time struct. This is useful when dealing with APIs that treat date times as opaque strings and
 // don't care about the actual date.Time object.
 type TimeStringRuleSet struct {
+	rules.NoConflict[string]
 	inner  *TimeRuleSet
 	layout string
 }
@@ -79,6 +80,12 @@ func (ruleSet *TimeStringRuleSet) ValidateWithContext(value any, ctx context.Con
 	}
 
 	return t.Format(ruleSet.layout), nil
+}
+
+// Evaluate performs a validation of a RuleSet against a string value and returns a string value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *TimeStringRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+	return ruleSet.ValidateWithContext(value, ctx)
 }
 
 // WithRule returns a new child rule set with a rule added to the list of

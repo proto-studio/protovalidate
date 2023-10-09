@@ -13,6 +13,7 @@ import (
 
 // Implementation of RuleSet for arrays of a given type.
 type ArrayRuleSet[T any] struct {
+	rules.NoConflict[[]T]
 	itemRules rules.RuleSet[T]
 	rule      rules.Rule[[]T]
 	required  bool
@@ -139,6 +140,13 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 	} else {
 		return output, nil
 	}
+}
+
+// Evaluate performs a validation of a RuleSet against a the array/slice type and returns a value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *ArrayRuleSet[T]) Evaluate(ctx context.Context, value []T) ([]T, errors.ValidationErrorCollection) {
+	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
+	return ruleSet.ValidateWithContext(value, ctx)
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

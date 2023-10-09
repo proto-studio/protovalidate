@@ -15,6 +15,7 @@ type integer interface {
 
 // Implementation of RuleSet for integers.
 type IntRuleSet[T integer] struct {
+	rules.NoConflict[T]
 	strict   bool
 	base     int
 	rule     rules.Rule[T]
@@ -165,41 +166,46 @@ func (v *IntRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection
 //
 // Also, takes a Context which can be used by validaton rules and error formatting.
 func (v *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	allErrors := errors.Collection()
-
 	intval, validationErr := v.coerceInt(value, ctx)
 
 	if validationErr != nil {
-		allErrors = append(allErrors, validationErr)
-		return 0, allErrors
+		return 0, errors.Collection(validationErr)
 	}
+
+	return v.Evaluate(ctx, intval)
+}
+
+// Evaluate performs a validation of a RuleSet against an integer value and returns an integer value of the
+// same type or a ValidationErrorCollection.
+func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+	allErrors := errors.Collection()
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			newStr, err := currentRuleSet.rule.Evaluate(ctx, intval)
+			newInt, err := currentRuleSet.rule.Evaluate(ctx, value)
 			if err != nil {
 				allErrors = append(allErrors, err...)
 			} else {
-				intval = newStr
+				value = newInt
 			}
 		}
 	}
 
 	if len(allErrors) != 0 {
-		return intval, allErrors
+		return value, allErrors
 	} else {
-		return intval, nil
+		return value, nil
 	}
 }
 
-// noConflict returns the new array rule set with all conflicting rules removed.
+// withoutConflicts returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *IntRuleSet[T]) noConflict(rule rules.Rule[T]) *IntRuleSet[T] {
+func (ruleSet *IntRuleSet[T]) withoutConflicts(rule rules.Rule[T]) *IntRuleSet[T] {
 	if ruleSet.rule != nil {
 
 		// Conflicting rules, skip this and return the parent
 		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+			return ruleSet.parent.withoutConflicts(rule)
 		}
 
 	}
@@ -208,7 +214,7 @@ func (ruleSet *IntRuleSet[T]) noConflict(rule rules.Rule[T]) *IntRuleSet[T] {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.withoutConflicts(rule)
 
 	if newParent == ruleSet.parent {
 		return ruleSet
@@ -234,7 +240,7 @@ func (ruleSet *IntRuleSet[T]) WithRule(rule rules.Rule[T]) *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   ruleSet.strict,
 		rule:     rule,
-		parent:   ruleSet.noConflict(rule),
+		parent:   ruleSet.withoutConflicts(rule),
 		base:     ruleSet.base,
 		required: ruleSet.required,
 		rounding: ruleSet.rounding,

@@ -113,7 +113,7 @@ func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *S
 		values = append(values, existing.values...)
 	}
 
-	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 2.20.
+	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 1.20.
 	sort.Strings(values)
 
 	return ruleSet.WithRule(&valuesRule{

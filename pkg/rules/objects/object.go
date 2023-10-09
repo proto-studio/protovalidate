@@ -18,6 +18,7 @@ const annotation = "validate"
 
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any] struct {
+	rules.NoConflict[T]
 	init         func() T
 	allowUnknown bool
 	key          string
@@ -336,6 +337,13 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 	} else {
 		return out, nil
 	}
+}
+
+// Evaluate performs a validation of a RuleSet against a value of the object type and returns an object value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *ObjectRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
+	return ruleSet.ValidateWithContext(value, ctx)
 }
 
 // WithRule returns a new child rule set with a rule added to the list of

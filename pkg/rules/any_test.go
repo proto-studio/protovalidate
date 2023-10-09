@@ -110,3 +110,21 @@ func TestAnyRuleString(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+// Requirement:
+// - RuleSets are usable as Rules for the same type
+func TestAnyComposition(t *testing.T) {
+	innerRuleSet := rules.Any().
+		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+
+	ruleSet := rules.Any().WithRule(innerRuleSet)
+
+	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
+
+	expected := "abc"
+
+	ruleSet = rules.Any().
+		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
+
+	testhelpers.MustBeValid(t, ruleSet, "123", expected)
+}

@@ -22,6 +22,7 @@ var domainLabelPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,61}[a-zA-Z0
 
 // DomainRuleSet implements the RuleSet interface for the domain names.
 type DomainRuleSet struct {
+	rules.NoConflict[string]
 	required bool
 	parent   *DomainRuleSet
 	rule     rules.Rule[string]
@@ -98,10 +99,16 @@ func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context
 		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
 	}
 
-	allErrors := validateBasicDomain(ctx, valueStr)
+	return ruleSet.Evaluate(ctx, valueStr)
+}
+
+// Evaluate performs a validation of a RuleSet against a string and returns an object value of the
+// same type or a ValidationErrorCollection.
+func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+	allErrors := validateBasicDomain(ctx, value)
 
 	if len(allErrors) > 0 {
-		return valueStr, allErrors
+		return value, allErrors
 	}
 
 	currentRuleSet := ruleSet
@@ -109,11 +116,11 @@ func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, valueStr)
+			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
 			if errs != nil {
 				allErrors = append(allErrors, errs...)
 			} else {
-				valueStr = newStr
+				value = newStr
 			}
 		}
 
@@ -121,9 +128,9 @@ func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context
 	}
 
 	if len(allErrors) > 0 {
-		return valueStr, allErrors
+		return value, allErrors
 	} else {
-		return valueStr, nil
+		return value, nil
 	}
 }
 

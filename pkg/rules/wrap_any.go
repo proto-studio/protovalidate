@@ -13,6 +13,7 @@ import (
 // Unless you are implementing a brand new RuleSet you probably want to use the .Any() method on the RuleSet
 // itself instead, which usually returns this interface.
 type WrapAnyRuleSet[T any] struct {
+	NoConflict[any]
 	required bool
 	inner    RuleSet[T]
 	rule     Rule[any]
@@ -64,6 +65,15 @@ func (v *WrapAnyRuleSet[T]) Validate(value any) (any, errors.ValidationErrorColl
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
 func (v *WrapAnyRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
+	return v.Evaluate(ctx, value)
+}
+
+// Evaluate performs a validation of a RuleSet against a value and returns a value of the same type
+// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
+// added directly to the WrapAnyRuleSet.
+//
+// For WrapAny, Evaluate is identical to ValidateWithContext except for the argument order.
+func (v *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
 	var retValue any
 
 	retValue, innerErrors := v.inner.ValidateWithContext(value, ctx)
