@@ -113,8 +113,8 @@ func MapAny() *objects.ObjectRuleSet[map[string]any] {
 // Using the "validate" annotation you can may input values to different
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
-func Object[T any](initFn func() T) *objects.ObjectRuleSet[T] {
-	return objects.New[T](initFn)
+func Object[T any]() *objects.ObjectRuleSet[T] {
+	return objects.New[T]()
 }
 
 // String returns a new rule set that can be used to validate strings.

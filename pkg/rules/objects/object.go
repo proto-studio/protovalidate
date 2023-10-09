@@ -5,7 +5,6 @@ package objects
 
 import (
 	"context"
-	standardErrors "errors"
 	"fmt"
 	"reflect"
 
@@ -19,52 +18,50 @@ const annotation = "validate"
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any] struct {
 	rules.NoConflict[T]
-	init         func() T
 	allowUnknown bool
 	key          string
 	rule         rules.RuleSet[any]
 	objRule      rules.Rule[T]
 	mapping      string
 	outputType   reflect.Type
+	ptr          bool
 	required     bool
 	parent       *ObjectRuleSet[T]
 	label        string
 }
 
-// New returns a validator that can be used to validate an object of an
+// New returns a RuleSet that can be used to validate an object of an
 // arbitrary data type.
-//
-// It takes a function as an argument that must return a new (zero) value
-// for the struct.
 //
 // Using the "validate" annotation you can may input values to different
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
-func New[T any](initFn func() T) *ObjectRuleSet[T] {
-	templateValue := reflect.Indirect(reflect.ValueOf(initFn()))
-	kind := templateValue.Kind()
+func New[T any]() *ObjectRuleSet[T] {
+	var empty [0]T
 
-	if kind != reflect.Struct && kind != reflect.Map {
-		panic(standardErrors.New("invalid output type for object rule set"))
+	ruleSet := &ObjectRuleSet[T]{
+		outputType: reflect.TypeOf(empty).Elem(),
 	}
 
-	templateType := templateValue.Type()
+	kind := ruleSet.outputType.Kind()
 
-	ruleSet := &ObjectRuleSet[T]{}
-
-	var empty [0]T
-	t := reflect.TypeOf(empty).Elem()
-
-	if t.Kind() == reflect.Ptr {
-		ruleSet.label = fmt.Sprintf("ObjectRuleSet[%s]", t.Elem().Kind())
+	ruleSet.ptr = kind == reflect.Pointer
+	if ruleSet.ptr {
+		ruleSet.outputType = ruleSet.outputType.Elem()
+		kind = ruleSet.outputType.Kind()
+		ruleSet.label = fmt.Sprintf("ObjectRuleSet[*%v]", ruleSet.outputType)
 	} else {
-		ruleSet.label = fmt.Sprintf("ObjectRuleSet[%s]", t.Kind())
+		ruleSet.label = fmt.Sprintf("ObjectRuleSet[%v]", ruleSet.outputType)
+	}
+
+	if kind != reflect.Struct && kind != reflect.Map {
+		panic(fmt.Errorf("invalid output type for object rule se: %v", kind))
 	}
 
 	mapped := make(map[string]bool)
 
-	for i := 0; i < templateValue.NumField(); i++ {
-		field := templateType.Field(i)
+	for i := 0; i < ruleSet.outputType.NumField(); i++ {
+		field := ruleSet.outputType.Field(i)
 
 		if !field.IsExported() {
 			continue
@@ -92,16 +89,15 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 		}
 
 		ruleSet = &ObjectRuleSet[T]{
-			parent:  ruleSet,
-			key:     key,
-			mapping: field.Name,
+			parent:     ruleSet,
+			key:        key,
+			mapping:    field.Name,
+			outputType: ruleSet.outputType,
+			ptr:        ruleSet.ptr,
 		}
 
 		mapped[key] = true
 	}
-
-	ruleSet.init = initFn
-	ruleSet.outputType = templateType
 
 	return ruleSet
 }
@@ -109,20 +105,20 @@ func New[T any](initFn func() T) *ObjectRuleSet[T] {
 // NewObjectMap returns a new RuleSet that can be used to validate maps with strings as the
 // keys and the specified data type (which can be "any") as the values.
 func NewObjectMap[T any]() *ObjectRuleSet[map[string]T] {
+	var empty map[string]T
+
 	return &ObjectRuleSet[map[string]T]{
-		init: func() map[string]T {
-			return make(map[string]T)
-		},
+		outputType: reflect.TypeOf(empty),
 	}
 }
 
 // withParent is a helper function to assist in cloning object RuleSets.
 func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 	return &ObjectRuleSet[T]{
-		init:         v.init,
 		allowUnknown: v.allowUnknown,
 		required:     v.required,
 		outputType:   v.outputType,
+		ptr:          v.ptr,
 		parent:       v,
 	}
 }
@@ -166,7 +162,7 @@ func (v *ObjectRuleSet[T]) mappingFor(key string) (string, bool) {
 // If more than one call is made to WithKey with the same key then only the final one will be used.
 func (v *ObjectRuleSet[T]) WithKey(key string, ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
 	// Only check mapping if output type is a struct (not a map)
-	if v.outputType != nil {
+	if v.outputType.Kind() != reflect.Map {
 		destKey, ok := v.mappingFor(key)
 		if !ok {
 			panic(fmt.Errorf("missing mapping for key: %s", key))
@@ -220,20 +216,28 @@ func (v *ObjectRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollect
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
 func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	out := v.init()
+	var out T
 
-	var outValue reflect.Value
+	var toMap bool
+
+	if v.outputType.Kind() == reflect.Map {
+		toMap = true
+		out = reflect.MakeMap(v.outputType).Interface().(T)
+	} else if v.ptr {
+		out = reflect.New(v.outputType).Interface().(T)
+	} else {
+		out = reflect.New(v.outputType).Elem().Interface().(T)
+	}
 
 	// We can't use reflect.Set on a non-pointer struct so if the output is not a pointer
 	// we want to make a pointer to work with.
-	isPointer := reflect.ValueOf(out).Kind() == reflect.Ptr
-	if isPointer {
+	var outValue reflect.Value
+	if v.ptr {
 		outValue = reflect.Indirect(reflect.ValueOf(out))
 	} else {
 		outValue = reflect.Indirect(reflect.ValueOf(&out))
 	}
-
-	outKind := outValue.Kind()
+	//outKind := outValue.Kind()
 
 	inValue := reflect.Indirect(reflect.ValueOf(in))
 	inKind := inValue.Kind()
@@ -245,8 +249,6 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 			errors.NewCoercionError(ctx, "object or map", inKind.String()),
 		)
 	}
-
-	toMap := outKind == reflect.Map
 
 	allErrors := errors.Collection()
 

@@ -17,7 +17,7 @@ func testStructInit() *testStruct {
 }
 
 func TestMissingMapping(t *testing.T) {
-	ruleSet := New(testStructInit).withParent()
+	ruleSet := New[*testStruct]().withParent()
 
 	// Manually create a mapping that is not on the struct
 	ruleSet.key = "A"
@@ -52,7 +52,7 @@ func TestUnexportedField(t *testing.T) {
 		}
 	}()
 
-	ruleSet := New(testStructInit).withParent()
+	ruleSet := New[*testStruct]().withParent()
 
 	// Manually create a mapping for the unexported field
 	ruleSet.key = "z"

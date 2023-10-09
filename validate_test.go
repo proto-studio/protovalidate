@@ -122,9 +122,7 @@ func TestMapAny(t *testing.T) {
 }
 
 func TestObject(t *testing.T) {
-	ruleSet := validate.Object[*testStruct](func() *testStruct {
-		return &testStruct{}
-	})
+	ruleSet := validate.Object[*testStruct]()
 	if ruleSet == nil {
 		t.Error("Expected rule set to not be nil")
 	}

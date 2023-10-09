@@ -45,7 +45,7 @@ func testStructMappedInit() *testStructMapped {
 }
 
 func TestObjectRuleSet(t *testing.T) {
-	_, err := objects.New(testStructInit).
+	_, err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(testMap())
@@ -55,7 +55,7 @@ func TestObjectRuleSet(t *testing.T) {
 		return
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[*testStruct](objects.New(testStructInit))
+	ok := testhelpers.CheckRuleSetInterface[*testStruct](objects.New[*testStruct]())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
@@ -99,7 +99,7 @@ func TestObjectFromMapToMap(t *testing.T) {
 func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
-	out, err := objects.New(testStructInit).
+	out, err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
@@ -171,7 +171,7 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	in.X = 10
 	in.Y = 20
 
-	out, err := objects.New(testStructInit).
+	out, err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
@@ -209,7 +209,7 @@ func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 		}
 	}()
 
-	objects.New(func() int { return 0 })
+	objects.New[int]()
 }
 
 func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
@@ -223,13 +223,13 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 		}
 	}()
 
-	objects.New(testStructInit).WithKey("a", strings.New().Any())
+	objects.New[*testStruct]().WithKey("a", strings.New().Any())
 }
 
 // This function is deprecated and will be removed in v1.0.0.
 // Until then, make sure it still works.
 func TestKeyFunction(t *testing.T) {
-	out, err := objects.New(testStructMappedInit).
+	out, err := objects.New[*testStructMapped]().
 		Key("A", numbers.NewInt().Any()).
 		Key("C", numbers.NewInt().Any()).
 		Validate(map[string]any{"A": 123, "C": 456})
@@ -261,7 +261,7 @@ func TestKeyFunction(t *testing.T) {
 }
 
 func TestObjectMapping(t *testing.T) {
-	out, err := objects.New(testStructMappedInit).
+	out, err := objects.New[*testStructMapped]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("C", numbers.NewInt().Any()).
 		Validate(map[string]any{"A": 123, "C": 456})
@@ -391,7 +391,7 @@ func TestUnknownFields(t *testing.T) {
 }
 
 func TestInputNotObjectLike(t *testing.T) {
-	_, err := objects.New(testStructInit).
+	_, err := objects.New[*testStruct]().
 		Validate(123)
 
 	if err == nil {
@@ -462,7 +462,7 @@ func TesMixedMap(t *testing.T) {
 }
 
 func TestCustom(t *testing.T) {
-	_, err := objects.New(testStructInit).
+	_, err := objects.New[*testStruct]().
 		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 1)).
 		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 1)).
 		Validate(map[string]any{"A": 123, "B": 456, "C": "789"})
@@ -479,7 +479,7 @@ func TestCustomMutation(t *testing.T) {
 	result := testStructInit()
 	result.z = 123
 
-	obj, err := objects.New(testStructInit).
+	obj, err := objects.New[*testStruct]().
 		WithRuleFunc(testhelpers.MockCustomRule(result, 0)).
 		Validate(map[string]any{})
 
@@ -502,7 +502,7 @@ func TestAny(t *testing.T) {
 
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
-	ruleSet := objects.New(testStructInit).WithKey("W", numbers.NewInt().Any())
+	ruleSet := objects.New[*testStruct]().WithKey("W", numbers.NewInt().Any())
 
 	obj, err := ruleSet.Validate(map[string]any{"W": 123})
 
@@ -523,8 +523,7 @@ type testStructMappedBug struct {
 //
 // See: https://github.com/proto-studio/protovalidate/issues/1
 func TestBug001(t *testing.T) {
-	n := func() testStructMappedBug { return testStructMappedBug{} }
-	ruleSet := objects.New[testStructMappedBug](n).
+	ruleSet := objects.New[testStructMappedBug]().
 		WithKey("email", strings.New().Any())
 
 	expected := "hello@example.com"
@@ -543,9 +542,9 @@ func TestBug001(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestRequiredString(t *testing.T) {
-	ruleSet := objects.New(testStructInit).WithRequired()
+	ruleSet := objects.New[*testStruct]().WithRequired()
 
-	expected := "ObjectRuleSet[struct].WithRequired()"
+	expected := "ObjectRuleSet[*objects_test.testStruct].WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -554,9 +553,9 @@ func TestRequiredString(t *testing.T) {
 // Requirements:
 // - Serializes to WithUnknown()
 func TestAllowUnknownString(t *testing.T) {
-	ruleSet := objects.New(testStructInit).WithUnknown()
+	ruleSet := objects.New[*testStruct]().WithUnknown()
 
-	expected := "ObjectRuleSet[struct].WithUnknown()"
+	expected := "ObjectRuleSet[*objects_test.testStruct].WithUnknown()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -565,11 +564,11 @@ func TestAllowUnknownString(t *testing.T) {
 // Requirements:
 // - Serializes to WithItemRuleSet()
 func TestWithItemRuleSetString(t *testing.T) {
-	ruleSet := objects.New(testStructInit).
+	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any())
 
-	expected := "ObjectRuleSet[struct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
+	expected := "ObjectRuleSet[*objects_test.testStruct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -578,10 +577,10 @@ func TestWithItemRuleSetString(t *testing.T) {
 // Requirements:
 // - Serializes to WithRule()
 func TestWithRuleString(t *testing.T) {
-	ruleSet := objects.New(testStructInit).
+	ruleSet := objects.New[*testStruct]().
 		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 0))
 
-	expected := "ObjectRuleSet[struct].WithRuleFunc(...)"
+	expected := "ObjectRuleSet[*objects_test.testStruct].WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -592,7 +591,7 @@ func TestWithRuleString(t *testing.T) {
 func TestEvaluate(t *testing.T) {
 	ctx := context.Background()
 
-	ruleSet := objects.New(testStructInit).
+	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any())
 
