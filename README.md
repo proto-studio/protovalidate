@@ -41,7 +41,8 @@ Supported data types out of the box:
 - `string`
 - `int` / `int8` / `int16` / `int32` / `int64`
 - `uint` / `uint8` / `uint16` / `uint32` / `uint64`
-- `struct` / `map`/ `[]`
+- `float32` / `float64`
+- `struct` / `map` / `[]`
 - `time.Time`
 - Email addresses
 - Domains
