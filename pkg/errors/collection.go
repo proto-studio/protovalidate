@@ -29,7 +29,7 @@ func (collection ValidationErrorCollection) Size() int {
 // All returns an array of all the errors in the collection.
 // If there is more than one error, the order they are returned is not guaranteed to be deterministic.
 //
-// Deprecated: All is deprecated and will be removed in v1.0.0. Use as you would a normal slice instead.
+// Deprecated: All is deprecated and will be removed in v1.0.0. Use as you would a normal slice or call Unwrap instead.
 func (collection ValidationErrorCollection) All() []ValidationError {
 	return collection
 }

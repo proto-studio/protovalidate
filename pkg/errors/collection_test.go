@@ -53,6 +53,36 @@ func TestCollectionAll(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - Unwrap should return an array of errors.
+func TestCollectionUnwrap(t *testing.T) {
+	ctx := context.Background()
+
+	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+
+	colErr := errors.Collection(
+		err1,
+		err2,
+	)
+
+	if colErr == nil {
+		t.Fatal("Expected error to not be nil")
+	} else if s := colErr.Size(); s != 2 {
+		t.Fatalf("Expected error to have size %d, got %d", 2, s)
+	}
+
+	all := colErr.Unwrap()
+
+	if l := len(all); l != 2 {
+		t.Fatalf("Expected error to have length %d, got %d", 2, l)
+	}
+
+	if !((all[0] == err1 && all[1] == err2) || (all[0] == err2 && all[1] == err1)) {
+		t.Errorf("Expected both errors to be returned")
+	}
+}
+
 // Legacy method. Will be removed in v1.0.0
 func TestCollectionSize(t *testing.T) {
 	ctx := context.Background()
@@ -182,20 +212,4 @@ func TestPanicCollectionMessageEmpty(t *testing.T) {
 	}()
 
 	_ = errors.Collection().Error()
-}
-
-func TestCollectionUnwrap(t *testing.T) {
-	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
-
-	col := errors.Collection(err)
-
-	if msg := col.Error(); msg != "error123" {
-		t.Errorf("Expected error message to be %s, got: %s", "error123", msg)
-	}
-
-	col = append(col, errors.Errorf(errors.CodeUnknown, context.Background(), "error123"))
-
-	if msg := col.Error(); !strings.Contains(msg, "(and 1 more)") {
-		t.Errorf("Expected error message to contain the string '(and 1 more)', got: %s", msg)
-	}
 }
