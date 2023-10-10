@@ -2,8 +2,11 @@ package objects_test
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -609,4 +612,291 @@ func TestEvaluate(t *testing.T) {
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
 	}
+}
+
+// Requirements:
+// - Multiple rules on the same key all evaluate
+func TestMultipleRules(t *testing.T) {
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithMin(2).Any()).
+		WithKey("X", numbers.NewInt().WithMax(4).Any()).
+		Any()
+
+	testhelpers.MustBeValidFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
+		if a.(*testStruct).X != b.(*testStruct).X {
+			return fmt.Errorf("Expected X to be %d, got: %d", b.(*testStruct).X, a.(*testStruct).X)
+		}
+		return nil
+	})
+	testhelpers.MustBeInvalid(t, ruleSet, &testStruct{X: 1}, errors.CodeMin)
+	testhelpers.MustBeInvalid(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
+}
+
+// Requirement:
+// This test is specifically for a timeout while performing an object rule (as opposed to a key rule)
+// - RuleSet times out if context does
+// - Timeout error is returned
+func TestTimeoutInObjectRule(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithMin(2).Any()).
+		WithRuleFunc(func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+			time.Sleep(1 * time.Second)
+			return x, nil
+		})
+
+	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+
+	if errs == nil {
+		t.Error("Expected errors to be nil")
+	} else if len(errs) != 2 {
+		t.Errorf("Expected 2 errors, got %d", len(errs))
+	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, errs, c)
+	}
+}
+
+// Requirement:
+// This test is specifically for a timeout while performing an key rule (as opposed to an object rule)
+// - RuleSet times out if context does
+// - Timeout error is returned
+func TestTimeoutInKeyRule(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithRuleFunc(func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+			time.Sleep(1 * time.Second)
+			return x, nil
+		}).Any())
+
+	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+
+	if errs == nil {
+		t.Error("Expected errors to be nil")
+	} else if len(errs) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
+	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, errs, c)
+	}
+}
+
+// Requirement:
+// - Rules stop running after the context is cancelled
+func TestCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var intCallCount int32 = 0
+	var structCallCount int32 = 0
+
+	intRule := func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+		atomic.AddInt32(&intCallCount, 1)
+		cancel()
+		time.Sleep(1 * time.Second)
+		return x, nil
+	}
+
+	structRule := func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+		atomic.AddInt32(&structCallCount, 1)
+		time.Sleep(1 * time.Second)
+		return x, nil
+	}
+
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
+		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
+		WithRuleFunc(structRule).
+		WithRuleFunc(structRule)
+
+	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+
+	if errs == nil {
+		t.Error("Expected errors to be nil")
+	} else if len(errs) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
+	} else if c := errs.First().Code(); c != errors.CodeCancelled {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, errs, c)
+	}
+
+	// If these two rules succeed but the ones above fail, check to make sure "wait" is only called once
+
+	finalCallCount := atomic.LoadInt32(&intCallCount)
+	if finalCallCount != 1 {
+		t.Errorf("Expected a call count of 1, got %d", finalCallCount)
+	}
+
+	finalCallCount = atomic.LoadInt32(&structCallCount)
+	if finalCallCount != 0 {
+		t.Errorf("Expected a call count of 0, got %d", finalCallCount)
+	}
+}
+
+// Requirement:
+// - Object rules stop running after a cancel
+func TestCancelledObjectRules(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var structCallCount int32 = 0
+
+	structRule := func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+		atomic.AddInt32(&structCallCount, 1)
+		cancel()
+		time.Sleep(1 * time.Second)
+		return x, nil
+	}
+
+	ruleSet := objects.New[*testStruct]().
+		WithRuleFunc(structRule).
+		WithRuleFunc(structRule)
+
+	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+
+	if errs == nil {
+		t.Error("Expected errors to be nil")
+	} else if len(errs) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
+	} else if c := errs.First().Code(); c != errors.CodeCancelled {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, errs, c)
+	}
+
+	finalCallCount := atomic.LoadInt32(&structCallCount)
+	if finalCallCount != 1 {
+		t.Errorf("Expected a call count of 1, got %d", finalCallCount)
+	}
+}
+
+// Requirement:
+// - Conditional rules are called only when the condition returns no errors
+// - Conditional rules are not called until dependent keys are evaluated
+func TestConditionalKey(t *testing.T) {
+	// This rule mutates the value of X.
+	// If the condition is evaluated before this rule finishes then the value will be incorrect
+	intRule := func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+		time.Sleep(100 * time.Millisecond)
+		return x * 2, nil
+	}
+
+	condValueRule := func(_ context.Context, y int) (int, errors.ValidationErrorCollection) {
+		return y * 3, nil
+	}
+
+	// Only run the conditional rule if X is greater than 4. Which it should only be if the intRule
+	// function ran.
+	condKeyRuleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithMin(4).Any())
+
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
+		WithConditionalKey("Y", condKeyRuleSet, numbers.NewInt().WithRuleFunc(condValueRule).Any())
+
+	checkFn := func(a, b any) error {
+		if a.(*testStruct).Y != b.(*testStruct).Y {
+			return fmt.Errorf("Expected Y to be %d, got: %d", a.(*testStruct).Y, b.(*testStruct).Y)
+		}
+		if a.(*testStruct).X != b.(*testStruct).X {
+			return fmt.Errorf("Expected X to be %d, got: %d", a.(*testStruct).X, b.(*testStruct).X)
+		}
+		return nil
+	}
+
+	// Both X and Y should be mutated
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &testStruct{X: 3, Y: 3}, &testStruct{X: 6, Y: 9}, checkFn)
+
+	// Only X should be mutated
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &testStruct{X: 1, Y: 3}, &testStruct{X: 2, Y: 0}, checkFn)
+}
+
+// Requirement:
+// - Returns all keys with rules
+// - Does not return keys with no rules
+// - Returns conditional keys
+// - Only returns each key once
+func TestKeys(t *testing.T) {
+
+	ruleSet := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().Any()).
+		WithKey("X", numbers.NewInt().Any()).
+		WithConditionalKey("Y", objects.New[*testStruct](), numbers.NewInt().Any())
+
+	keys := ruleSet.Keys()
+
+	if len(keys) != 2 {
+		t.Errorf("Expected 2 keys, got %d (%s)", len(keys), keys)
+	} else if !((keys[0] == "X" && keys[1] == "Y") || (keys[0] == "Y" && keys[1] == "X")) {
+		t.Errorf("Expected [X Y], got %s", keys)
+	}
+
+}
+
+// Requirement:
+// - The code panics is a cycle is made directly with conditional keys
+func TestConditionalKeyCycle(t *testing.T) {
+	condX := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithMin(4).Any())
+
+	condY := objects.New[*testStruct]().
+		WithKey("Y", numbers.NewInt().WithMin(4).Any())
+
+	ruleSet := objects.New[*testStruct]().
+		WithConditionalKey("X", condY, numbers.NewInt().Any())
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic")
+		}
+	}()
+
+	ruleSet.WithConditionalKey("Y", condX, numbers.NewInt().Any())
+}
+
+// Requirement:
+// - The code panics is a cycle is made indirectly with conditional keys
+func TestConditionalKeyIndirectCycle(t *testing.T) {
+	condX := objects.New[*testStruct]().
+		WithKey("X", numbers.NewInt().WithMin(4).Any())
+
+	condY := objects.New[*testStruct]().
+		WithKey("Y", numbers.NewInt().WithMin(4).Any())
+
+	condW := objects.New[*testStruct]().
+		WithKey("W", numbers.NewInt().WithMin(4).Any())
+
+	ruleSet := objects.New[*testStruct]().
+		WithConditionalKey("X", condY, numbers.NewInt().Any()).
+		WithConditionalKey("Y", condW, numbers.NewInt().Any())
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic")
+		}
+	}()
+
+	ruleSet.WithConditionalKey("W", condX, numbers.NewInt().Any())
+}
+
+// Requirements:
+// - No need to visit the same nodes twice
+func TestConditionalKeyVisited(t *testing.T) {
+
+	/**
+	 * A -> B -> D
+	 * A -> C -> D
+	 */
+
+	condB := objects.NewObjectMap[int]().
+		WithKey("B", numbers.NewInt().WithMin(4).Any())
+
+	condC := objects.NewObjectMap[int]().
+		WithKey("C", numbers.NewInt().WithMin(4).Any())
+
+	condD := objects.NewObjectMap[int]().
+		WithKey("D", numbers.NewInt().WithMin(4).Any())
+
+	objects.NewObjectMap[int]().
+		WithConditionalKey("B", condD, numbers.NewInt().Any()).
+		WithConditionalKey("C", condD, numbers.NewInt().Any()).
+		WithConditionalKey("A", condB, numbers.NewInt().Any()).
+		WithConditionalKey("A", condC, numbers.NewInt().Any())
 }

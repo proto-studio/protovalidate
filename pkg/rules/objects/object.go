@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -28,6 +29,8 @@ type ObjectRuleSet[T any] struct {
 	required     bool
 	parent       *ObjectRuleSet[T]
 	label        string
+	condition    Conditional[T]
+	refs         *refTracker
 }
 
 // New returns a RuleSet that can be used to validate an object of an
@@ -120,6 +123,7 @@ func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 		outputType:   v.outputType,
 		ptr:          v.ptr,
 		parent:       v,
+		refs:         v.refs,
 	}
 }
 
@@ -159,8 +163,59 @@ func (v *ObjectRuleSet[T]) mappingFor(key string) (string, bool) {
 
 // WithKey returns a new RuleSet with a validation rule for the specified key.
 //
-// If more than one call is made to WithKey with the same key then only the final one will be used.
+// If more than one call is made with the same key than all will be evaluated. However, the order
+// in which they are run is not guaranteed.
+//
+// Multiple rule sets may run in parallel but only one will run a time for each key.
 func (v *ObjectRuleSet[T]) WithKey(key string, ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
+	return v.WithConditionalKey(key, nil, ruleSet)
+}
+
+// Keys returns the keys names that have rule sets associated with them.
+// This will not return keys that don't have rule sets (even if they do have a mapping).
+//
+// It also will not return keys that are referenced WithRule or WithRuleFund. To get around this
+// you may want to consider moving your rule set to WithKey or putting a simple permissive validator
+// inside WithKey.
+//
+// The results are not sorted. You should not depend on the order of the results.
+func (v *ObjectRuleSet[T]) Keys() []string {
+	mapping := make(map[string]bool)
+	keys := make([]string, 0)
+
+	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+		if currentRuleSet.key != "" && currentRuleSet.rule != nil {
+			if !mapping[currentRuleSet.key] {
+				mapping[currentRuleSet.key] = true
+				keys = append(keys, currentRuleSet.key)
+			}
+		}
+	}
+
+	return keys
+}
+
+// WithConditionalKey returns a new Rule with a validation rule for the specified key.
+//
+// It takes as an argument a Rule that is used to evaluate the entire object or map. If it returns a nil error then
+// the conditional key Rule will be evaluated.
+//
+// Errors returned from the conditional Rule are not considered validation failures and will not be returned from
+// the Validate / Evaluate functions. Errors in the conditional are only used to determine if the Rule should be evaluated.
+//
+// Conditional rules will be run any time after all fields they depend on are evaluated. For example if the conditional
+// rule set looks for keys X and Y then the conditional will not be evaluated until all the rules for both X and Y have
+// also been evaluated. This includes conditional rules. So if X is also dependent on Z then Z will also need to be complete.
+//
+// If one or more of the fields has an error then the conditional rule will not be run.
+//
+// WithRule and WithRuleFunc are both evaluated after any keys or conditional keys. Because of this, it is not possible to
+// have a conditional key that is dependent on data that is modified in those rules.
+//
+// If nil is passed in as the conditional then this method behaves identical to WithKey.
+//
+// This method will panic immediately if a circular dependency is detected.
+func (v *ObjectRuleSet[T]) WithConditionalKey(key string, condition Conditional[T], ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
 	// Only check mapping if output type is a struct (not a map)
 	if v.outputType.Kind() != reflect.Map {
 		destKey, ok := v.mappingFor(key)
@@ -183,6 +238,22 @@ func (v *ObjectRuleSet[T]) WithKey(key string, ruleSet rules.RuleSet[any]) *Obje
 	newRuleSet := v.withParent()
 	newRuleSet.key = key
 	newRuleSet.rule = ruleSet
+	newRuleSet.condition = condition
+
+	if condition != nil {
+		if newRuleSet.refs == nil {
+			newRuleSet.refs = newRefTracker()
+		} else {
+			newRuleSet.refs = newRuleSet.refs.Clone()
+		}
+
+		for _, dependsOn := range condition.Keys() {
+			if err := newRuleSet.refs.Add(key, dependsOn); err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	return newRuleSet
 }
 
@@ -211,11 +282,60 @@ func (v *ObjectRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollect
 	return v.ValidateWithContext(value, context.Background())
 }
 
+// contextErrorToValidation takes a context error and returns a validation error.
+func contextErrorToValidation(ctx context.Context) errors.ValidationError {
+	switch ctx.Err() {
+	case nil:
+		return nil
+	case context.DeadlineExceeded:
+		return errors.Errorf(errors.CodeTimeout, ctx, "validation timed out before completing")
+	case context.Canceled:
+		return errors.Errorf(errors.CodeCancelled, ctx, "validation was cancelled")
+	default:
+		return errors.Errorf(errors.CodeInternal, ctx, "unknown context error: %v", ctx.Err())
+	}
+}
+
+// wait blocks until either the context is cancelled or the wait group is done (all keys have been validated).
+func wait(ctx context.Context, wg *sync.WaitGroup, errorsCh chan errors.ValidationErrorCollection, listenForCancelled bool) errors.ValidationErrorCollection {
+	done := make(chan struct{})
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	allErrors := errors.Collection()
+
+	for {
+		select {
+		case err := <-errorsCh:
+			allErrors = append(allErrors, err...)
+		case <-ctx.Done():
+			if listenForCancelled {
+				wg.Wait()
+				return append(allErrors, contextErrorToValidation(ctx))
+			}
+		case <-done:
+			return allErrors
+		}
+	}
+}
+
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
 func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+	done := func() bool {
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return false
+		}
+	}
+
 	var out T
 
 	var toMap bool
@@ -237,7 +357,6 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 	} else {
 		outValue = reflect.Indirect(reflect.ValueOf(&out))
 	}
-	//outKind := outValue.Kind()
 
 	inValue := reflect.Indirect(reflect.ValueOf(in))
 	inKind := inValue.Kind()
@@ -260,6 +379,25 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 		knownKeys = make(map[string]bool)
 	}
 
+	// Create a table of how keys and a counter.
+	// We need this because conditional keys cannot run.
+	counters := newCounterSet()
+	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+		if currentRuleSet.key != "" && currentRuleSet.rule != nil {
+			counters.Increment(currentRuleSet.key)
+		}
+	}
+
+	// Handle concurrency for the rule evaluation
+	errorsCh := make(chan errors.ValidationErrorCollection)
+	defer close(errorsCh)
+	var outValueMutex sync.Mutex
+
+	// Wait for all the rules to finish
+	var wg sync.WaitGroup
+
+	// Loop through the rule set and evaluate each one.
+	// Run each rule set in a goroutine.
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.key == "" || currentRuleSet.rule == nil {
 			continue
@@ -286,42 +424,98 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 			if rule.Required() {
 				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "field is required"))
 			}
+			counters.Clear(key)
 
 		} else {
-			val, errs := rule.ValidateWithContext(inFieldValue.Interface(), subContext)
+			wg.Add(1)
 
-			if errs != nil {
-				allErrors = append(allErrors, errs...)
-				continue
-			}
+			go func(key string, subContext context.Context, condition Conditional[T]) {
+				defer wg.Done()
+				counters.Lock(key)
+				defer counters.Unlock(key)
 
-			if toMap {
-				outValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(val))
-			} else {
-				field := outValue.FieldByName(fieldMapping[key])
-				if field.Kind() == reflect.Ptr {
-					valPtr := reflect.New(reflect.TypeOf(val))
-					valPtr.Elem().Set(reflect.ValueOf(val))
-					field.Set(valPtr)
-				} else {
-					field.Set(reflect.ValueOf(val))
+				if done() {
+					return
 				}
-			}
+
+				if condition != nil {
+					keys := condition.Keys()
+					counters.Wait(keys...)
+
+					ok := func() bool {
+						outValueMutex.Lock()
+						defer outValueMutex.Unlock()
+						_, err := condition.Evaluate(ctx, out)
+						return err == nil
+					}()
+
+					if !ok {
+						return
+					}
+				}
+
+				val, errs := rule.ValidateWithContext(inFieldValue.Interface(), subContext)
+				if errs != nil {
+					errorsCh <- errs
+					return
+				}
+
+				outValueMutex.Lock()
+				defer outValueMutex.Unlock()
+
+				if toMap {
+					outValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(val))
+				} else {
+					field := outValue.FieldByName(fieldMapping[key])
+					if field.Kind() == reflect.Ptr {
+						valPtr := reflect.New(reflect.TypeOf(val))
+						valPtr.Elem().Set(reflect.ValueOf(val))
+						field.Set(valPtr)
+					} else {
+						field.Set(reflect.ValueOf(val))
+					}
+				}
+			}(key, subContext, currentRuleSet.condition)
 		}
 	}
+
+	valErrs := wait(ctx, &wg, errorsCh, true)
+	allErrors = append(allErrors, valErrs...)
 
 	// Next apply object rules.
 	// This must be done after the key rules because we want to make sure all values are cast first.
+	var wg2 sync.WaitGroup
+
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.objRule != nil {
-			newOutput, err := currentRuleSet.objRule.Evaluate(ctx, out)
-			if err != nil {
-				allErrors = append(allErrors, err...)
-			} else {
-				out = newOutput
+			if done() {
+				break
 			}
+
+			wg2.Add(1)
+			go func(objRule rules.Rule[T]) {
+				outValueMutex.Lock()
+				defer outValueMutex.Unlock()
+				defer wg2.Done()
+
+				if done() {
+					return
+				}
+
+				newOutput, err := objRule.Evaluate(ctx, out)
+				if err != nil {
+					errorsCh <- err
+				} else {
+					out = newOutput
+				}
+
+			}(currentRuleSet.objRule)
 		}
 	}
+
+	valErrs = wait(ctx, &wg2, errorsCh, !done())
+	wg.Wait()
+	allErrors = append(allErrors, valErrs...)
 
 	if knownKeys != nil {
 		for _, key := range inValue.MapKeys() {
@@ -333,6 +527,9 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 			}
 		}
 	}
+
+	//	outValueMutex.Lock()
+	//	defer outValueMutex.Unlock()
 
 	if len(allErrors) != 0 {
 		return out, allErrors
