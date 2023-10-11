@@ -364,8 +364,7 @@ func TestMissingRequiredField(t *testing.T) {
 		Validate(map[string]any{"A": 123})
 
 	if len(err) == 0 {
-		t.Error("Expected errors to not be empty")
-		return
+		t.Errorf("Expected errors to not be empty")
 	}
 }
 

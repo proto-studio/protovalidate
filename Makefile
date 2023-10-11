@@ -5,6 +5,9 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 test:
 	go test ./...
 
+race:
+	go test -race ./...
+
 test-docker:
 	docker run -it -v "${ROOT_DIR}:/usr/src/build" -w /usr/src/build --rm golang:1.20 make test
 

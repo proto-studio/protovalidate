@@ -61,7 +61,7 @@ func (collection ValidationErrorCollection) Error() string {
 // An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
 func (collection ValidationErrorCollection) Unwrap() []error {
 	errs := make([]error, len(collection))
-	for i, _ := range collection {
+	for i := range collection {
 		errs[i] = collection[i]
 	}
 	return errs

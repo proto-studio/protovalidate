@@ -322,62 +322,61 @@ func wait(ctx context.Context, wg *sync.WaitGroup, errorsCh chan errors.Validati
 	}
 }
 
-// ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by validation rules and error formatting.
-func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	done := func() bool {
-		select {
-		case <-ctx.Done():
-			return true
-		default:
-			return false
+// isDone checks if the context is done and returns a bool.
+func done(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+// evaluateKeyRule evaluates a single key rule.
+// Note that this function is meant to be called on the rule set that contains the rule.
+func (ruleSet *ObjectRuleSet[T]) evaluateKeyRule(ctx context.Context, out *T, wg *sync.WaitGroup, outValueMutex *sync.Mutex, errorsCh chan errors.ValidationErrorCollection, inFieldValue reflect.Value, s setter, counters *counterSet) {
+	defer wg.Done()
+	counters.Lock(ruleSet.key)
+	defer counters.Unlock(ruleSet.key)
+
+	if done(ctx) {
+		return
+	}
+
+	if ruleSet.condition != nil {
+		keys := ruleSet.condition.Keys()
+		counters.Wait(keys...)
+
+		ok := func() bool {
+			outValueMutex.Lock()
+			defer outValueMutex.Unlock()
+			_, err := ruleSet.condition.Evaluate(ctx, *out)
+			return err == nil
+		}()
+
+		if !ok {
+			return
 		}
 	}
 
-	var out T
-
-	var toMap bool
-
-	if v.outputType.Kind() == reflect.Map {
-		toMap = true
-		out = reflect.MakeMap(v.outputType).Interface().(T)
-	} else if v.ptr {
-		out = reflect.New(v.outputType).Interface().(T)
-	} else {
-		out = reflect.New(v.outputType).Elem().Interface().(T)
+	val, errs := ruleSet.rule.ValidateWithContext(inFieldValue.Interface(), ctx)
+	if errs != nil {
+		errorsCh <- errs
+		return
 	}
 
-	// We can't use reflect.Set on a non-pointer struct so if the output is not a pointer
-	// we want to make a pointer to work with.
-	var outValue reflect.Value
-	if v.ptr {
-		outValue = reflect.Indirect(reflect.ValueOf(out))
-	} else {
-		outValue = reflect.Indirect(reflect.ValueOf(&out))
-	}
+	outValueMutex.Lock()
+	defer outValueMutex.Unlock()
 
-	inValue := reflect.Indirect(reflect.ValueOf(in))
-	inKind := inValue.Kind()
+	s.Set(ruleSet.key, val)
+}
 
-	fromMap := inKind == reflect.Map
-
-	if !fromMap && inKind != reflect.Struct {
-		return out, errors.Collection(
-			errors.NewCoercionError(ctx, "object or map", inKind.String()),
-		)
-	}
-
+// evaluateKeyRules evaluates the rules for each key.
+func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter, fromMap bool) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
-	fieldMapping := v.fullMapping()
-
-	// Only set if the input is a map and we don't allow unknown values
-	var knownKeys map[string]bool
-	if !v.allowUnknown && fromMap {
-		knownKeys = make(map[string]bool)
-	}
+	// Tracks which keys are known so we can create errors for unknown keys.
+	knownKeys := newKnownKeys(v.allowUnknown, fromMap)
 
 	// Create a table of how keys and a counter.
 	// We need this because conditional keys cannot run.
@@ -410,10 +409,7 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 
 		if fromMap {
 			inFieldValue = inValue.MapIndex(reflect.ValueOf(key))
-
-			if knownKeys != nil {
-				knownKeys[key] = true
-			}
+			knownKeys.Add(key)
 		} else {
 			inFieldValue = inValue.FieldByName(key)
 		}
@@ -428,114 +424,120 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 
 		} else {
 			wg.Add(1)
-
-			go func(key string, subContext context.Context, condition Conditional[T]) {
-				defer wg.Done()
-				counters.Lock(key)
-				defer counters.Unlock(key)
-
-				if done() {
-					return
-				}
-
-				if condition != nil {
-					keys := condition.Keys()
-					counters.Wait(keys...)
-
-					ok := func() bool {
-						outValueMutex.Lock()
-						defer outValueMutex.Unlock()
-						_, err := condition.Evaluate(ctx, out)
-						return err == nil
-					}()
-
-					if !ok {
-						return
-					}
-				}
-
-				val, errs := rule.ValidateWithContext(inFieldValue.Interface(), subContext)
-				if errs != nil {
-					errorsCh <- errs
-					return
-				}
-
-				outValueMutex.Lock()
-				defer outValueMutex.Unlock()
-
-				if toMap {
-					outValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(val))
-				} else {
-					field := outValue.FieldByName(fieldMapping[key])
-					if field.Kind() == reflect.Ptr {
-						valPtr := reflect.New(reflect.TypeOf(val))
-						valPtr.Elem().Set(reflect.ValueOf(val))
-						field.Set(valPtr)
-					} else {
-						field.Set(reflect.ValueOf(val))
-					}
-				}
-			}(key, subContext, currentRuleSet.condition)
+			go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, inFieldValue, s, counters)
 		}
 	}
 
-	valErrs := wait(ctx, &wg, errorsCh, true)
-	allErrors = append(allErrors, valErrs...)
+	knownKeyErrors := knownKeys.Check(inValue)
+	allErrors = append(allErrors, knownKeyErrors...)
 
-	// Next apply object rules.
-	// This must be done after the key rules because we want to make sure all values are cast first.
-	var wg2 sync.WaitGroup
+	ruleErrors := wait(ctx, &wg, errorsCh, true)
+	return append(allErrors, ruleErrors...)
+}
+
+// evaluateObjectRules evaluates the object rules.
+func (v *ObjectRuleSet[T]) evaluateObjectRules(ctx context.Context, out *T) (T, errors.ValidationErrorCollection) {
+	final := *out
+
+	var wg sync.WaitGroup
+	var outValueMutex sync.Mutex
+	errorsCh := make(chan errors.ValidationErrorCollection)
+	defer close(errorsCh)
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.objRule != nil {
-			if done() {
+			if done(ctx) {
 				break
 			}
 
-			wg2.Add(1)
+			wg.Add(1)
 			go func(objRule rules.Rule[T]) {
 				outValueMutex.Lock()
 				defer outValueMutex.Unlock()
-				defer wg2.Done()
+				defer wg.Done()
 
-				if done() {
+				if done(ctx) {
 					return
 				}
 
-				newOutput, err := objRule.Evaluate(ctx, out)
+				newOutput, err := objRule.Evaluate(ctx, *out)
 				if err != nil {
 					errorsCh <- err
 				} else {
-					out = newOutput
+					final = newOutput
 				}
 
 			}(currentRuleSet.objRule)
 		}
 	}
 
-	valErrs = wait(ctx, &wg2, errorsCh, !done())
-	wg.Wait()
-	allErrors = append(allErrors, valErrs...)
+	return final, wait(ctx, &wg, errorsCh, !done(ctx))
+}
 
-	if knownKeys != nil {
-		for _, key := range inValue.MapKeys() {
-			keyStr := key.String()
-			_, ok := knownKeys[keyStr]
-			if !ok {
-				subContext := rulecontext.WithPathString(ctx, keyStr)
-				allErrors = append(allErrors, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
-			}
+// newSetter creates a new setter for the rule set
+func (ruleSet *ObjectRuleSet[T]) newSetter(outValue reflect.Value) setter {
+	if ruleSet.outputType.Kind() == reflect.Map {
+		return &mapSetter{
+			out: outValue,
 		}
 	}
 
-	//	outValueMutex.Lock()
-	//	defer outValueMutex.Unlock()
+	return &structSetter{
+		out:     outValue,
+		mapping: ruleSet.fullMapping(),
+	}
+}
+
+// ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
+// a ValidationErrorCollection.
+//
+// Also, takes a Context which can be used by validation rules and error formatting.
+func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+	var out T
+
+	if v.outputType.Kind() == reflect.Map {
+		out = reflect.MakeMap(v.outputType).Interface().(T)
+	} else if v.ptr {
+		out = reflect.New(v.outputType).Interface().(T)
+	} else {
+		out = reflect.New(v.outputType).Elem().Interface().(T)
+	}
+
+	// We can't use reflect.Set on a non-pointer struct so if the output is not a pointer
+	// we want to make a pointer to work with.
+	var outValue reflect.Value
+	if v.ptr {
+		outValue = reflect.Indirect(reflect.ValueOf(out))
+	} else {
+		outValue = reflect.Indirect(reflect.ValueOf(&out))
+	}
+
+	s := v.newSetter(outValue)
+
+	inValue := reflect.Indirect(reflect.ValueOf(in))
+	inKind := inValue.Kind()
+
+	fromMap := inKind == reflect.Map
+
+	if !fromMap && inKind != reflect.Struct {
+		return out, errors.Collection(
+			errors.NewCoercionError(ctx, "object or map", inKind.String()),
+		)
+	}
+
+	allErrors := errors.Collection()
+
+	keyErrs := v.evaluateKeyRules(ctx, &out, inValue, s, fromMap)
+	allErrors = append(allErrors, keyErrs...)
+
+	// This must be done after the key rules because we want to make sure all values are cast first.
+	out, valErrs := v.evaluateObjectRules(ctx, &out)
+	allErrors = append(allErrors, valErrs...)
 
 	if len(allErrors) != 0 {
 		return out, allErrors
-	} else {
-		return out, nil
 	}
+	return out, nil
 }
 
 // Evaluate performs a validation of a RuleSet against a value of the object type and returns an object value of the

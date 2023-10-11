@@ -7,7 +7,7 @@ type ErrorCode string
 
 const (
 	CodeUnknown    ErrorCode = "UNKNOWN"    // The cause of the validation error was not specified.
-	CodeInternal   ErrorCode = "INTERNAL"   // An internal error ocurred. We may know the reason but should not convey that to the user.
+	CodeInternal   ErrorCode = "INTERNAL"   // An internal error occurred. We may know the reason but should not convey that to the user.
 	CodeTimeout    ErrorCode = "TIMEOUT"    // The request timed out before validation could be completed.
 	CodeCancelled  ErrorCode = "CANCELED"   // The request was cancelled before it could be completed.
 	CodeType       ErrorCode = "TYPE"       // Unable to coerce a value to the correct type.
