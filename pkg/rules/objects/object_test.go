@@ -899,3 +899,48 @@ func TestConditionalKeyVisited(t *testing.T) {
 		WithConditionalKey("A", condB, numbers.NewInt().Any()).
 		WithConditionalKey("A", condC, numbers.NewInt().Any())
 }
+
+// Requirements:
+// - When an object that is already the right type is passed in, it is validated.
+// - 1:1 mapped keys works.
+// - Mapped keys still work even if the struct property is different.
+// - Works with the input being both the struct and a pointer to the struct
+//
+// C is mapped to B on input so a rule on C should act on B.
+// The actual value of C should be ignored.
+func TestStructRightType(t *testing.T) {
+	ruleSet := objects.New[*testStructMapped]().
+		WithKey("A", numbers.NewInt().WithMin(4).Any()).
+		WithKey("C", numbers.NewInt().WithMin(100).Any())
+
+	in := &testStructMapped{
+		A: 10,
+		B: 150,
+	}
+
+	check := func(a, b any) error {
+		aa := a.(*testStructMapped)
+		bb := b.(*testStructMapped)
+
+		if aa.A != bb.A {
+			return fmt.Errorf("Expected A to be %d, got %d", aa.A, bb.A)
+		}
+		if aa.B != bb.B {
+			return fmt.Errorf("Expected B to be %d, got %d", aa.B, bb.B)
+		}
+		return nil
+	}
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), in, in, check)
+
+	in.A = 3
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), in, errors.CodeMin)
+
+	in.A = 5
+
+	in.B = 50
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), in, errors.CodeMin)
+
+	in.B = 150
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), *in, in, check)
+}

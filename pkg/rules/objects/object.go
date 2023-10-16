@@ -216,6 +216,8 @@ func (v *ObjectRuleSet[T]) Keys() []string {
 //
 // This method will panic immediately if a circular dependency is detected.
 func (v *ObjectRuleSet[T]) WithConditionalKey(key string, condition Conditional[T], ruleSet rules.RuleSet[any]) *ObjectRuleSet[T] {
+	newRuleSet := v.withParent()
+
 	// Only check mapping if output type is a struct (not a map)
 	if v.outputType.Kind() != reflect.Map {
 		destKey, ok := v.mappingFor(key)
@@ -233,9 +235,9 @@ func (v *ObjectRuleSet[T]) WithConditionalKey(key string, condition Conditional[
 			// and New ignores unexported fields.
 			panic(fmt.Errorf("field is not exported: %s", destKey))
 		}
+		newRuleSet.mapping = destKey
 	}
 
-	newRuleSet := v.withParent()
 	newRuleSet.key = key
 	newRuleSet.rule = ruleSet
 	newRuleSet.condition = condition
@@ -372,7 +374,7 @@ func (ruleSet *ObjectRuleSet[T]) evaluateKeyRule(ctx context.Context, out *T, wg
 }
 
 // evaluateKeyRules evaluates the rules for each key.
-func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter, fromMap bool) errors.ValidationErrorCollection {
+func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter, fromMap, fromSame bool) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
 	// Tracks which keys are known so we can create errors for unknown keys.
@@ -410,6 +412,8 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 		if fromMap {
 			inFieldValue = inValue.MapIndex(reflect.ValueOf(key))
 			knownKeys.Add(key)
+		} else if fromSame {
+			inFieldValue = inValue.FieldByName(currentRuleSet.mapping)
 		} else {
 			inFieldValue = inValue.FieldByName(key)
 		}
@@ -518,6 +522,7 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 	inKind := inValue.Kind()
 
 	fromMap := inKind == reflect.Map
+	fromSame := !fromMap && inValue.Type() == v.outputType
 
 	if !fromMap && inKind != reflect.Struct {
 		return out, errors.Collection(
@@ -527,7 +532,7 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 
 	allErrors := errors.Collection()
 
-	keyErrs := v.evaluateKeyRules(ctx, &out, inValue, s, fromMap)
+	keyErrs := v.evaluateKeyRules(ctx, &out, inValue, s, fromMap, fromSame)
 	allErrors = append(allErrors, keyErrs...)
 
 	// This must be done after the key rules because we want to make sure all values are cast first.
@@ -575,8 +580,8 @@ func (v *ObjectRuleSet[T]) Any() rules.RuleSet[any] {
 
 // String returns a string representation of the rule set suitable for debugging.
 func (ruleSet *ObjectRuleSet[T]) String() string {
-	// Pass through mappings
-	if ruleSet.mapping != "" {
+	// Pass through mappings with no rules
+	if ruleSet.mapping != "" && ruleSet.rule == nil {
 		return ruleSet.parent.String()
 	}
 

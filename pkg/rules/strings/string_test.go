@@ -29,6 +29,17 @@ func TestStringRuleSet(t *testing.T) {
 	}
 }
 
+// Requirements:
+// - Should be usable as a rule
+// - Must implement the Rule[string] interface
+func TestRuleImplementation(t *testing.T) {
+	ok := testhelpers.CheckRuleInterface[string](strings.New())
+	if !ok {
+		t.Error("Expected rule set to be implemented")
+		return
+	}
+}
+
 func TestStringRuleSetTypeError(t *testing.T) {
 	_, err := strings.New().WithStrict().Validate(123)
 

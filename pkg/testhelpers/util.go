@@ -16,6 +16,12 @@ func CheckRuleSetInterface[T any](v any) bool {
 	return ok
 }
 
+// CheckRuleInterface checks to see if the Rule interface is implemented for an interface and returns true if it is.
+func CheckRuleInterface[T any](v any) bool {
+	_, ok := v.(rules.Rule[T])
+	return ok
+}
+
 // MockCustomRule is a mock implementation of the Rule interface that can be used for testing.
 // It accepts a return value to return from the rule and also a number of errors to return.
 //

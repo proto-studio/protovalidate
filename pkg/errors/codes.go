@@ -20,4 +20,5 @@ const (
 	CodeExpired    ErrorCode = "EXPIRED"    // Value has expired
 	CodeForbidden  ErrorCode = "DENIED"     // Value is in a list of forbidden values.
 	CodeNotAllowed ErrorCode = "NOTALLOWED" // Value is not one of the allowed values.
+	CodeEncoding   ErrorCode = "ENCODING"   // Value is not encoded correctly.
 )
