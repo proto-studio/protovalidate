@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 
+	"proto.zip/studio/validate"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/strings"
 )
 
-var ruleSet rules.RuleSet[string] = strings.New().
+var ruleSet rules.RuleSet[string] = validate.String().
 	WithMinLen(3).
 	WithMaxLen(7)
 

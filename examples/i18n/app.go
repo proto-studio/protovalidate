@@ -10,17 +10,15 @@ import (
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+	"proto.zip/studio/validate"
 	_ "proto.zip/studio/validate/examples/i18n/translations"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/strings"
 )
 
-func ruleSet() rules.RuleSet[string] {
-	return strings.New().
-		WithMinLen(3).
-		WithMaxLen(5)
-}
+var ruleSet rules.RuleSet[string] = validate.String().
+	WithMinLen(3).
+	WithMaxLen(7)
 
 func checkAll(w io.Writer, locale *string, str ...string) {
 	lang := language.MustParse(*locale)
@@ -35,8 +33,6 @@ func checkAll(w io.Writer, locale *string, str ...string) {
 	}
 
 	ctx := rulecontext.WithPrinter(context.Background(), printer)
-
-	ruleSet := ruleSet()
 
 	for _, s := range str {
 		_, err := ruleSet.ValidateWithContext(s, ctx)

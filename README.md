@@ -70,10 +70,11 @@ import (
         "fmt"
         "os"
 
-        "proto.zip/studio/validate/pkg/rules/strings"
+        "proto.zip/studio/validate"
+        "proto.zip/studio/validate/pkg/rules"
 )
 
-var ruleSet *strings.StringRuleSet = strings.New().
+var ruleSet rules.RuleSet[string] = validate.String().
         WithMinLen(3).
         WithMaxLen(7)
 
@@ -89,6 +90,12 @@ func main() {
 ```
 
 See the [examples](https://github.com/proto-studio/protovalidate/tree/main/examples) folder for more samples.
+
+## License and Trademarks
+
+The names "ProtoStudio" and "ProtoAuth" are trademarks of Curioso Industries LLC dba ProtoStudio. While the software contained in this project is licensed under the MIT License, the trademarks "ProtoStudio" and "ProtoAuth" may not be used in any product,
+advertisement, or other promotional materials without explicit permission from the trademark owner. Specifically, the use of these trademarks may not imply or suggest that a product made with this library is endorsed by, related to, or supported by "ProtoStudio" or "ProtoAuth" or their respective trademark owners.
+
 
 ## Sponsors
 
