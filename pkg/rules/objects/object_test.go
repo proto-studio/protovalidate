@@ -43,10 +43,6 @@ type testStructMapped struct {
 	D int `validate:""` // Empty tag, ignore
 }
 
-func testStructMappedInit() *testStructMapped {
-	return &testStructMapped{}
-}
-
 func TestObjectRuleSet(t *testing.T) {
 	_, err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
@@ -943,4 +939,26 @@ func TestStructRightType(t *testing.T) {
 
 	in.B = 150
 	testhelpers.MustBeValidFunc(t, ruleSet.Any(), *in, in, check)
+}
+
+// Requirements:
+// - Will assign nested pointer structs to pointers
+//
+// Fixes issue:
+// **objects_test.testStructMapped is not assignable to type *objects_test.testStruct
+func TestNestedPointer(t *testing.T) {
+
+	type target struct {
+		Test *testStruct
+	}
+
+	ruleSet := objects.New[*target]().
+		WithKey("Test", objects.New[*testStruct]().WithUnknown().Any())
+
+	in := map[string]any{
+		"Test": &testStruct{},
+	}
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
+
 }

@@ -26,7 +26,7 @@ type structSetter struct {
 
 func (ss *structSetter) Set(key string, value any) {
 	field := ss.out.FieldByName(ss.mapping[key])
-	if field.Kind() == reflect.Ptr {
+	if field.Kind() == reflect.Ptr && reflect.ValueOf(value).Kind() != reflect.Ptr {
 		valPtr := reflect.New(reflect.TypeOf(value))
 		valPtr.Elem().Set(reflect.ValueOf(value))
 		field.Set(valPtr)
