@@ -7,6 +7,7 @@ import "reflect"
 // requiring less variables to be passed between validation function.
 type setter interface {
 	Set(key string, value any)
+	Map() bool
 }
 
 // mapSetter is an implementation of the setter for
@@ -16,7 +17,10 @@ type mapSetter struct {
 
 func (ms *mapSetter) Set(key string, value any) {
 	ms.out.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+}
 
+func (ms *mapSetter) Map() bool {
+	return true
 }
 
 type structSetter struct {
@@ -33,4 +37,8 @@ func (ss *structSetter) Set(key string, value any) {
 	} else {
 		field.Set(reflect.ValueOf(value))
 	}
+}
+
+func (ss *structSetter) Map() bool {
+	return false
 }

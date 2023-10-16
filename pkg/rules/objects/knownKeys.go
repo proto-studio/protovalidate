@@ -14,8 +14,8 @@ type knownKeys struct {
 }
 
 // newKnownKeys creates a new instance of knownKeys.
-func newKnownKeys(allowUnknown, fromMap bool) *knownKeys {
-	if !allowUnknown && fromMap {
+func newKnownKeys(track bool) *knownKeys {
+	if track {
 		return &knownKeys{keys: make(map[string]bool)}
 	}
 	return &knownKeys{}
@@ -47,13 +47,25 @@ func (k *knownKeys) Check(inValue reflect.Value) errors.ValidationErrorCollectio
 		return errs
 	}
 
+	unk := k.Unknown(inValue)
+	for _, keyStr := range unk {
+		subContext := rulecontext.WithPathString(context.Background(), keyStr)
+		errs = append(errs, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
+	}
+	return errs
+}
+
+// Unknown returns all the unexpected keys.
+func (k *knownKeys) Unknown(inValue reflect.Value) []string {
+	var out []string
+
 	// Loop through each key in the input value and check if it's a known key.
 	for _, key := range inValue.MapKeys() {
 		keyStr := key.String()
 		if !k.exists(keyStr) {
-			subContext := rulecontext.WithPathString(context.Background(), keyStr)
-			errs = append(errs, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
+			out = append(out, keyStr)
 		}
 	}
-	return errs
+
+	return out
 }

@@ -378,7 +378,7 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 	allErrors := errors.Collection()
 
 	// Tracks which keys are known so we can create errors for unknown keys.
-	knownKeys := newKnownKeys(v.allowUnknown, fromMap)
+	knownKeys := newKnownKeys((!v.allowUnknown || s.Map()) && fromMap)
 
 	// Create a table of how keys and a counter.
 	// We need this because conditional keys cannot run.
@@ -432,8 +432,14 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 		}
 	}
 
-	knownKeyErrors := knownKeys.Check(inValue)
-	allErrors = append(allErrors, knownKeyErrors...)
+	if !v.allowUnknown {
+		knownKeyErrors := knownKeys.Check(inValue)
+		allErrors = append(allErrors, knownKeyErrors...)
+	} else if fromMap && s.Map() {
+		for _, key := range knownKeys.Unknown(inValue) {
+			s.Set(key, inValue.MapIndex(reflect.ValueOf(key)).Interface())
+		}
+	}
 
 	ruleErrors := wait(ctx, &wg, errorsCh, true)
 	return append(allErrors, ruleErrors...)

@@ -960,5 +960,35 @@ func TestNestedPointer(t *testing.T) {
 	}
 
 	testhelpers.MustBeValidFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
+}
 
+// Requirement:
+// - When WithUnkown is set, the resulting map should contain unknown values
+func TestObjectFromMapToMapUknown(t *testing.T) {
+	in := testMap()
+
+	out, err := objects.NewObjectMap[any]().
+		WithUnknown().
+		WithKey("X", numbers.NewInt().Any()).
+		Validate(in)
+
+	if err != nil {
+		t.Error("Expected errors to be empty")
+		return
+	}
+
+	if out == nil {
+		t.Error("Expected output to not be nil")
+		return
+	}
+
+	if out["X"] != 10 {
+		t.Errorf("Expected output X to be 10 but got %v", out["X"])
+		return
+	}
+
+	if out["Y"] != 20 {
+		t.Errorf("Expected output Y to be 20 but got %v", out["Y"])
+		return
+	}
 }
