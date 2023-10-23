@@ -30,17 +30,6 @@ func (c *counter) Increment() {
 	c.count++
 }
 
-// Clears the counter immediately.
-func (c *counter) Clear() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.count > 0 {
-		c.count = 0
-		c.cond.Broadcast()
-	}
-}
-
 // Lock locks the counter for writing.
 func (c *counter) Lock() {
 	c.mu.Lock()
@@ -93,17 +82,6 @@ func (cs *counterSet) Increment(key string) {
 		cs.counters[key] = newCounter(key)
 	}
 	cs.counters[key].Increment()
-}
-
-// Clear safely sets the counter to zero.
-// Used when we know for a fact that no future rules will succeed for that key.
-func (cs *counterSet) Clear(key string) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
-
-	if _, exists := cs.counters[key]; exists {
-		cs.counters[key].Clear()
-	}
 }
 
 // Lock locks the counter for a specific key for writing.

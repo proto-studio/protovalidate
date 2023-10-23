@@ -361,6 +361,15 @@ func (ruleSet *ObjectRuleSet[T]) evaluateKeyRule(ctx context.Context, out *T, wg
 		}
 	}
 
+	if inFieldValue.Kind() == reflect.Invalid {
+		if ruleSet.rule.Required() {
+			errorsCh <- errors.Collection(
+				errors.Errorf(errors.CodeRequired, ctx, "field is required"),
+			)
+		}
+		return
+	}
+
 	val, errs := ruleSet.rule.ValidateWithContext(inFieldValue.Interface(), ctx)
 	if errs != nil {
 		errorsCh <- errs
@@ -405,7 +414,6 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 		}
 
 		key := currentRuleSet.key
-		rule := currentRuleSet.rule
 
 		var inFieldValue reflect.Value
 
@@ -420,16 +428,8 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 
 		subContext := rulecontext.WithPathString(ctx, key)
 
-		if inFieldValue.Kind() == reflect.Invalid {
-			if rule.Required() {
-				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "field is required"))
-			}
-			counters.Clear(key)
-
-		} else {
-			wg.Add(1)
-			go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, inFieldValue, s, counters)
-		}
+		wg.Add(1)
+		go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, inFieldValue, s, counters)
 	}
 
 	if !v.allowUnknown {

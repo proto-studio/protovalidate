@@ -992,3 +992,46 @@ func TestObjectFromMapToMapUknown(t *testing.T) {
 		return
 	}
 }
+
+// Test for a bug with conditional keys. Validate incorrect errors if ALL these conditions are met:
+// - A conditional key has the "required" flag set.
+// - The conditional key is missing from the input.
+// - The condition is NOT true.
+//
+// The reason for this bug is because the condition was originally evaluates in evaluateKeyRule which is
+// not called at all if the field is missing from the input. But the validator still check for Required().
+func TestConditionalKeyRequiredBug(t *testing.T) {
+
+	type conditionalBugTest struct {
+		Type string `validate:"type"`
+		X    string `validate:"x"`
+		Y    string `validate:"y"`
+	}
+
+	ruleSet := objects.New[*conditionalBugTest]().
+		WithKey("type", strings.New().WithRequired().WithAllowedValues("X", "Y", "Z").Any()).
+		WithUnknown().
+		WithConditionalKey(
+			"y",
+			objects.New[*conditionalBugTest]().WithKey("type", strings.New().WithRequired().WithAllowedValues("Y").Any()),
+			strings.New().WithRequired().Any(),
+		)
+
+	checkFn := func(a, b any) error {
+		aa := a.(*conditionalBugTest)
+		bb := b.(*conditionalBugTest)
+
+		if aa.Type != bb.Type {
+			return fmt.Errorf("Expected Type to be %s, got: %s", aa.Type, bb.Type)
+		}
+		if aa.Y != bb.Y {
+			return fmt.Errorf("Expected Y to be %s, got: %s", aa.Y, bb.Y)
+		}
+		return nil
+	}
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
+
+}
