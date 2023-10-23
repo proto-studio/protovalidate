@@ -59,7 +59,13 @@ func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOu
 	actualOutput, err := ruleSet.Validate(input)
 
 	if err != nil {
-		t.Errorf("Expected error to be nil, got: %s", err)
+		str := "Expected error to be nil"
+
+		for _, inner := range err {
+			str = "\n  " + fmt.Sprintf("%s at %s", inner, inner.Path())
+		}
+
+		t.Errorf(str)
 		return err
 	} else if err := fn(expectedOutput, actualOutput); err != nil {
 		t.Error(err)
