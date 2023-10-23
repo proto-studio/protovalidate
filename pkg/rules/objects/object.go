@@ -595,7 +595,11 @@ func (ruleSet *ObjectRuleSet[T]) String() string {
 
 	if label == "" {
 		if ruleSet.rule != nil {
-			label = fmt.Sprintf("WithKey(\"%s\", %s)", ruleSet.key, ruleSet.rule)
+			if ruleSet.condition != nil {
+				label = fmt.Sprintf("WithConditionalKey(\"%s\", %s, %s)", ruleSet.key, ruleSet.condition, ruleSet.rule)
+			} else {
+				label = fmt.Sprintf("WithKey(\"%s\", %s)", ruleSet.key, ruleSet.rule)
+			}
 		} else if ruleSet.objRule != nil {
 			label = ruleSet.objRule.String()
 		}

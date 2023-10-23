@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	stringsHelper "strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1033,5 +1034,44 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
 	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
 	testhelpers.MustBeInvalid(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
+}
+
+// Requirements:
+// - Stringified rule sets using WithConditionalKey should have WithConditionalKey in the string
+// - WithKey should be in sets using that
+// - The conditional RuleSet should serialized for WithConditionalKey
+// - The key RuleSet should serialized for both
+func TestWithKeyStringify(t *testing.T) {
+	intRule := strings.New().WithMinLen(4).Any()
+	intRuleStr := intRule.String()
+
+	ruleSet := objects.New[*testStruct]().WithKey("X", intRule)
+	ruleSetStr := ruleSet.String()
+
+	if stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
+		t.Errorf("Expected string to not contain WithConditionalKey")
+	}
+	if !stringsHelper.Contains(ruleSetStr, "WithKey") {
+		t.Errorf("Expected string to contain WithKey")
+	}
+	if !stringsHelper.Contains(ruleSetStr, intRuleStr) {
+		t.Errorf("Expected string to contain the nested rule")
+	}
+
+	condRuleSet := objects.New[*testStruct]().WithUnknown()
+	condRuleSetStr := condRuleSet.String()
+
+	ruleSet = objects.New[*testStruct]().WithConditionalKey("Y", condRuleSet, intRule)
+	ruleSetStr = ruleSet.String()
+
+	if !stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
+		t.Errorf("Expected string to contain WithConditionalKey")
+	}
+	if !stringsHelper.Contains(ruleSetStr, condRuleSetStr) {
+		t.Errorf("Expected string to contain the conditional rule")
+	}
+	if !stringsHelper.Contains(ruleSetStr, intRuleStr) {
+		t.Errorf("Expected string to contain the nested rule")
+	}
 
 }
