@@ -1,6 +1,6 @@
-<picture style="max-width: 100px" alt="Proto://Validate">
+<picture alt="Proto://Validate">
   <source media="(prefers-color-scheme: dark)" srcset="./docs/ProtoValidate_dark.svg">
-  <img src="./docs/ProtoValidate_light.svg">
+  <img src="./docs/ProtoValidate_light.svg" width="800">
 </picture>
 
 [![Tests](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml)
@@ -55,7 +55,8 @@ This package follows conventional Go versioning. Any version up to version 1.0.0
 
 We put a lot of thought into the design of this library and don't expect there to be many breaking changes. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
 
-## Quick Start
+## Getting Started
+### Quick Start
 
 ```bash
 go get proto.zip/studio/validate
@@ -90,6 +91,14 @@ func main() {
 ```
 
 See the [examples](https://github.com/proto-studio/protovalidate/tree/main/examples) folder for more samples.
+
+### Best Practices
+Here are some best practices to help you get the most out of ProtoValidate:
+
+- Break custom rules out into their own testable functions.
+- If you need the whole object for your rule you can add it to the object `RuleSet` instead of the key.
+- Don't redefine your rules sets every use. Rule sets are immutable so you can use/reuse the same instance in multiple threads.
+- Impossible rules will often `panic` at runtime. Defining your rule sets at the top level or in module init will let you catch them at launch instead of later.
 
 ## License and Trademarks
 
