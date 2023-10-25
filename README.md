@@ -4,7 +4,7 @@
 </picture>
 
 [![Tests](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/leaanthony/clir/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/License-BSD%203%20Clause-blue.svg)](https://github.com/leaanthony/clir/blob/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/proto.zip/studio/validate)
 [![codecov](https://codecov.io/gh/proto-studio/protovalidate/graph/badge.svg?token=K6MR10DKYX)](https://codecov.io/gh/proto-studio/protovalidate)
 [![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
@@ -99,12 +99,6 @@ Here are some best practices to help you get the most out of ProtoValidate:
 - If you need the whole object for your rule you can add it to the object `RuleSet` instead of the key.
 - Don't redefine your rules sets every use. Rule sets are immutable so you can use/reuse the same instance in multiple threads.
 - Impossible rules will often `panic` at runtime. Defining your rule sets at the top level or in module init will let you catch them at launch instead of later.
-
-## License and Trademarks
-
-The names "ProtoStudio" and "ProtoAuth" are trademarks of Curioso Industries LLC dba ProtoStudio. While the software contained in this project is licensed under the MIT License, the trademarks "ProtoStudio" and "ProtoAuth" may not be used in any product,
-advertisement, or other promotional materials without explicit permission from the trademark owner. Specifically, the use of these trademarks may not imply or suggest that a product made with this library is endorsed by, related to, or supported by "ProtoStudio" or "ProtoAuth" or their respective trademark owners.
-
 
 ## Sponsors
 
