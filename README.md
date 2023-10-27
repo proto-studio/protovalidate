@@ -4,7 +4,7 @@
 </picture>
 
 [![Tests](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml/badge.svg)](https://github.com/proto-studio/protovalidate/actions/workflows/tests.yml)
-[![License](https://img.shields.io/badge/License-BSD%203%20Clause-blue.svg)](https://github.com/leaanthony/clir/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/License-BSD%203%20Clause-blue.svg)](https://github.com/proto-studio/protovalidate/blob/main/LICENSE)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/proto.zip/studio/validate)
 [![codecov](https://codecov.io/gh/proto-studio/protovalidate/graph/badge.svg?token=K6MR10DKYX)](https://codecov.io/gh/proto-studio/protovalidate)
 [![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
