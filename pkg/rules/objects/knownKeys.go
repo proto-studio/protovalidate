@@ -39,7 +39,7 @@ func (k *knownKeys) exists(key string) bool {
 //
 // If allowUnknown is true when creating the object then this always returns an
 // empty error collection.
-func (k *knownKeys) Check(inValue reflect.Value) errors.ValidationErrorCollection {
+func (k *knownKeys) Check(ctx context.Context, inValue reflect.Value) errors.ValidationErrorCollection {
 	errs := errors.Collection()
 
 	// If the knownKeys map is not initialized, return an empty error collection.
@@ -49,7 +49,7 @@ func (k *knownKeys) Check(inValue reflect.Value) errors.ValidationErrorCollectio
 
 	unk := k.Unknown(inValue)
 	for _, keyStr := range unk {
-		subContext := rulecontext.WithPathString(context.Background(), keyStr)
+		subContext := rulecontext.WithPathString(ctx, keyStr)
 		errs = append(errs, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
 	}
 	return errs

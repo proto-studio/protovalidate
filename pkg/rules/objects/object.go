@@ -433,7 +433,7 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 	}
 
 	if !v.allowUnknown {
-		knownKeyErrors := knownKeys.Check(inValue)
+		knownKeyErrors := knownKeys.Check(ctx, inValue)
 		allErrors = append(allErrors, knownKeyErrors...)
 	} else if fromMap && s.Map() {
 		for _, key := range knownKeys.Unknown(inValue) {

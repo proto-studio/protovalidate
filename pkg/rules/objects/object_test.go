@@ -1075,3 +1075,28 @@ func TestWithKeyStringify(t *testing.T) {
 	}
 
 }
+
+// Requirements:
+// - Correct path is returns on unexpected key
+func TestUnexpectedKeyPath(t *testing.T) {
+	ctx := rulecontext.WithPathString(context.Background(), "myobj")
+
+	_, err := objects.NewObjectMap[int]().ValidateWithContext(map[string]any{"x": 20}, ctx)
+
+	if err == nil {
+		t.Errorf("Expected errors to not be nil")
+		return
+	} else if len(err) != 1 {
+		t.Errorf("Expected 1 error got %d: %s", len(err), err.Error())
+		return
+	}
+
+	if err.First().Path() != "/myobj/x" {
+		t.Errorf("Expected error path to be `%s` got `%s` (%s)", "/myobj/x", err.First().Path(), err)
+	}
+
+	errA := err.For("/myobj/x")
+	if errA == nil {
+		t.Errorf("Expected error for /myobj/x to not be nil")
+	}
+}
