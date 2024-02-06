@@ -32,17 +32,11 @@ func TestWithMaxFloat(t *testing.T) {
 func TestIntMaxConflict(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMax(10).WithMin(3)
 
-	if _, err := ruleSet.Validate(15); err == nil {
-		t.Errorf("Expected error to not be nil")
-	}
-	if _, err := ruleSet.Validate(5); err != nil {
-		t.Errorf("Expected error to be nil, got %s", err)
-	}
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), 15, errors.CodeMax)
+	testhelpers.MustBeValid(t, ruleSet.Any(), 5, 5)
 
 	ruleSet2 := ruleSet.WithMax(20)
-	if _, err := ruleSet2.Validate(15); err != nil {
-		t.Errorf("Expected error to be nil, got: %s", err)
-	}
+	testhelpers.MustBeValid(t, ruleSet2.Any(), 15, 15)
 
 	expected := "IntRuleSet[int].WithMax(10).WithMin(3)"
 	if s := ruleSet.String(); s != expected {
@@ -63,17 +57,11 @@ func TestIntMaxConflict(t *testing.T) {
 func TestFloatMaxConflict(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMax(10.0).WithMin(3.0)
 
-	if _, err := ruleSet.Validate(15.0); err == nil {
-		t.Errorf("Expected error to not be nil")
-	}
-	if _, err := ruleSet.Validate(5.0); err != nil {
-		t.Errorf("Expected error to be nil, got %s", err)
-	}
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), 15.0, errors.CodeMax)
+	testhelpers.MustBeValid(t, ruleSet.Any(), 5.0, 5.0)
 
 	ruleSet2 := ruleSet.WithMax(20.0)
-	if _, err := ruleSet2.Validate(15.0); err != nil {
-		t.Errorf("Expected error to be nil, got: %s", err)
-	}
+	testhelpers.MustBeValid(t, ruleSet2.Any(), 15.0, 15.0)
 
 	expected := "FloatRuleSet[float64].WithMax(10.000000).WithMin(3.000000)"
 	if s := ruleSet.String(); s != expected {
