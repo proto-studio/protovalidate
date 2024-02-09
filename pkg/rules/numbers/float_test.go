@@ -78,7 +78,7 @@ func TestFloatRequired(t *testing.T) {
 
 func TestFloatCustom(t *testing.T) {
 	_, err := numbers.NewFloat64().
-		WithRuleFunc(testhelpers.MockCustomRule(123.0, 1)).
+		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
 		Validate("123.0")
 
 	if err == nil || len(err) == 0 {
@@ -89,7 +89,7 @@ func TestFloatCustom(t *testing.T) {
 	expected := 456.0
 
 	actual, err := numbers.NewFloat64().
-		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
 		Validate(123.0)
 
 	if err != nil {

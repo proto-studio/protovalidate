@@ -72,8 +72,10 @@ func TestEmailRequired(t *testing.T) {
 }
 
 func TestEmailCustom(t *testing.T) {
+	mock := testhelpers.NewMockRuleWithErrors[string](1)
+
 	_, err := net.NewEmail().
-		WithRuleFunc(testhelpers.MockCustomRule("name@example.com", 1)).
+		WithRuleFunc(mock.Function()).
 		Validate("name@example.com")
 
 	if err == nil {
@@ -81,7 +83,12 @@ func TestEmailCustom(t *testing.T) {
 		return
 	}
 
-	str := net.NewEmail().WithRuleFunc(testhelpers.MockCustomRule("name@example.com", 1)).String()
+	if mock.CallCount() != 1 {
+		t.Errorf("Expected rule to be called 1 times, got %d", mock.CallCount())
+		return
+	}
+
+	str := net.NewEmail().WithRuleFunc(mock.Function()).String()
 	expected := "EmailRuleSet.WithRuleFunc(...)"
 	if str != expected {
 		t.Errorf("Expected %s, got %s", expected, str)
@@ -90,7 +97,7 @@ func TestEmailCustom(t *testing.T) {
 	expected = "name@example.com"
 
 	actual, err := net.NewEmail().
-		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
 		Validate("name@example.com")
 
 	if err != nil {

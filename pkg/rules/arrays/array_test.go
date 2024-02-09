@@ -84,9 +84,11 @@ func TestWithRequired(t *testing.T) {
 }
 
 func TestCustom(t *testing.T) {
+	mock := testhelpers.NewMockRuleWithErrors[[]int](1)
+
 	_, err := arrays.New[int]().
-		WithRuleFunc(testhelpers.MockCustomRule([]int{1, 2, 3}, 1)).
-		WithRuleFunc(testhelpers.MockCustomRule([]int{1, 2, 3}, 1)).
+		WithRuleFunc(mock.Function()).
+		WithRuleFunc(mock.Function()).
 		Validate([]int{1, 2, 3})
 
 	if err == nil {
@@ -94,8 +96,13 @@ func TestCustom(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
-		t.Error("Expected errors to not be empty")
+	if len(err) != 2 {
+		t.Errorf("Expected 2 errors, got %d", len(err))
+		return
+	}
+
+	if mock.CallCount() != 2 {
+		t.Errorf("Expected rule to be called 2 times, got %d", mock.CallCount())
 		return
 	}
 }

@@ -461,15 +461,23 @@ func TesMixedMap(t *testing.T) {
 }
 
 func TestCustom(t *testing.T) {
+	mock := testhelpers.NewMockRuleWithErrors[*testStruct](1)
+
 	_, err := objects.New[*testStruct]().
-		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 1)).
-		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 1)).
+		WithRuleFunc(mock.Function()).
+		WithRuleFunc(mock.Function()).
 		Validate(map[string]any{"A": 123, "B": 456, "C": "789"})
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(err) == 0 {
-		t.Error("Expected errors to not be empty")
+	} else if len(err) != 5 {
+		// The two custom errors + 3 unexpected keys
+		t.Errorf("Expected 5 errors, got: %d", len(err))
+	}
+
+	if mock.CallCount() != 2 {
+		t.Errorf("Expected rule to be called 2 times, got %d", mock.CallCount())
+		return
 	}
 }
 
@@ -479,7 +487,7 @@ func TestCustomMutation(t *testing.T) {
 	result.z = 123
 
 	obj, err := objects.New[*testStruct]().
-		WithRuleFunc(testhelpers.MockCustomRule(result, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue[*testStruct](result).Function()).
 		Validate(map[string]any{})
 
 	if err != nil {
@@ -577,7 +585,7 @@ func TestWithItemRuleSetString(t *testing.T) {
 // - Serializes to WithRule()
 func TestWithRuleString(t *testing.T) {
 	ruleSet := objects.New[*testStruct]().
-		WithRuleFunc(testhelpers.MockCustomRule(testStructInit(), 0))
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(testStructInit()).Function())
 
 	expected := "ObjectRuleSet[*objects_test.testStruct].WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {

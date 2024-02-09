@@ -94,10 +94,10 @@ func TestTimeRequired(t *testing.T) {
 func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
-	ruleSet := time.NewTime().WithRuleFunc(testhelpers.MockCustomRule(now, 1)).Any()
+	ruleSet := time.NewTime().WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).Any()
 	testhelpers.MustBeInvalid(t, ruleSet, now, errors.CodeUnknown)
 
-	ruleSet = time.NewTime().WithRuleFunc(testhelpers.MockCustomRule(now, 0)).Any()
+	ruleSet = time.NewTime().WithRuleFunc(testhelpers.NewMockRuleWithValue(now).Function()).Any()
 	testhelpers.MustBeValid(t, ruleSet, now, now)
 }
 

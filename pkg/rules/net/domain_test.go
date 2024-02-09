@@ -93,8 +93,10 @@ func TestDomainRequired(t *testing.T) {
 }
 
 func TestDomainCustom(t *testing.T) {
+	mock := testhelpers.NewMockRuleWithErrors[string](1)
+
 	_, err := net.NewDomain().
-		WithRuleFunc(testhelpers.MockCustomRule("example.com", 1)).
+		WithRuleFunc(mock.Function()).
 		Validate("example.com")
 
 	if err == nil {
@@ -102,10 +104,15 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 
+	if mock.CallCount() != 1 {
+		t.Errorf("Expected rule to be called 1 times, got %d", mock.CallCount())
+		return
+	}
+
 	expected := "example.com"
 
 	actual, err := net.NewDomain().
-		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
 		Validate("example.com")
 
 	if err != nil {

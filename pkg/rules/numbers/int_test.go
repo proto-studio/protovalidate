@@ -109,7 +109,7 @@ func TestIntRequired(t *testing.T) {
 
 func TestIntCustom(t *testing.T) {
 	_, err := numbers.NewInt().
-		WithRuleFunc(testhelpers.MockCustomRule(123, 1)).
+		WithRuleFunc(testhelpers.NewMockRuleWithErrors[int](1).Function()).
 		Validate("123")
 
 	if len(err) == 0 {
@@ -120,7 +120,7 @@ func TestIntCustom(t *testing.T) {
 	expected := 456
 
 	actual, err := numbers.NewInt().
-		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
 		Validate(123)
 
 	if err != nil {

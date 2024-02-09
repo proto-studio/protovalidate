@@ -1,7 +1,6 @@
 package testhelpers_test
 
 import (
-	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -42,7 +41,7 @@ func TestMustBeValid(t *testing.T) {
 		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
 	}
 
-	ruleSet = ruleSet.WithRuleFunc(testhelpers.MockCustomRule[any](nil, 1))
+	ruleSet = ruleSet.WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT = &MockT{}
 	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 10); err == nil {
@@ -93,7 +92,7 @@ func TestMustBeValidFunc(t *testing.T) {
 }
 
 func TestMustBeInvalid(t *testing.T) {
-	ruleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any](nil, 1))
+	ruleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT := &MockT{}
 	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
@@ -121,36 +120,5 @@ func TestMustBeInvalid(t *testing.T) {
 	}
 	if mockT.errorCount != 1 {
 		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
-	}
-}
-
-func TestCustomRule(t *testing.T) {
-	ctx := context.Background()
-
-	rule1 := testhelpers.MockCustomRule[int](123, 0)
-
-	ret, err := rule1(ctx, 456)
-	if err != nil {
-		t.Errorf("Expected error to be nil, got: %s", err)
-	} else if ret != 123 {
-		t.Errorf("Expected return value to be %d, got: %d", 123, ret)
-	}
-
-	rule2 := testhelpers.MockCustomRule[int](123, 1)
-
-	_, err = rule2(ctx, 456)
-	if err == nil {
-		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 1 {
-		t.Errorf("Expected error collection size to be %d, got: %d", 1, s)
-	}
-
-	rule3 := testhelpers.MockCustomRule[int](123, 2)
-
-	_, err = rule3(ctx, 456)
-	if err == nil {
-		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 2 {
-		t.Errorf("Expected error collection size to be %d, got: %d", 2, s)
 	}
 }

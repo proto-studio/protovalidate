@@ -62,7 +62,7 @@ func TestWrapAnyRequired(t *testing.T) {
 // - The inner rule set rules are called.
 // - Errors in inner the rule set are passed to the wrapper.
 func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
-	innerRuleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+	innerRuleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	ruleSet := rules.WrapAny[any](innerRuleSet)
 
@@ -77,14 +77,14 @@ func TestWrapAnyCustom(t *testing.T) {
 	innerRuleSet := rules.Any()
 
 	ruleSet := rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+		WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	testhelpers.MustBeInvalid(t, ruleSet, "123", errors.CodeUnknown)
 
-	expected := "abc"
+	var expected any = "abc"
 
 	ruleSet = rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
+		WithRule(testhelpers.NewMockRuleWithValue(expected))
 
 	testhelpers.MustBeValid(t, ruleSet, expected, expected)
 }
@@ -118,7 +118,7 @@ func TestWrapAnyRequiredString(t *testing.T) {
 // - Serializes to WithRule(...)
 func TestWrapAnyRuleString(t *testing.T) {
 	innerRuleSet := rules.Any()
-	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
 	expected := "AnyRuleSet.Any().WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {

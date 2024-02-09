@@ -114,7 +114,7 @@ func TestStringRequired(t *testing.T) {
 
 func TestStringCustom(t *testing.T) {
 	_, err := strings.New().
-		WithRuleFunc(testhelpers.MockCustomRule("123", 1)).
+		WithRuleFunc(testhelpers.NewMockRuleWithErrors[string](1).Function()).
 		Validate("123")
 
 	if err == nil {
@@ -125,7 +125,7 @@ func TestStringCustom(t *testing.T) {
 	expected := "abc"
 
 	actual, err := strings.New().
-		WithRuleFunc(testhelpers.MockCustomRule(expected, 0)).
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
 		Validate("123")
 
 	if err != nil {

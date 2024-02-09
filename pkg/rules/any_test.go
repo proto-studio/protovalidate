@@ -55,14 +55,14 @@ func TestAnyRequired(t *testing.T) {
 // - Mutated values from the custom rules are returned.
 func TestAnyCustom(t *testing.T) {
 	ruleSet := rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
 	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
 
-	expected := "abc"
+	var expected any = "abc"
 
 	ruleSet = rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
+		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function())
 
 	testhelpers.MustBeValid(t, ruleSet, "123", expected)
 }
@@ -103,7 +103,8 @@ func TestAnyForbiddenString(t *testing.T) {
 // Requirements:
 // - Serializes to WithRule(...)
 func TestAnyRuleString(t *testing.T) {
-	ruleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+	ruleSet := rules.Any().
+		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
 	expected := "AnyRuleSet.WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
@@ -115,16 +116,16 @@ func TestAnyRuleString(t *testing.T) {
 // - RuleSets are usable as Rules for the same type
 func TestAnyComposition(t *testing.T) {
 	innerRuleSet := rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+		WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	ruleSet := rules.Any().WithRule(innerRuleSet)
 
 	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
 
-	expected := "abc"
+	var expected any = "abc"
 
 	ruleSet = rules.Any().
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
+		WithRule(testhelpers.NewMockRuleWithValue(expected))
 
 	testhelpers.MustBeValid(t, ruleSet, "123", expected)
 }

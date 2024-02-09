@@ -2,7 +2,6 @@
 package testhelpers
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -20,27 +19,6 @@ func CheckRuleSetInterface[T any](v any) bool {
 func CheckRuleInterface[T any](v any) bool {
 	_, ok := v.(rules.Rule[T])
 	return ok
-}
-
-// MockCustomRule is a mock implementation of the Rule interface that can be used for testing.
-// It accepts a return value to return from the rule and also a number of errors to return.
-//
-// If errorCount is 0 than nil is returned for errors.
-// The return value of this function is a Rule function.
-func MockCustomRule[T any](retval T, errorCount int) func(_ context.Context, _ T) (T, errors.ValidationErrorCollection) {
-	var errs errors.ValidationErrorCollection
-
-	if errorCount > 0 {
-		errs = make(errors.ValidationErrorCollection, errorCount)
-
-		for i := 0; i < errorCount; i++ {
-			errs[i] = errors.Errorf(errors.CodeUnknown, context.Background(), "test")
-		}
-	}
-
-	return func(_ context.Context, _ T) (T, errors.ValidationErrorCollection) {
-		return retval, errs
-	}
 }
 
 // checkEqual is a simple validity function that returns true if both values are equal.
