@@ -2,7 +2,7 @@ package strings
 
 import (
 	"context"
-	"sort"
+	"slices"
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
@@ -95,7 +95,8 @@ func (ruleSet *StringRuleSet) getValuesRule(allow bool) *valuesRule {
 
 // WithAllowedValues returns a new child RuleSet that is checked against the provided list of allowed values.
 //
-// Allowed values bypass all validation rules that were defined first.
+// This method can be called more than once and the allowed values are cumulative.
+// Allowed values must still pass all other rules.
 func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *StringRuleSet {
 	existing := ruleSet.getValuesRule(true)
 	l := 1 + len(rest)
@@ -113,8 +114,7 @@ func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *S
 		values = append(values, existing.values...)
 	}
 
-	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 1.20.
-	sort.Strings(values)
+	slices.Sort(values)
 
 	return ruleSet.WithRule(&valuesRule{
 		values,
@@ -124,13 +124,14 @@ func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *S
 
 // WithRejectedValues returns a new child RuleSet that is checked against the provided list of values hat should be rejected.
 // This method can be called more than once.
+//
+// Rejected values will always be rejected even if they are in the allowed values list.
 func (ruleSet *StringRuleSet) WithRejectedValues(value string, rest ...string) *StringRuleSet {
 	values := make([]string, 0, 1+len(rest))
 	values = append(values, value)
 	values = append(values, rest...)
 
-	// slices.Sort is faster but would require GO 1.21 and we're trying to keep the requirements to 2.20.
-	sort.Strings(values)
+	slices.Sort(values)
 
 	return ruleSet.WithRule(&valuesRule{
 		values,
