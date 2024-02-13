@@ -11,14 +11,11 @@ type counter struct {
 	mu    sync.RWMutex // mu protects concurrent access to count.
 	count int          // count holds the current value of the counter.
 	cond  *sync.Cond   // cond is used to signal when the counter reaches 0.
-	name  string       // name is used primarily for debugging.
 }
 
 // newCounter initializes and returns a new counter object.
-func newCounter(name string) *counter {
-	c := &counter{
-		name: name,
-	}
+func newCounter() *counter {
+	c := &counter{}
 	c.cond = sync.NewCond(&c.mu)
 	return c
 }
@@ -60,32 +57,32 @@ func (c *counter) Wait() {
 }
 
 // counterSet manages a thread-safe collection of counters, each associated with a unique key.
-type counterSet struct {
-	mu       sync.RWMutex        // mu protects concurrent access to counters.
-	counters map[string]*counter // counters holds the collection of counters.
+type counterSet[TK comparable] struct {
+	mu       sync.RWMutex    // mu protects concurrent access to counters.
+	counters map[TK]*counter // counters holds the collection of counters.
 }
 
 // newCounterSet initializes and returns a new counterSet object.
-func newCounterSet() *counterSet {
-	return &counterSet{
-		counters: make(map[string]*counter),
+func newCounterSet[TK comparable]() *counterSet[TK] {
+	return &counterSet[TK]{
+		counters: make(map[TK]*counter),
 	}
 }
 
 // Increment safely increases the counter associated with the given key by 1.
 // If a counter doesn't exist for the key, it creates one.
-func (cs *counterSet) Increment(key string) {
+func (cs *counterSet[TK]) Increment(key TK) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
 	if _, exists := cs.counters[key]; !exists {
-		cs.counters[key] = newCounter(key)
+		cs.counters[key] = newCounter()
 	}
 	cs.counters[key].Increment()
 }
 
 // Lock locks the counter for a specific key for writing.
-func (cs *counterSet) Lock(key string) {
+func (cs *counterSet[TK]) Lock(key TK) {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
@@ -95,7 +92,7 @@ func (cs *counterSet) Lock(key string) {
 }
 
 // Unlock unlocks the counter for a specific key for writing.
-func (cs *counterSet) Unlock(key string) {
+func (cs *counterSet[TK]) Unlock(key TK) {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
@@ -106,7 +103,7 @@ func (cs *counterSet) Unlock(key string) {
 
 // Wait waits for the counters associated with the provided keys to reach 0.
 // If a key doesn't have an associated counter, it simply moves on to the next key.
-func (cs *counterSet) Wait(keys ...string) {
+func (cs *counterSet[TK]) Wait(keys ...TK) {
 	for _, key := range keys {
 		cs.mu.RLock()
 		c, exists := cs.counters[key]

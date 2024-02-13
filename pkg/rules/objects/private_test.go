@@ -23,10 +23,6 @@ func (c *alwaysErrorContext) Err() error {
 	return fmt.Errorf("test error")
 }
 
-func testStructInit() *testStruct {
-	return &testStruct{}
-}
-
 func TestMissingMapping(t *testing.T) {
 	ruleSet := New[*testStruct]().withParent()
 
@@ -49,7 +45,7 @@ func TestMissingMapping(t *testing.T) {
 		}
 	}()
 
-	ruleSet = ruleSet.WithKey("A", numbers.NewInt().Any())
+	ruleSet.WithKey("A", numbers.NewInt().Any())
 }
 
 func TestUnexportedField(t *testing.T) {
@@ -69,7 +65,7 @@ func TestUnexportedField(t *testing.T) {
 	ruleSet.key = "z"
 	ruleSet.mapping = "z"
 
-	ruleSet = ruleSet.WithKey("z", numbers.NewInt().Any())
+	ruleSet.WithKey("z", numbers.NewInt().Any())
 }
 
 // Requirements:
@@ -86,7 +82,8 @@ func TestContextErrorToValidation(t *testing.T) {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
-	ctx, _ = context.WithTimeout(context.Background(), 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+
 	err = contextErrorToValidation(ctx)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
@@ -94,8 +91,11 @@ func TestContextErrorToValidation(t *testing.T) {
 		t.Errorf("Expected code to be %s, got %s", errors.CodeTimeout, c)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+
 	err = contextErrorToValidation(ctx)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
@@ -116,10 +116,11 @@ func TestContextErrorToValidation(t *testing.T) {
 // Requirements:
 // - counter panics when it goes negative
 func TestRefTrackerNegative(t *testing.T) {
-	c := newCounter("test")
+	c := newCounter()
 	c.Increment()
 
 	c.Lock()
+	// Intentionally empty critical section
 	c.Unlock()
 
 	defer func() {

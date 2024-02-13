@@ -7,7 +7,7 @@ import "proto.zip/studio/validate/pkg/rules"
 // an array of all the keys names that must be present and error free for the rule to evaluate.
 //
 // ObjectRuleSet[T] implements this interface out of the box.
-type Conditional[T any] interface {
+type Conditional[T any, TK comparable] interface {
 	rules.Rule[T]
-	Keys() []string // Return all key names that the rule depends on
+	Keys() []TK // Return all key names that the rule depends on
 }

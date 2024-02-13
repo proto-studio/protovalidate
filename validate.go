@@ -92,7 +92,7 @@ func Float64() *numbers.FloatRuleSet[float64] {
 
 // Map returns a new rule set that can be used to validate a map containing
 // a string as a key and a single data type as the value.
-func Map[T any]() *objects.ObjectRuleSet[map[string]T] {
+func Map[T any]() *objects.ObjectRuleSet[map[string]T, string, T] {
 	return objects.NewObjectMap[T]()
 }
 
@@ -100,20 +100,17 @@ func Map[T any]() *objects.ObjectRuleSet[map[string]T] {
 // a string as a key and values of any type.
 //
 // These are useful for maps that come from untyped formats such as Json.
-func MapAny() *objects.ObjectRuleSet[map[string]any] {
+func MapAny() *objects.ObjectRuleSet[map[string]any, string, any] {
 	return objects.NewObjectMap[any]()
 }
 
 // Object returns a validator that can be used to validate an object of an
 // arbitrary data type.
 //
-// It takes a function as an argument that must return a new (zero) value
-// for the struct.
-//
 // Using the "validate" annotation you can may input values to different
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
-func Object[T any]() *objects.ObjectRuleSet[T] {
+func Object[T any]() *objects.ObjectRuleSet[T, string, any] {
 	return objects.New[T]()
 }
 

@@ -9,27 +9,27 @@ import (
 )
 
 // knownKeys is a utility structure to track which keys are seen during validation.
-type knownKeys struct {
-	keys map[string]bool
+type knownKeys[TK comparable] struct {
+	keys map[TK]bool
 }
 
 // newKnownKeys creates a new instance of knownKeys.
-func newKnownKeys(track bool) *knownKeys {
+func newKnownKeys[TK comparable](track bool) *knownKeys[TK] {
 	if track {
-		return &knownKeys{keys: make(map[string]bool)}
+		return &knownKeys[TK]{keys: make(map[TK]bool)}
 	}
-	return &knownKeys{}
+	return &knownKeys[TK]{}
 }
 
 // Add registers a known key.
-func (k *knownKeys) Add(key string) {
+func (k *knownKeys[TK]) Add(key TK) {
 	if k.keys != nil {
 		k.keys[key] = true
 	}
 }
 
 // exists checks if a given key is known.
-func (k *knownKeys) exists(key string) bool {
+func (k *knownKeys[TK]) exists(key TK) bool {
 	_, ok := k.keys[key]
 	return ok
 }
@@ -39,7 +39,7 @@ func (k *knownKeys) exists(key string) bool {
 //
 // If allowUnknown is true when creating the object then this always returns an
 // empty error collection.
-func (k *knownKeys) Check(ctx context.Context, inValue reflect.Value) errors.ValidationErrorCollection {
+func (k *knownKeys[TK]) Check(ctx context.Context, inValue reflect.Value) errors.ValidationErrorCollection {
 	errs := errors.Collection()
 
 	// If the knownKeys map is not initialized, return an empty error collection.
@@ -48,22 +48,22 @@ func (k *knownKeys) Check(ctx context.Context, inValue reflect.Value) errors.Val
 	}
 
 	unk := k.Unknown(inValue)
-	for _, keyStr := range unk {
-		subContext := rulecontext.WithPathString(ctx, keyStr)
+	for _, key := range unk {
+		subContext := rulecontext.WithPathString(ctx, toPath(key))
 		errs = append(errs, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
 	}
 	return errs
 }
 
 // Unknown returns all the unexpected keys.
-func (k *knownKeys) Unknown(inValue reflect.Value) []string {
-	var out []string
+func (k *knownKeys[TK]) Unknown(inValue reflect.Value) []TK {
+	var out []TK
 
 	// Loop through each key in the input value and check if it's a known key.
 	for _, key := range inValue.MapKeys() {
-		keyStr := key.String()
-		if !k.exists(keyStr) {
-			out = append(out, keyStr)
+		keyVal := key.Interface().(TK)
+		if !k.exists(keyVal) {
+			out = append(out, keyVal)
 		}
 	}
 

@@ -4,31 +4,31 @@ import (
 	"errors"
 )
 
-// refTracker represents a structure to track references and their dependencies.
-type refTracker struct {
-	edges map[string][]string // edges represent the directed graph of dependencies.
+// refTracker[T] represents a structure to track references and their dependencies.
+type refTracker[T comparable] struct {
+	edges map[T][]T // edges represent the directed graph of dependencies.
 }
 
-// newRefTracker initializes and returns a new refTracker.
-func newRefTracker() *refTracker {
-	return &refTracker{
-		edges: make(map[string][]string),
+// newRefTracker initializes and returns a new refTracker[T].
+func newRefTracker[T comparable]() *refTracker[T] {
+	return &refTracker[T]{
+		edges: make(map[T][]T),
 	}
 }
 
 // Add adds a new dependency between key and dependsOnKey.
 // It returns an error if adding this dependency results in a circular reference.
-func (rt *refTracker) Add(key, dependsOnKey string) error {
+func (rt *refTracker[T]) Add(key, dependsOnKey T) error {
 	// Initialize the key in the map if it doesn't exist.
 	if _, exists := rt.edges[key]; !exists {
-		rt.edges[key] = []string{}
+		rt.edges[key] = []T{}
 	}
 	// Add the dependency.
 	rt.edges[key] = append(rt.edges[key], dependsOnKey)
 
 	// Check for circular references.
-	visited := make(map[string]bool)
-	stack := make(map[string]bool)
+	visited := make(map[T]bool)
+	stack := make(map[T]bool)
 
 	if rt.hasCycle(key, visited, stack) {
 		return errors.New("circular reference detected")
@@ -38,7 +38,7 @@ func (rt *refTracker) Add(key, dependsOnKey string) error {
 
 // hasCycle recursively checks for cycles in the graph using depth-first search.
 // It returns true if a cycle is detected.
-func (rt *refTracker) hasCycle(node string, visited, stack map[string]bool) bool {
+func (rt *refTracker[T]) hasCycle(node T, visited, stack map[T]bool) bool {
 	// If the node is in the stack, it means we've encountered a cycle.
 	if stack[node] {
 		return true
@@ -65,13 +65,13 @@ func (rt *refTracker) hasCycle(node string, visited, stack map[string]bool) bool
 	return false
 }
 
-func (rt *refTracker) Clone() *refTracker {
-	clone := &refTracker{
-		edges: make(map[string][]string),
+func (rt *refTracker[T]) Clone() *refTracker[T] {
+	clone := &refTracker[T]{
+		edges: make(map[T][]T),
 	}
 
 	for key, values := range rt.edges {
-		clonedValues := make([]string, len(values))
+		clonedValues := make([]T, len(values))
 		copy(clonedValues, values)
 		clone.edges[key] = clonedValues
 	}

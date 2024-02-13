@@ -29,6 +29,11 @@ func checkEqual(a, b any) error {
 	return nil
 }
 
+// checkAlways is a check function that always returns nil.
+func checkAlways(_, _ any) error {
+	return nil
+}
+
 // MustBeValidFunc is a test helper that expects a RuleSet to a nil error.
 // If the error is non-nil or the check function returns an error, this function prints the error and returns it.
 func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) error {
@@ -58,6 +63,13 @@ func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOu
 func MustBeValid(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any) error {
 	t.Helper()
 	return MustBeValidFunc(t, ruleSet, input, expectedOutput, checkEqual)
+}
+
+// MustBeValidAny is a test helper that expects a RuleSet to finish without an error.
+// It does not check the return value.
+func MustBeValidAny(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
+	t.Helper()
+	return MustBeValidFunc(t, ruleSet, input, nil, checkAlways)
 }
 
 // MustBeInvalid is a test helper that expects a RuleSet to return an error and checks for a specific error code.

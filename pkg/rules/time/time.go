@@ -192,7 +192,7 @@ func (v *TimeRuleSet) WithRuleFunc(rule rules.RuleFunc[time.Time]) *TimeRuleSet 
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the domain RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the time RuleSet in any Any rule set
 // which can then be used in nested validation.
 func (ruleSet *TimeRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[time.Time](ruleSet)

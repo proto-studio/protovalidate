@@ -12,7 +12,6 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
-	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/objects"
 	"proto.zip/studio/validate/pkg/rules/strings"
@@ -302,8 +301,8 @@ func TestObjectMapping(t *testing.T) {
 
 func TestMissingField(t *testing.T) {
 	out, err := objects.NewObjectMap[int]().
-		WithKey("A", numbers.NewInt().Any()).
-		WithKey("B", numbers.NewInt().Any()).
+		WithKey("A", numbers.NewInt()).
+		WithKey("B", numbers.NewInt()).
 		Validate(map[string]any{"A": 123})
 
 	if err != nil {
@@ -336,8 +335,8 @@ func TestUnderlyingMapField(t *testing.T) {
 	input := underlyingMap(map[string]string{"A": "123"})
 
 	out, err := objects.NewObjectMap[int]().
-		WithKey("A", numbers.NewInt().Any()).
-		WithKey("B", numbers.NewInt().Any()).
+		WithKey("A", numbers.NewInt()).
+		WithKey("B", numbers.NewInt()).
 		Validate(input)
 
 	if err != nil {
@@ -364,8 +363,8 @@ func TestUnderlyingMapField(t *testing.T) {
 
 func TestMissingRequiredField(t *testing.T) {
 	_, err := objects.NewObjectMap[int]().
-		WithKey("A", numbers.NewInt().Any()).
-		WithKey("B", numbers.NewInt().WithRequired().Any()).
+		WithKey("A", numbers.NewInt()).
+		WithKey("B", numbers.NewInt().WithRequired()).
 		Validate(map[string]any{"A": 123})
 
 	if len(err) == 0 {
@@ -388,7 +387,7 @@ func TestWithRequired(t *testing.T) {
 }
 
 func TestUnknownFields(t *testing.T) {
-	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt().Any())
+	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt())
 	value := map[string]any{"A": 123, "C": 456}
 
 	testhelpers.MustBeInvalid(t, ruleSet.Any(), value, errors.CodeUnexpected)
@@ -407,7 +406,7 @@ func TestInputNotObjectLike(t *testing.T) {
 }
 
 func TestReturnsAllErrors(t *testing.T) {
-	_, err := objects.NewObjectMap[int]().
+	_, err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
@@ -423,7 +422,7 @@ func TestReturnsAllErrors(t *testing.T) {
 func TestReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
-	_, err := objects.NewObjectMap[int]().
+	_, err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
@@ -510,8 +509,6 @@ func TestAny(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 
@@ -898,19 +895,19 @@ func TestConditionalKeyVisited(t *testing.T) {
 	 */
 
 	condB := objects.NewObjectMap[int]().
-		WithKey("B", numbers.NewInt().WithMin(4).Any())
+		WithKey("B", numbers.NewInt().WithMin(4))
 
 	condC := objects.NewObjectMap[int]().
-		WithKey("C", numbers.NewInt().WithMin(4).Any())
+		WithKey("C", numbers.NewInt().WithMin(4))
 
 	condD := objects.NewObjectMap[int]().
-		WithKey("D", numbers.NewInt().WithMin(4).Any())
+		WithKey("D", numbers.NewInt().WithMin(4))
 
 	objects.NewObjectMap[int]().
-		WithConditionalKey("B", condD, numbers.NewInt().Any()).
-		WithConditionalKey("C", condD, numbers.NewInt().Any()).
-		WithConditionalKey("A", condB, numbers.NewInt().Any()).
-		WithConditionalKey("A", condC, numbers.NewInt().Any())
+		WithConditionalKey("B", condD, numbers.NewInt()).
+		WithConditionalKey("C", condD, numbers.NewInt()).
+		WithConditionalKey("A", condB, numbers.NewInt()).
+		WithConditionalKey("A", condC, numbers.NewInt())
 }
 
 // Requirements:
@@ -980,8 +977,8 @@ func TestNestedPointer(t *testing.T) {
 }
 
 // Requirement:
-// - When WithUnkown is set, the resulting map should contain unknown values
-func TestObjectFromMapToMapUknown(t *testing.T) {
+// - When WithUnknown is set, the resulting map should contain unknown values
+func TestObjectFromMapToMapUnknown(t *testing.T) {
 	in := testMap()
 
 	out, err := objects.NewObjectMap[any]().
@@ -1228,4 +1225,61 @@ func TestWithUnknownIdempotent(t *testing.T) {
 	if b != c {
 		t.Error("Expected `b` to equal `c`")
 	}
+}
+
+/*
+// Requirements:
+// - AllowUnknown is implicitly false.
+// - WithUnknownKey rules run on all unknown keys.
+// - If any rules fail the validation fails with unknown key.
+func TestWithUnknownKey(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().WithJson()
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": 123}`, errors.CodeUnexpected)
+
+	// Purposely setting two different rule sets so we can test that all rules are evaluated
+	// until one fails.
+	// Must be exactly two characters long.
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2))
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMinLen(2))
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"X": 123}`, errors.CodeUnexpected)
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": 123}`)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": 123}`, errors.CodeUnexpected)
+}
+
+// Requirements:
+// - Rules run on unknown values with valid keys.
+func TestWithUnknownKeyValue(t *testing.T) {
+	ruleSet := objects.NewObjectMap[string]().WithJson()
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2).Any())
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": "AB"}`, errors.CodeUnexpected)
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
+
+	// Purposely setting two different rule sets so we can test that all rules are always evaluated.
+	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithMaxLen(2).Any())
+
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeMax)
+
+	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithAllowedValues("A", "B", "C").Any())
+
+	errs := testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeNotAllowed).(errors.ValidationErrorCollection)
+	if l := len(errs); l != 2 {
+		t.Errorf("Expected %d errors, got: %d", 2, l)
+	}
+}
+*/
+
+// Requirements:
+// - Unknown values that are mapped to a specific type should not error if validators return the correct type.
+// - Should not panic.
+func TestWithUknownTypedMap(t *testing.T) {
+	ruleSet := objects.NewObjectMap[*testStructMapped]().
+		WithJson().
+		WithUnknown().
+		WithUnknownKeyValue(objects.New[*testStructMapped]().WithKey("A", numbers.NewInt().Any()))
+
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"test": {"A": 123}}`)
 }
