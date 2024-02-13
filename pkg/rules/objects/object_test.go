@@ -2,6 +2,7 @@ package objects_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	stringsHelper "strings"
@@ -24,6 +25,13 @@ func mutateIntPlusOne(_ context.Context, x int) (int, errors.ValidationErrorColl
 
 func testMap() map[string]any {
 	return map[string]any{"X": 10, "Y": 20}
+}
+
+func jsonTestValidator(x, y any) error {
+	if m, ok := y.(map[string]any); !ok || m["X"] != 123 {
+		return fmt.Errorf("Expected X to be 123")
+	}
+	return nil
 }
 
 type testStruct struct {
@@ -1106,5 +1114,118 @@ func TestUnexpectedKeyPath(t *testing.T) {
 	errA := err.For("/myobj/x")
 	if errA == nil {
 		t.Errorf("Expected error for /myobj/x to not be nil")
+	}
+}
+
+// Requirements:
+// - Does not parse Json string by default
+// - Can validate Json string
+// - Must also work for pointers to strings
+// - Non Json strings cannot be coerced
+func TestJsonString(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().
+		WithKey("X", numbers.NewInt().Any())
+
+	j := `{"X": 123}`
+	invalid := "x"
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), &j, errors.CodeType)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), &invalid, errors.CodeType)
+
+	ruleSet = ruleSet.WithJson()
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), &invalid, errors.CodeType)
+}
+
+// Requirements:
+// - Does not parse Json []byte by default
+// - Can validate Json []byte
+func TestJsonBytes(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().
+		WithKey("X", numbers.NewInt().Any())
+
+	j := []byte(`{"X": 123}`)
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
+
+	ruleSet = ruleSet.WithJson()
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+}
+
+// Requirements:
+// - Does not parse json.RawMessage by default
+// - Can validate json.RawMessage
+// - Must also work with pointers to json.RawMessage
+func TestJsonRawMessage(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().
+		WithKey("X", numbers.NewInt().Any())
+
+	j := json.RawMessage([]byte(`{"X": 123}`))
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), &j, errors.CodeType)
+
+	ruleSet = ruleSet.WithJson()
+
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+}
+
+// Requirements:
+// - WithRequired is idempotent.
+func TestWithRequiredIdempotent(t *testing.T) {
+	a := objects.NewObjectMap[any]()
+	b := a.WithRequired()
+	c := b.WithRequired()
+
+	if a.Required() {
+		t.Error("Expected `a` to not be required")
+	}
+	if !b.Required() {
+		t.Error("Expected `b` to be required")
+	}
+	if !c.Required() {
+		t.Error("Expected `c` to be required")
+	}
+
+	if a == b {
+		t.Error("Expected `a` to not equal `b`")
+	}
+	if b != c {
+		t.Error("Expected `b` to equal `c`")
+	}
+}
+
+// Requirements:
+// - WithJson is idempotent.
+func TestWithJsonIdempotent(t *testing.T) {
+	a := objects.NewObjectMap[any]()
+	b := a.WithJson()
+	c := b.WithJson()
+
+	if a == b {
+		t.Error("Expected `a` to not equal `b`")
+	}
+	if b != c {
+		t.Error("Expected `b` to equal `c`")
+	}
+}
+
+// Requirements:
+// - WithUnknown is idempotent.
+func TestWithUnknownIdempotent(t *testing.T) {
+	a := objects.NewObjectMap[any]()
+	b := a.WithUnknown()
+	c := b.WithUnknown()
+
+	if a == b {
+		t.Error("Expected `a` to not equal `b`")
+	}
+	if b != c {
+		t.Error("Expected `b` to equal `c`")
 	}
 }

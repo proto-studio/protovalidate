@@ -5,6 +5,7 @@ package objects
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -31,6 +32,7 @@ type ObjectRuleSet[T any] struct {
 	label        string
 	condition    Conditional[T]
 	refs         *refTracker
+	json         bool
 }
 
 // New returns a RuleSet that can be used to validate an object of an
@@ -124,6 +126,7 @@ func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 		ptr:          v.ptr,
 		parent:       v,
 		refs:         v.refs,
+		json:         v.json,
 	}
 }
 
@@ -133,6 +136,10 @@ func (v *ObjectRuleSet[T]) withParent() *ObjectRuleSet[T] {
 // Setting the unknown flag will allow keys that aren't defined to be present in the map.
 // This is useful for parsing arbitrary Json where additional keys may be included.
 func (v *ObjectRuleSet[T]) WithUnknown() *ObjectRuleSet[T] {
+	if v.allowUnknown {
+		return v
+	}
+
 	newRuleSet := v.withParent()
 	newRuleSet.allowUnknown = true
 	newRuleSet.label = "WithUnknown()"
@@ -272,6 +279,10 @@ func (v *ObjectRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set with the required flag set.
 // Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
 func (v *ObjectRuleSet[T]) WithRequired() *ObjectRuleSet[T] {
+	if v.required {
+		return v
+	}
+
 	newRuleSet := v.withParent()
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
@@ -527,6 +538,34 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 	inValue := reflect.Indirect(reflect.ValueOf(in))
 	inKind := inValue.Kind()
 
+	// Convert strings to Json
+	if v.json {
+		var result map[string]interface{}
+		coerced := false
+
+		if inKind == reflect.String {
+			if err := json.Unmarshal([]byte(inValue.String()), &result); err == nil {
+				coerced = true
+			}
+
+		} else if inKind == reflect.Slice && inValue.Type().Elem().Kind() == reflect.Uint8 {
+			// Note: this also matches types that have []byte as their underlying type, such as json.RawMessage
+			if err := json.Unmarshal(inValue.Bytes(), &result); err == nil {
+				coerced = true
+			}
+
+		}
+
+		if !coerced {
+			return out, errors.Collection(
+				errors.NewCoercionError(ctx, "object, map, or Json string", inKind.String()),
+			)
+		}
+
+		inValue = reflect.ValueOf(result)
+		inKind = inValue.Kind()
+	}
+
 	fromMap := inKind == reflect.Map
 	fromSame := !fromMap && inValue.Type() == v.outputType
 
@@ -556,6 +595,17 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 func (ruleSet *ObjectRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
 	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
 	return ruleSet.ValidateWithContext(value, ctx)
+}
+
+// WithJson allows the input to be a Json encoded string.
+func (v *ObjectRuleSet[T]) WithJson() *ObjectRuleSet[T] {
+	if v.json {
+		return v
+	}
+
+	newRuleSet := v.withParent()
+	newRuleSet.json = true
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set with a rule added to the list of
