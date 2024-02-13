@@ -1229,3 +1229,58 @@ func TestWithUnknownIdempotent(t *testing.T) {
 		t.Error("Expected `b` to equal `c`")
 	}
 }
+
+// Requirements:
+// - AllowUnknown is implicitly false.
+// - WithUnknownKey rules run on all unknown keys.
+// - If any rules fail the validation fails with unknown key.
+func TestWithUnknownKey(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().WithJson()
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": 123}`, errors.CodeUnexpected)
+
+	// Purposely setting two different rule sets so we can test that all rules are evaluated
+	// until one fails.
+	// Must be exactly two characters long.
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2).Any())
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMinLen(2).Any())
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"X": 123}`, errors.CodeUnexpected)
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": 123}`)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": 123}`, errors.CodeUnexpected)
+}
+
+// Requirements:
+// - Rules run on unknown values with valid keys.
+func TestWithUnknownKeyValue(t *testing.T) {
+	ruleSet := objects.NewObjectMap[string]().WithJson()
+	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2).Any())
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": "AB"}`, errors.CodeUnexpected)
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
+
+	// Purposely setting two different rule sets so we can test that all rules are always evaluated.
+	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithMaxLen(2).Any())
+
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeMax)
+
+	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithAllowedValues("A", "B", "C").Any())
+
+	errs := testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeNotAllowed).(errors.ValidationErrorCollection)
+	if l := len(errs); l != 2 {
+		t.Errorf("Expected %d errors, got: %d", 2, l)
+	}
+}
+
+// Requirements:
+// - Unknown values that are mapped to a specific type should not error if validators return the correct type.
+// - Should not panic.
+func TestWithUknownTypedMap(t *testing.T) {
+	ruleSet := objects.NewObjectMap[*testStructMapped]().
+		WithJson().
+		WithUnknown().
+		WithUnknownKeyValue(objects.New[*testStructMapped]().WithKey("A", numbers.NewInt().Any()).Any())
+
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"test": {"A": 123}}`)
+}

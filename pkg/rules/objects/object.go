@@ -17,12 +17,21 @@ import (
 
 const annotation = "validate"
 
+type objectRuleScope int
+
+const (
+	scopeKey          objectRuleScope = 0
+	scopeUnknownKey   objectRuleScope = 1
+	scopeUnknownValue objectRuleScope = 2
+)
+
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any] struct {
 	rules.NoConflict[T]
 	allowUnknown bool
 	key          string
 	rule         rules.RuleSet[any]
+	ruleScope    objectRuleScope
 	objRule      rules.Rule[T]
 	mapping      string
 	outputType   reflect.Type
@@ -146,6 +155,30 @@ func (v *ObjectRuleSet[T]) WithUnknown() *ObjectRuleSet[T] {
 	return newRuleSet
 }
 
+// WithUnknownKey returns a new rule set with a validation function for unknown keys.
+// Rules are cumulative. If any rule fails the remaining rules will not run.
+// If the unknown flag was not previously set, this will set it.
+func (v *ObjectRuleSet[T]) WithUnknownKey(rule rules.RuleSet[any]) *ObjectRuleSet[T] {
+	newRuleSet := v.withParent()
+	newRuleSet.allowUnknown = true
+	newRuleSet.rule = rule
+	newRuleSet.ruleScope = scopeUnknownKey
+	return newRuleSet
+}
+
+// WithUnknownKeyValue returns a new rule set with a validation function for unknown key values.
+// Rules are cumulative. Unlike WithUnknownKey, all rules will always be run.
+// If the unknown flag was not previously set, this will set it.
+//
+// The rules will not run if the key fails validation.
+func (v *ObjectRuleSet[T]) WithUnknownKeyValue(rule rules.RuleSet[any]) *ObjectRuleSet[T] {
+	newRuleSet := v.withParent()
+	newRuleSet.allowUnknown = true
+	newRuleSet.rule = rule
+	newRuleSet.ruleScope = scopeUnknownValue
+	return newRuleSet
+}
+
 // fullMapping is a helper function that returns the full object field mappings as a map.
 func (v *ObjectRuleSet[T]) fullMapping() map[string]string {
 	mapping := make(map[string]string)
@@ -247,6 +280,7 @@ func (v *ObjectRuleSet[T]) WithConditionalKey(key string, condition Conditional[
 
 	newRuleSet.key = key
 	newRuleSet.rule = ruleSet
+	newRuleSet.ruleScope = scopeKey
 	newRuleSet.condition = condition
 
 	if condition != nil {
@@ -419,8 +453,21 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 
 	// Loop through the rule set and evaluate each one.
 	// Run each rule set in a goroutine.
+	var unknownValueRuleSets []rules.RuleSet[any]
+	var unknownKeyRuleSets []rules.RuleSet[any]
+
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.key == "" || currentRuleSet.rule == nil {
+
+		if currentRuleSet.rule == nil {
+			continue
+		}
+
+		switch currentRuleSet.ruleScope {
+		case scopeUnknownKey:
+			unknownKeyRuleSets = append(unknownKeyRuleSets, currentRuleSet.rule)
+			continue
+		case scopeUnknownValue:
+			unknownValueRuleSets = append(unknownValueRuleSets, currentRuleSet.rule)
 			continue
 		}
 
@@ -443,16 +490,47 @@ func (v *ObjectRuleSet[T]) evaluateKeyRules(ctx context.Context, out *T, inValue
 		go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, inFieldValue, s, counters)
 	}
 
+	// Unknown fields are not concurrent for now
+	ruleErrors := wait(ctx, &wg, errorsCh, true)
+
 	if !v.allowUnknown {
 		knownKeyErrors := knownKeys.Check(ctx, inValue)
 		allErrors = append(allErrors, knownKeyErrors...)
 	} else if fromMap && s.Map() {
 		for _, key := range knownKeys.Unknown(inValue) {
-			s.Set(key, inValue.MapIndex(reflect.ValueOf(key)).Interface())
+			validKey := true
+
+			subContext := rulecontext.WithPathString(ctx, key)
+
+			for i := range unknownKeyRuleSets {
+				_, verr := unknownKeyRuleSets[i].ValidateWithContext(key, subContext)
+				if len(verr) > 0 {
+					allErrors = append(allErrors, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
+					validKey = false
+					break
+				}
+			}
+
+			if validKey {
+				val := inValue.MapIndex(reflect.ValueOf(key)).Interface()
+				validValue := true
+				var verr errors.ValidationErrorCollection
+
+				for i := range unknownValueRuleSets {
+					val, verr = unknownValueRuleSets[i].ValidateWithContext(val, subContext)
+					if len(verr) > 0 {
+						allErrors = append(allErrors, verr...)
+						validValue = false
+					}
+				}
+
+				if validValue {
+					s.Set(key, val)
+				}
+			}
 		}
 	}
 
-	ruleErrors := wait(ctx, &wg, errorsCh, true)
 	return append(allErrors, ruleErrors...)
 }
 
@@ -542,21 +620,24 @@ func (v *ObjectRuleSet[T]) ValidateWithContext(in any, ctx context.Context) (T, 
 	if v.json {
 		var result map[string]interface{}
 		coerced := false
+		attempted := false
 
 		if inKind == reflect.String {
+			attempted = true
 			if err := json.Unmarshal([]byte(inValue.String()), &result); err == nil {
 				coerced = true
 			}
 
 		} else if inKind == reflect.Slice && inValue.Type().Elem().Kind() == reflect.Uint8 {
+			attempted = true
+
 			// Note: this also matches types that have []byte as their underlying type, such as json.RawMessage
 			if err := json.Unmarshal(inValue.Bytes(), &result); err == nil {
 				coerced = true
 			}
-
 		}
 
-		if !coerced {
+		if !coerced && attempted {
 			return out, errors.Collection(
 				errors.NewCoercionError(ctx, "object, map, or Json string", inKind.String()),
 			)
