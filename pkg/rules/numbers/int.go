@@ -157,22 +157,32 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 
 // Validate performs a validation of a RuleSet against a value and returns a value of the correct integer type or
 // a ValidationErrorCollection.
-func (v *IntRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
+func (ruleSet *IntRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
+	return ruleSet.Run(context.Background(), value)
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by validaton rules and error formatting.
-func (v *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	intval, validationErr := v.coerceInt(value, ctx)
+// Also, takes a Context which can be used by validation rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
+func (ruleSet *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+	return ruleSet.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a value of the correct type or
+// a ValidationErrorCollection.
+func (ruleSet *IntRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
+	intval, validationErr := ruleSet.coerceInt(value, ctx)
 
 	if validationErr != nil {
 		return 0, errors.Collection(validationErr)
 	}
 
-	return intval, v.Evaluate(ctx, intval)
+	return intval, ruleSet.Evaluate(ctx, intval)
 }
 
 // Evaluate performs a validation of a RuleSet against an integer value and returns an integer value of the

@@ -2,6 +2,7 @@
 package testhelpers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -57,7 +58,7 @@ func MustBeValid(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput
 func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) error {
 	t.Helper()
 
-	actualOutput, err := ruleSet.Validate(input)
+	actualOutput, err := ruleSet.Run(context.TODO(), input)
 
 	if err != nil {
 		str := "Expected error to be nil"
@@ -111,7 +112,7 @@ func MustBeInvalid(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCod
 func MustNotRun(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
 	t.Helper()
 
-	_, err := ruleSet.Validate(input)
+	_, err := ruleSet.Run(context.TODO(), input)
 
 	if err == nil {
 		t.Error("Expected error to not be nil")

@@ -248,17 +248,9 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 	return newRuleSet
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
+// Run performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
-func (ruleSet *URIRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
-}
-
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (ruleSet *URIRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
 
 	valueStr, ok := value.(string)
 

@@ -73,17 +73,27 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a value of the correct float type or
+// Validate performs a validation of a RuleSet against a value and returns a value of the correct integer type or
 // a ValidationErrorCollection.
-func (v *FloatRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
+func (ruleSet *FloatRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
+	return ruleSet.Run(context.Background(), value)
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
-// Also, takes a Context which can be used by rules and error formatting.
-func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+// Also, takes a Context which can be used by validation rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
+func (ruleSet *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+	return ruleSet.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a value of the correct type or
+// a ValidationErrorCollection.
+func (v *FloatRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
 	floatval, validationErr := v.coerceFloat(value, ctx)
 
 	if validationErr != nil {

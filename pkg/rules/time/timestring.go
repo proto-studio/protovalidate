@@ -65,15 +65,25 @@ func (ruleSet *TimeStringRuleSet) WithLayouts(first string, rest ...string) *Tim
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (ruleSet *TimeStringRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
+	return ruleSet.Run(context.Background(), value)
 }
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (ruleSet *TimeStringRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
+	return ruleSet.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a string value or
+// a ValidationErrorCollection.
+func (ruleSet *TimeStringRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
 	t, err := ruleSet.inner.ValidateWithContext(value, ctx)
 	if err != nil {
 		return "", err

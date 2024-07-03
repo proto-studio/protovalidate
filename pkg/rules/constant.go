@@ -44,17 +44,9 @@ func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns the unaltered supplied value
+// Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
 // or a ValidationErrorCollection.
-func (ruleSet *ConstantRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
-}
-
-// ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (ruleSet *ConstantRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+func (ruleSet *ConstantRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
 	v, ok := value.(T)
 	if !ok {
 		return ruleSet.empty, errors.Collection(errors.NewCoercionError(ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(value).String()))

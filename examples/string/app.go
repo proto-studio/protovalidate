@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -23,7 +24,7 @@ func checkAll(w io.Writer, str ...string) {
 	}
 
 	for _, s := range str {
-		_, err := ruleSet.Validate(s)
+		_, err := ruleSet.Run(context.TODO(), s)
 		if err == nil {
 			fmt.Fprintf(w, "'%s' is valid\n", s)
 		} else {

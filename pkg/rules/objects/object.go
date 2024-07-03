@@ -338,12 +338,6 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 	return newRuleSet
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-func (v *ObjectRuleSet[T, TK, TV]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
-}
-
 // contextErrorToValidation takes a context error and returns a validation error.
 func contextErrorToValidation(ctx context.Context) errors.ValidationError {
 	switch ctx.Err() {
@@ -429,7 +423,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 		return
 	}
 
-	val, errs := ruleSet.rule.ValidateWithContext(inFieldValue.Interface(), ctx)
+	val, errs := ruleSet.rule.Run(ctx, inFieldValue.Interface())
 	if errs != nil {
 		errorsCh <- errs
 		return
@@ -523,7 +517,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 				var verr errors.ValidationErrorCollection
 
 				for i := range unknownValueRuleSets {
-					val, verr = unknownValueRuleSets[i].ValidateWithContext(val, subContext)
+					val, verr = unknownValueRuleSets[i].Run(subContext, val)
 					if len(verr) > 0 {
 						allErrors = append(allErrors, verr...)
 						validValue = false
@@ -590,11 +584,23 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 	}
 }
 
+// Validate performs a validation of a RuleSet against a value and returns a value of the correct type or
+// a ValidationErrorCollection.
+func (v *ObjectRuleSet[T, TK, TV]) Validate(value any) (T, errors.ValidationErrorCollection) {
+	return v.Run(context.Background(), value)
+}
+
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
 func (v *ObjectRuleSet[T, TK, TV]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
+	return v.Run(ctx, in)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a value of the correct type or
+// a ValidationErrorCollection.
+func (v *ObjectRuleSet[T, TK, TV]) Run(ctx context.Context, in any) (T, errors.ValidationErrorCollection) {
 	var out T
 
 	if v.outputType.Kind() == reflect.Map {

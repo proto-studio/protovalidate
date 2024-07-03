@@ -60,15 +60,25 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 
 // Validate performs a validation of a RuleSet against a value and returns the unaltered supplied value
 // or a ValidationErrorCollection.
-func (v *AnyRuleSet) Validate(value interface{}) (any, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
+func (v *AnyRuleSet) Validate(value any) (any, errors.ValidationErrorCollection) {
+	return v.Run(context.Background(), value)
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
 // or a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by rules and error formatting.
-func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
+func (v *AnyRuleSet) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
+	return v.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
+// or a ValidationErrorCollection.
+func (v *AnyRuleSet) Run(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
 	return value, v.Evaluate(ctx, value)
 }
 

@@ -59,15 +59,25 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+	return v.Run(context.Background(), value)
 }
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *StringRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
+	return v.Run(ctx, value)
+}
+
+// Validate performs a validation of a RuleSet against a value and returns a string value or
+// a ValidationErrorCollection.
+func (v *StringRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {

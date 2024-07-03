@@ -1,6 +1,7 @@
 package numbers_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
 	ruleSet := numbers.NewFloat64()
 
-	out, err := ruleSet.Any().Validate(float32(expected))
+	out, err := ruleSet.Any().Run(context.TODO(), float32(expected))
 	if err != nil {
 		t.Errorf("Expected err to be nil, got: %s", err)
 	} else if delta := math.Abs(out.(float64) - expected); delta > 10e-5 {

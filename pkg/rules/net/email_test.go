@@ -170,7 +170,7 @@ func TestEmailDomainContext(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "tests")
 	ctx = rulecontext.WithPathString(ctx, "email")
 
-	_, err := ruleSet.ValidateWithContext("hello@example.bogusbogus", ctx)
+	_, err := ruleSet.Run(ctx, "hello@example.bogusbogus")
 
 	expected := "/tests/email"
 

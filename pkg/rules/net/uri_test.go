@@ -18,7 +18,7 @@ func uriPartRequiredMissingHelper(t testing.TB, name, value string, withRequired
 
 	ctx := rulecontext.WithPathString(context.Background(), "uri")
 
-	_, err := withRequired.ValidateWithContext(value, ctx)
+	_, err := withRequired.Run(ctx, value)
 
 	if err == nil {
 		t.Errorf("Expected shallow error to not be nil on %s", value)
@@ -28,7 +28,7 @@ func uriPartRequiredMissingHelper(t testing.TB, name, value string, withRequired
 		t.Errorf("Expected shallow error path of %s got %s (on %s)", "/uri/"+name, path, value)
 	}
 
-	_, err = withDeepErrors.ValidateWithContext(value, ctx)
+	_, err = withDeepErrors.Run(ctx, value)
 
 	if err == nil {
 		t.Errorf("Expected deep error to not be nil on %s", value)
@@ -87,7 +87,7 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestURIRuleSet(t *testing.T) {
-	d, err := net.NewURI().Validate("https://example.com")
+	d, err := net.NewURI().Run(context.TODO(), "https://example.com")
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -194,7 +194,7 @@ func TestURICustomContext(t *testing.T) {
 	testUserinfo := fmt.Sprintf("%s:%s", testUser, testPassword)
 	testAuthority := fmt.Sprintf("%s@%s:%s", testUserinfo, testHost, testPort)
 
-	_, err := ruleSet.Validate(fmt.Sprintf("%s://%s%s?%s#%s", testScheme, testAuthority, testPath, testQuery, testFragment))
+	_, err := ruleSet.Run(context.TODO(), fmt.Sprintf("%s://%s%s?%s#%s", testScheme, testAuthority, testPath, testQuery, testFragment))
 	if err != nil {
 		t.Fatalf("Expected error to not be nil, got: %s", err)
 	}
@@ -290,7 +290,7 @@ func TestURIDeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		_, errs := ruleSet.ValidateWithContext(value, ctx)
+		_, errs := ruleSet.Run(ctx, value)
 
 		if len(errs) != 1 {
 			t.Errorf("Expected 1 error for %s, got: %d", path, len(errs))
@@ -311,7 +311,7 @@ func TestURIDeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		_, errs := ruleSet.ValidateWithContext(value, ctx)
+		_, errs := ruleSet.Run(ctx, value)
 
 		if len(errs) != 1 {
 			// We would have already printed this error
@@ -529,7 +529,7 @@ func TestURICustom(t *testing.T) {
 	_, err := net.NewURI().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
-		Validate(testVal)
+		Run(context.TODO(), testVal)
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
@@ -554,7 +554,7 @@ func TestURICustomConflict(t *testing.T) {
 		WithRule(mockB).
 		WithRule(mockA).
 		WithRule(mockB).
-		Validate(testVal)
+		Run(context.TODO(), testVal)
 
 	if err != nil {
 		t.Errorf("Expected errors to be nil, got: %s", err)

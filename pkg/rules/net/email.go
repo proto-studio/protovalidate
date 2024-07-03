@@ -48,8 +48,32 @@ func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
 // a ValidationErrorCollection.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (ruleSet *EmailRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
+	return ruleSet.Run(context.Background(), value)
+}
+
+// Validate performs a validation of a RuleSet against a value and returns a string value or
+// a ValidationErrorCollection.
+//
+// Also, takes a Context which can be used by rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
+func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
+	return ruleSet.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a string value or
+// a ValidationErrorCollection.
+func (ruleSet *EmailRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
+	valueStr, ok := value.(string)
+
+	if !ok {
+		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
+	}
+
+	return valueStr, ruleSet.Evaluate(ctx, valueStr)
 }
 
 // validateBasicEmail performs general domain validation that is valid for any and all domains.
@@ -76,7 +100,7 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 		domainRuleSet = NewDomain().WithTLD().Any()
 	}
 
-	_, domainErrs := domainRuleSet.ValidateWithContext(domain, ctx)
+	_, domainErrs := domainRuleSet.Run(ctx, domain)
 
 	if len(domainErrs) > 0 {
 		allErrors = append(allErrors, domainErrs...)
@@ -100,21 +124,6 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 	}
 
 	return allErrors
-}
-
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
-
-	valueStr, ok := value.(string)
-
-	if !ok {
-		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
-	}
-
-	return valueStr, ruleSet.Evaluate(ctx, valueStr)
 }
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the

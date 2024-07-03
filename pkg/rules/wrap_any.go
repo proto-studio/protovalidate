@@ -55,8 +55,10 @@ func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 // Validate performs a validation of a RuleSet against a value and returns a value of the same type
 // as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
 // added directly to the WrapAnyRuleSet.
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *WrapAnyRuleSet[T]) Validate(value any) (any, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+	return v.Run(context.Background(), value)
 }
 
 // Validate performs a validation of a RuleSet against a value and returns a value of the same type
@@ -64,8 +66,17 @@ func (v *WrapAnyRuleSet[T]) Validate(value any) (any, errors.ValidationErrorColl
 // added directly to the WrapAnyRuleSet.
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
+//
+// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *WrapAnyRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
-	retValue, innerErrors := v.inner.ValidateWithContext(value, ctx)
+	return v.Run(ctx, value)
+}
+
+// Run performs a validation of a RuleSet against a value and returns a value of the same type
+// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
+// added directly to the WrapAnyRuleSet.
+func (v *WrapAnyRuleSet[T]) Run(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
+	retValue, innerErrors := v.inner.Run(ctx, value)
 
 	allErrors := errors.Collection()
 

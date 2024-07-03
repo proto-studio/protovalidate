@@ -35,7 +35,7 @@ func checkAll(w io.Writer, locale *string, str ...string) {
 	ctx := rulecontext.WithPrinter(context.Background(), printer)
 
 	for _, s := range str {
-		_, err := ruleSet.ValidateWithContext(s, ctx)
+		_, err := ruleSet.Run(ctx, s)
 		if err == nil {
 			printer.Fprintf(w, "'%s' is valid\n", s)
 		} else {

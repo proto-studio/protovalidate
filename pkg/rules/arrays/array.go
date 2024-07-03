@@ -61,16 +61,25 @@ func (v *ArrayRuleSet[T]) WithItemRuleSet(itemRules rules.RuleSet[T]) *ArrayRule
 
 // Validate performs a validation of a RuleSet against a value and returns an array of the correct type or
 // a ValidationErrorCollection.
+//
+// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *ArrayRuleSet[T]) Validate(value any) ([]T, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
+	return v.Run(context.Background(), value)
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns an array of the correct type or
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by rules and error formatting.
+//
+// Deprecated: ValidateContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([]T, errors.ValidationErrorCollection) {
+	return v.Run(ctx, value)
+}
 
+// Run performs a validation of a RuleSet against a value and returns an array of the correct type or
+// a ValidationErrorCollection.
+func (v *ArrayRuleSet[T]) Run(ctx context.Context, value any) ([]T, errors.ValidationErrorCollection) {
 	valueOf := reflect.ValueOf(value)
 	typeOf := valueOf.Type()
 	kind := typeOf.Kind()
@@ -115,7 +124,7 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 		var itemErrors errors.ValidationErrorCollection
 		for i := 0; i < l; i++ {
 			subContext := rulecontext.WithPathIndex(ctx, i)
-			output[i], itemErrors = itemRuleSet.ValidateWithContext(valueOf.Index(i).Interface(), subContext)
+			output[i], itemErrors = itemRuleSet.Run(subContext, valueOf.Index(i).Interface())
 			if itemErrors != nil {
 				allErrors = append(allErrors, itemErrors...)
 			}
