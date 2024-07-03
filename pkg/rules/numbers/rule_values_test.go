@@ -15,9 +15,9 @@ import (
 func TestWithAllowedValues(t *testing.T) {
 	ruleSet := numbers.NewInt().WithAllowedValues(1, 5).WithMax(100)
 
-	testhelpers.MustBeValid(t, ruleSet.Any(), 1, 1)
-	testhelpers.MustBeValid(t, ruleSet.Any(), 5, 5)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), 10, errors.CodeNotAllowed)
+	testhelpers.MustRun(t, ruleSet.Any(), 1)
+	testhelpers.MustRun(t, ruleSet.Any(), 5)
+	testhelpers.MustNotRun(t, ruleSet.Any(), 10, errors.CodeNotAllowed)
 
 	expected := fmt.Sprintf("IntRuleSet[int].WithAllowedValues(1, 5).WithMax(100)")
 	if s := ruleSet.String(); s != expected {
@@ -25,8 +25,8 @@ func TestWithAllowedValues(t *testing.T) {
 	}
 
 	ruleSet = ruleSet.WithAllowedValues(10)
-	testhelpers.MustBeValid(t, ruleSet.Any(), 1, 1)
-	testhelpers.MustBeValid(t, ruleSet.Any(), 10, 10)
+	testhelpers.MustRun(t, ruleSet.Any(), 1)
+	testhelpers.MustRun(t, ruleSet.Any(), 10)
 
 	expected = fmt.Sprintf("IntRuleSet[int].WithMax(100).WithAllowedValues(1, 5, 10)")
 	if s := ruleSet.String(); s != expected {
@@ -72,9 +72,9 @@ func TestWithAllowedValuesMore(t *testing.T) {
 func TestWithRejectedValues(t *testing.T) {
 	ruleSet := numbers.NewInt().WithRejectedValues(1, 5)
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), 1, errors.CodeForbidden)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), 5, errors.CodeForbidden)
-	testhelpers.MustBeValid(t, ruleSet.Any(), 10, 10)
+	testhelpers.MustNotRun(t, ruleSet.Any(), 1, errors.CodeForbidden)
+	testhelpers.MustNotRun(t, ruleSet.Any(), 5, errors.CodeForbidden)
+	testhelpers.MustRun(t, ruleSet.Any(), 10)
 
 	expected := fmt.Sprintf("IntRuleSet[int].WithRejectedValues(1, 5)")
 	if s := ruleSet.String(); s != expected {
@@ -82,8 +82,8 @@ func TestWithRejectedValues(t *testing.T) {
 	}
 
 	ruleSet = ruleSet.WithRejectedValues(10)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), 1, errors.CodeForbidden)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), 10, errors.CodeForbidden)
+	testhelpers.MustNotRun(t, ruleSet.Any(), 1, errors.CodeForbidden)
+	testhelpers.MustNotRun(t, ruleSet.Any(), 10, errors.CodeForbidden)
 
 	expected = fmt.Sprintf("IntRuleSet[int].WithRejectedValues(1, 5).WithRejectedValues(10)")
 	if s := ruleSet.String(); s != expected {

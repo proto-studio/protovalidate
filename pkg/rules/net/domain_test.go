@@ -41,8 +41,8 @@ func TestDomainSegmentLength(t *testing.T) {
 	okLabel := strings.Repeat("a", 63)
 	badLabel := strings.Repeat("a", 64)
 
-	testhelpers.MustBeValid(t, ruleSet, okLabel+".com", okLabel+".com")
-	testhelpers.MustBeInvalid(t, ruleSet, badLabel+".com", errors.CodePattern)
+	testhelpers.MustRun(t, ruleSet, okLabel+".com")
+	testhelpers.MustNotRun(t, ruleSet, badLabel+".com", errors.CodePattern)
 }
 
 // Requirements:
@@ -52,7 +52,7 @@ func TestDomainPunycodeError(t *testing.T) {
 
 	// idna: invalid label "é"
 	str := "example.xn--é.com"
-	testhelpers.MustBeInvalid(t, ruleSet, str+".com", errors.CodePattern)
+	testhelpers.MustNotRun(t, ruleSet, str+".com", errors.CodePattern)
 }
 
 // Requirements:
@@ -62,7 +62,7 @@ func TestDomainLength(t *testing.T) {
 	ruleSet := net.NewDomain().Any()
 
 	str := strings.Repeat(strings.Repeat("a", 32), 9)
-	testhelpers.MustBeInvalid(t, ruleSet, str+".com", errors.CodeMax)
+	testhelpers.MustNotRun(t, ruleSet, str+".com", errors.CodeMax)
 }
 
 // Requirements:
@@ -71,7 +71,7 @@ func TestDomainLength(t *testing.T) {
 func TestDomainType(t *testing.T) {
 	ruleSet := net.NewDomain().Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeType)
 }
 
 // Requirements:
@@ -109,10 +109,10 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 
-	expected := "example.com"
+	rule := testhelpers.NewMockRule[string]()
 
-	actual, err := net.NewDomain().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
+	_, err = net.NewDomain().
+		WithRuleFunc(rule.Function()).
 		Validate("example.com")
 
 	if err != nil {
@@ -120,8 +120,8 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 
-	if expected != actual {
-		t.Errorf("Expected '%s' to equal '%s'", actual, expected)
+	if c := rule.CallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
 }

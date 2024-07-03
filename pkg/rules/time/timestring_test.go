@@ -43,7 +43,7 @@ func TestTimeStringRFC3339(t *testing.T) {
 	s := "2023-09-29T18:57:42Z"
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339)
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, s)
+	testhelpers.MustRun(t, ruleSet.Any(), s)
 }
 
 // Requirements:
@@ -52,10 +52,10 @@ func TestTimeLayoutChange(t *testing.T) {
 	s := "2023-09-29T18:57:42Z"
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339)
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, s)
+	testhelpers.MustRun(t, ruleSet.Any(), s)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.TimeOnly)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), s, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), s, errors.CodeType)
 }
 
 // Requirements:
@@ -83,12 +83,12 @@ func TestTimeStringCustom(t *testing.T) {
 	ruleSet := time.NewTimeString(internalTime.RFC3339).
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).
 		Any()
-	testhelpers.MustBeInvalid(t, ruleSet, now, errors.CodeUnknown)
+	testhelpers.MustNotRun(t, ruleSet, now, errors.CodeUnknown)
 
 	ruleSet = time.NewTimeString(internalTime.RFC3339).
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(now).Function()).
+		WithRuleFunc(testhelpers.NewMockRule[internalTime.Time]().Function()).
 		Any()
-	testhelpers.MustBeValid(t, ruleSet, now, s)
+	testhelpers.MustRunMutation(t, ruleSet, now, s)
 }
 
 func TestTimeStringAny(t *testing.T) {
@@ -117,7 +117,7 @@ func TestTimeStringRFC3339WithTimezone(t *testing.T) {
 	s := "2023-10-05T16:20:43-04:00"
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339).WithRequired()
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, s)
+	testhelpers.MustRun(t, ruleSet.Any(), s)
 }
 
 // Requirements:
@@ -139,12 +139,8 @@ func TestTimeStringEvaluate(t *testing.T) {
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339)
 
-	v1, err1 := ruleSet.Evaluate(ctx, s)
-	v2, err2 := ruleSet.ValidateWithContext(s, ctx)
-
-	if v1 != v2 {
-		t.Errorf("Expected values to match, got %s and %s", v1, v2)
-	}
+	err1 := ruleSet.Evaluate(ctx, s)
+	_, err2 := ruleSet.ValidateWithContext(s, ctx)
 
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)

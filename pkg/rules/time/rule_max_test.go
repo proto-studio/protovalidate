@@ -17,9 +17,9 @@ func TestWithMaxTime(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMax(now).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, before, before)
-	testhelpers.MustBeValid(t, ruleSet, now, now)
-	testhelpers.MustBeInvalid(t, ruleSet, after, errors.CodeMax)
+	testhelpers.MustRun(t, ruleSet, before)
+	testhelpers.MustRun(t, ruleSet, now)
+	testhelpers.MustNotRun(t, ruleSet, after, errors.CodeMax)
 }
 
 func TestWithMaxTimeString(t *testing.T) {
@@ -29,9 +29,9 @@ func TestWithMaxTimeString(t *testing.T) {
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMax(now).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, before, before.Format(internalTime.RFC3339))
-	testhelpers.MustBeValid(t, ruleSet, now, now.Format(internalTime.RFC3339))
-	testhelpers.MustBeInvalid(t, ruleSet, after, errors.CodeMax)
+	testhelpers.MustRunMutation(t, ruleSet, before, before.Format(internalTime.RFC3339))
+	testhelpers.MustRunMutation(t, ruleSet, now, now.Format(internalTime.RFC3339))
+	testhelpers.MustNotRun(t, ruleSet, after, errors.CodeMax)
 }
 
 // Requirements:

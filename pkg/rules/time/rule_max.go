@@ -15,14 +15,14 @@ type maxTimeRule struct {
 }
 
 // Evaluate takes a context and integer value and returns an error if it is not equal or lower than the specified value.
-func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) (time.Time, errors.ValidationErrorCollection) {
+func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	if value.After(rule.max) {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMax, ctx, "field must be on or before %s", rule.max),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any maximum rule.

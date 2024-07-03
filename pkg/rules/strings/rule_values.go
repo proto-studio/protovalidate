@@ -38,22 +38,22 @@ func (rule *valuesRule) exists(value string) bool {
 
 // Evaluate takes a context and string value and returns an error depending on whether the value is in a list
 // of allowed or denied values.
-func (rule *valuesRule) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (rule *valuesRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	exists := rule.exists(value)
 
 	if rule.allow {
 		if !exists {
-			return value, errors.Collection(
+			return errors.Collection(
 				errors.Errorf(errors.CodeNotAllowed, ctx, "field value is not allowed"),
 			)
 		}
 	} else if exists {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeForbidden, ctx, "field value is not allowed"),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // Conflict returns two for allow rules and always returns false for deny rules.

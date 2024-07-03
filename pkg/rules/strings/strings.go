@@ -67,19 +67,19 @@ func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorColle
 // a ValidationErrorCollection.
 //
 // Also, takes a Context which can be used by rules and error formatting.
-func (v *StringRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (string, errors.ValidationErrorCollection) {
+func (v *StringRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {
 		return "", errors.Collection(validationErr)
 	}
 
-	return v.Evaluate(ctx, str)
+	return str, v.Evaluate(ctx, str)
 }
 
 // Evaluate performs a validation of a RuleSet against a string value and returns a string value or
 // a ValidationErrorCollection.
-func (v *StringRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
 	currentRuleSet := v
@@ -87,11 +87,8 @@ func (v *StringRuleSet) Evaluate(ctx context.Context, value string) (string, err
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newStr
 			}
 		}
 
@@ -99,9 +96,9 @@ func (v *StringRuleSet) Evaluate(ctx context.Context, value string) (string, err
 	}
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 

@@ -2,11 +2,9 @@ package arrays_test
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/rulecontext"
-	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/arrays"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/strings"
@@ -142,8 +140,6 @@ func TestAny(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 
@@ -177,12 +173,8 @@ func TestEvaluate(t *testing.T) {
 
 	ruleSet := arrays.New[int]().WithItemRuleSet(numbers.NewInt().WithMin(2))
 
-	v1, err1 := ruleSet.Evaluate(ctx, v)
-	v2, err2 := ruleSet.ValidateWithContext(v, ctx)
-
-	if !reflect.DeepEqual(v1, v2) {
-		t.Errorf("Expected values to match, got %v and %v", v1, v2)
-	}
+	err1 := ruleSet.Evaluate(ctx, v)
+	_, err2 := ruleSet.ValidateWithContext(v, ctx)
 
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)

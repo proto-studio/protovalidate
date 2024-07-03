@@ -11,18 +11,16 @@ import (
 func TestMockRule(t *testing.T) {
 	ctx := context.Background()
 
-	rule1 := testhelpers.NewMockRuleWithValue(any(123)).Function()
+	rule1 := testhelpers.NewMockRule[any]().Function()
 
-	ret, err := rule1(ctx, 456)
+	err := rule1(ctx, 456)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
-	} else if ret != 123 {
-		t.Errorf("Expected return value to be %d, got: %d", 123, ret)
 	}
 
 	rule2 := testhelpers.NewMockRuleWithErrors[any](1).Function()
 
-	_, err = rule2(ctx, 456)
+	err = rule2(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
 	} else if s := len(err); s != 1 {
@@ -31,7 +29,7 @@ func TestMockRule(t *testing.T) {
 
 	rule3 := testhelpers.NewMockRuleWithErrors[any](2).Function()
 
-	_, err = rule3(ctx, 456)
+	err = rule3(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
 	} else if s := len(err); s != 2 {
@@ -40,16 +38,16 @@ func TestMockRule(t *testing.T) {
 }
 
 func TestMockConflict(t *testing.T) {
-	mockA := testhelpers.NewMockRuleWithValue[int](10)
+	mockA := testhelpers.NewMockRule[int]()
 	mockA.ConflictKey = "a"
 
-	mockB := testhelpers.NewMockRuleWithValue[int](20)
+	mockB := testhelpers.NewMockRule[int]()
 	mockB.ConflictKey = "b"
 
-	mockAA := testhelpers.NewMockRuleWithValue[int](20)
+	mockAA := testhelpers.NewMockRule[int]()
 	mockAA.ConflictKey = "a"
 
-	var mockD rules.RuleFunc[int] = testhelpers.NewMockRuleWithValue[int](30).Function()
+	var mockD rules.RuleFunc[int] = testhelpers.NewMockRule[int]().Function()
 
 	if mockA.Conflict(mockB) {
 		t.Errorf("Expected mockA and mockB to not conflict")
@@ -65,7 +63,7 @@ func TestMockConflict(t *testing.T) {
 }
 
 func TestMockString(t *testing.T) {
-	str := testhelpers.NewMockRuleWithValue[int](10).String()
+	str := testhelpers.NewMockRule[int]().String()
 
 	if str != "WithMock()" {
 		t.Errorf("Expected mock string to be `%s`, got: %s", "WithMock()", str)
@@ -73,7 +71,7 @@ func TestMockString(t *testing.T) {
 }
 
 func TestMockCounter(t *testing.T) {
-	mock := testhelpers.NewMockRuleWithValue[int](10)
+	mock := testhelpers.NewMockRule[int]()
 	ctx := context.Background()
 
 	if mock.CallCount() != 0 {

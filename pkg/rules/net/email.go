@@ -114,17 +114,17 @@ func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context)
 		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
 	}
 
-	return ruleSet.Evaluate(ctx, valueStr)
+	return valueStr, ruleSet.Evaluate(ctx, valueStr)
 }
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 
 	allErrors := ruleSet.validateBasicEmail(ctx, value)
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	}
 
 	currentRuleSet := ruleSet
@@ -132,11 +132,8 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newStr
 			}
 		}
 
@@ -144,9 +141,9 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string
 	}
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 

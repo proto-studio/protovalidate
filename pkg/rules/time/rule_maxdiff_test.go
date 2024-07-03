@@ -17,8 +17,8 @@ func TestWithMaxDiff(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMaxDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before14, errors.CodeMax)
-	testhelpers.MustBeValid(t, ruleSet, before16, before16)
+	testhelpers.MustNotRun(t, ruleSet, before14, errors.CodeMax)
+	testhelpers.MustRun(t, ruleSet, before16)
 }
 
 func TestStringWithMaxDiff(t *testing.T) {
@@ -28,8 +28,8 @@ func TestStringWithMaxDiff(t *testing.T) {
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMaxDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before14, errors.CodeMax)
-	testhelpers.MustBeValid(t, ruleSet, before16, before16.Format(internalTime.RFC3339))
+	testhelpers.MustNotRun(t, ruleSet, before14, errors.CodeMax)
+	testhelpers.MustRunMutation(t, ruleSet, before16, before16.Format(internalTime.RFC3339))
 }
 
 // Requirements:

@@ -20,7 +20,7 @@ func TestAnyRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustBeValid(t, ruleSet, 123, 123)
+	testhelpers.MustRun(t, ruleSet, 123)
 }
 
 // Requirements:
@@ -29,7 +29,7 @@ func TestAnyRuleSet(t *testing.T) {
 func TestAnyForbidden(t *testing.T) {
 	ruleSet := rules.Any().WithForbidden()
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeForbidden)
+	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeForbidden)
 }
 
 // Requirements:
@@ -57,14 +57,18 @@ func TestAnyCustom(t *testing.T) {
 	ruleSet := rules.Any().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
+	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeUnknown)
 
-	var expected any = "abc"
+	rule := testhelpers.NewMockRule[any]()
 
 	ruleSet = rules.Any().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function())
+		WithRuleFunc(rule.Function())
 
-	testhelpers.MustBeValid(t, ruleSet, "123", expected)
+	testhelpers.MustRun(t, ruleSet, "123")
+
+	if c := rule.CallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
+	}
 }
 
 // Requirement:
@@ -120,12 +124,5 @@ func TestAnyComposition(t *testing.T) {
 
 	ruleSet := rules.Any().WithRule(innerRuleSet)
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
-
-	var expected any = "abc"
-
-	ruleSet = rules.Any().
-		WithRule(testhelpers.NewMockRuleWithValue(expected))
-
-	testhelpers.MustBeValid(t, ruleSet, "123", expected)
+	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeUnknown)
 }

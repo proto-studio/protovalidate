@@ -17,10 +17,10 @@ func TestWithMinTime(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMin(now).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before, errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet, before, errors.CodeMin)
 
-	testhelpers.MustBeValid(t, ruleSet, now, now)
-	testhelpers.MustBeValid(t, ruleSet, after, after)
+	testhelpers.MustRun(t, ruleSet, now)
+	testhelpers.MustRun(t, ruleSet, after)
 }
 
 func TestWithMinTimeString(t *testing.T) {
@@ -30,10 +30,10 @@ func TestWithMinTimeString(t *testing.T) {
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMin(now).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before, errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet, before, errors.CodeMin)
 
-	testhelpers.MustBeValid(t, ruleSet, now, now.Format(internalTime.RFC3339))
-	testhelpers.MustBeValid(t, ruleSet, after, after.Format(internalTime.RFC3339))
+	testhelpers.MustRunMutation(t, ruleSet, now, now.Format(internalTime.RFC3339))
+	testhelpers.MustRunMutation(t, ruleSet, after, after.Format(internalTime.RFC3339))
 }
 
 // Requirements:

@@ -90,15 +90,9 @@ func (v *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T
 		return 0, errors.Collection(validationErr)
 	}
 
-	return v.Evaluate(ctx, floatval)
-}
-
-// Evaluate performs a validation of a RuleSet against a float value and returns a float value of the
-// same type or a ValidationErrorCollection.
-func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
 	if v.rounding != RoundingNone {
 		mul := math.Pow10(v.precision)
-		tempFloatval := float64(value) * mul
+		tempFloatval := float64(floatval) * mul
 
 		switch v.rounding {
 		case RoundingDown:
@@ -112,27 +106,33 @@ func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.Vali
 		}
 
 		tempFloatval /= mul
-		value = T(tempFloatval)
+		floatval = T(tempFloatval)
 	}
 
 	allErrors := errors.Collection()
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			newFloat, err := currentRuleSet.rule.Evaluate(ctx, value)
-			if err != nil {
+			if err := currentRuleSet.rule.Evaluate(ctx, floatval); err != nil {
 				allErrors = append(allErrors, err...)
-			} else {
-				value = newFloat
 			}
 		}
 	}
 
 	if len(allErrors) != 0 {
-		return value, allErrors
+		return 0, allErrors
 	} else {
-		return value, nil
+		return floatval, nil
 	}
+}
+
+// Evaluate performs a validation of a RuleSet against a float value and returns a float value of the
+// same type or a ValidationErrorCollection.
+func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+	// Because of the rounding it is easiest to call ValidateWithContext and ignore the return value.
+	// Skipping the rounding could cause both false positives and negatives in the validation rules.
+	_, errs := v.ValidateWithContext(value, ctx)
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

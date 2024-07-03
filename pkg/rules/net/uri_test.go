@@ -68,17 +68,17 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 		t.Errorf("Expected String() with required to be `%s`, got: `%s`", expectedStringB, actual)
 	}
 
-	testhelpers.MustBeValid(t, withoutRequiredAny, valid, valid)
-	testhelpers.MustBeValid(t, withRequiredAny, valid, valid)
+	testhelpers.MustRun(t, withoutRequiredAny, valid)
+	testhelpers.MustRun(t, withRequiredAny, valid)
 
-	testhelpers.MustBeValid(t, withoutRequiredAny, empty, empty)
-	testhelpers.MustBeValid(t, withRequiredAny, empty, empty)
+	testhelpers.MustRun(t, withoutRequiredAny, empty)
+	testhelpers.MustRun(t, withRequiredAny, empty)
 
-	testhelpers.MustBeValid(t, withoutRequiredAny, missing, missing)
+	testhelpers.MustRun(t, withoutRequiredAny, missing)
 	uriPartRequiredMissingHelper(t, name, missing, withRequired)
 
 	for _, v := range additionalMissing {
-		testhelpers.MustBeValid(t, withoutRequiredAny, v, v)
+		testhelpers.MustRun(t, withoutRequiredAny, v)
 		uriPartRequiredMissingHelper(t, name, v, withRequired)
 	}
 }
@@ -138,7 +138,7 @@ func TestURICoercionFromUknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustBeInvalid(t, net.NewURI().Any(), &val, errors.CodeType)
+	testhelpers.MustNotRun(t, net.NewURI().Any(), &val, errors.CodeType)
 }
 
 // Requirements:
@@ -147,16 +147,16 @@ func TestURICoercionFromUknown(t *testing.T) {
 func TestURISchemeCharacterSet(t *testing.T) {
 	ruleSet := net.NewURI().Any()
 
-	testhelpers.MustBeValid(t, ruleSet, "test://hello", "test://hello")
-	testhelpers.MustBeValid(t, ruleSet, "test123://hello", "test123://hello")
-	testhelpers.MustBeValid(t, ruleSet, "test-123://hello", "test-123://hello")
-	testhelpers.MustBeValid(t, ruleSet, "test.123://hello", "test.123://hello")
-	testhelpers.MustBeValid(t, ruleSet, "test+123://hello", "test+123://hello")
+	testhelpers.MustRun(t, ruleSet, "test://hello")
+	testhelpers.MustRun(t, ruleSet, "test123://hello")
+	testhelpers.MustRun(t, ruleSet, "test-123://hello")
+	testhelpers.MustRun(t, ruleSet, "test.123://hello")
+	testhelpers.MustRun(t, ruleSet, "test+123://hello")
 
-	testhelpers.MustBeInvalid(t, ruleSet, "1test://hello", errors.CodePattern)
-	testhelpers.MustBeInvalid(t, ruleSet, "+test://hello", errors.CodePattern)
-	testhelpers.MustBeInvalid(t, ruleSet, "-test://hello", errors.CodePattern)
-	testhelpers.MustBeInvalid(t, ruleSet, ".test://hello", errors.CodePattern)
+	testhelpers.MustNotRun(t, ruleSet, "1test://hello", errors.CodePattern)
+	testhelpers.MustNotRun(t, ruleSet, "+test://hello", errors.CodePattern)
+	testhelpers.MustNotRun(t, ruleSet, "-test://hello", errors.CodePattern)
+	testhelpers.MustNotRun(t, ruleSet, ".test://hello", errors.CodePattern)
 }
 
 // Requirements:
@@ -175,9 +175,9 @@ func TestURISchemeCharacterSet(t *testing.T) {
 func TestURICustomContext(t *testing.T) {
 	var ctxRef context.Context
 
-	fn := func(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+	fn := func(ctx context.Context, value string) errors.ValidationErrorCollection {
 		ctxRef = ctx
-		return value, nil
+		return nil
 	}
 
 	ruleSet := net.NewURI().WithRuleFunc(fn)
@@ -261,9 +261,9 @@ func TestURICustomContext(t *testing.T) {
 func TestURIPort(t *testing.T) {
 	ruleSet := net.NewURI().Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, "https://example:-1", errors.CodeMin)
-	testhelpers.MustBeInvalid(t, ruleSet, "https://example:65536", errors.CodeMax)
-	testhelpers.MustBeInvalid(t, ruleSet, "https://example:notaport", errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet, "https://example:-1", errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet, "https://example:65536", errors.CodeMax)
+	testhelpers.MustNotRun(t, ruleSet, "https://example:notaport", errors.CodeType)
 }
 
 // Requirements:
@@ -351,11 +351,11 @@ func TestURIRelative(t *testing.T) {
 func TestURIZeroLength(t *testing.T) {
 	ruleSet := net.NewURI()
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), "", errors.CodeRequired)
+	testhelpers.MustNotRun(t, ruleSet.Any(), "", errors.CodeRequired)
 
 	ruleSet = ruleSet.WithRelative()
 
-	testhelpers.MustBeValid(t, ruleSet.Any(), "", "")
+	testhelpers.MustRun(t, ruleSet.Any(), "")
 }
 
 // Requirement:
@@ -425,7 +425,7 @@ func TestURIWithHostRequired(t *testing.T) {
 		"http:",
 	)
 
-	testhelpers.MustBeValid(t, withRequired.Any(), "http://", "http://")
+	testhelpers.MustRun(t, withRequired.Any(), "http://")
 }
 
 // Requirement:
@@ -503,19 +503,19 @@ func TestURIEscaping(t *testing.T) {
 	ruleSet := net.NewURI()
 
 	// Valid
-	testhelpers.MustBeValid(t, ruleSet.Any(), "http://example.com/hello%20world", "http://example.com/hello%20world")
+	testhelpers.MustRun(t, ruleSet.Any(), "http://example.com/hello%20world")
 
 	// Strings ends exactly on two hex characters
-	testhelpers.MustBeValid(t, ruleSet.Any(), "http://example.com/hello%20", "http://example.com/hello%20")
+	testhelpers.MustRun(t, ruleSet.Any(), "http://example.com/hello%20")
 
 	// String ends before reading two characters
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), "http://example.com/hello%2", errors.CodeEncoding)
+	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%2", errors.CodeEncoding)
 
 	// Invalid hex for second character
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), "http://example.com/hello%2Zworld", errors.CodeEncoding)
+	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%2Zworld", errors.CodeEncoding)
 
 	// Invalid hex for both characters
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), "http://example.com/hello%ZZworld", errors.CodeEncoding)
+	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%ZZworld", errors.CodeEncoding)
 }
 
 // Requirements
@@ -543,10 +543,10 @@ func TestURICustom(t *testing.T) {
 func TestURICustomConflict(t *testing.T) {
 	testVal := "https://example.com"
 
-	mockA := testhelpers.NewMockRuleWithValue[string]("http://example.com/")
+	mockA := testhelpers.NewMockRule[string]()
 	mockA.ConflictKey = "test"
 
-	mockB := testhelpers.NewMockRuleWithValue[string]("http://example.com/")
+	mockB := testhelpers.NewMockRule[string]()
 
 	_, err := net.NewURI().
 		WithRule(mockB).

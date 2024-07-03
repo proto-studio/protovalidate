@@ -108,12 +108,12 @@ func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) 
 		return t, errors.Collection(errors.NewCoercionError(ctx, "date time", reflect.ValueOf(value).Kind().String()))
 	}
 
-	return ruleSet.Evaluate(ctx, t)
+	return t, ruleSet.Evaluate(ctx, t)
 }
 
 // Evaluate performs a validation of a RuleSet against a time.Time value and returns a time.Time value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) (time.Time, errors.ValidationErrorCollection) {
+func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
 	currentRuleSet := ruleSet
@@ -121,11 +121,8 @@ func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) (time
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newTime, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newTime
 			}
 		}
 
@@ -133,9 +130,9 @@ func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) (time
 	}
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 

@@ -26,25 +26,17 @@ func TestMustBeValid(t *testing.T) {
 	ruleSet := rules.Any()
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 10); err != nil {
+	if err := testhelpers.MustRun(mockT, ruleSet, 10); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
 		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
 	}
 
-	mockT = &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 5); err == nil {
-		t.Error("Expected error to not be nil")
-	}
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
-	}
-
 	ruleSet = ruleSet.WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT = &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 10); err == nil {
+	if err := testhelpers.MustRun(mockT, ruleSet, 10); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -67,7 +59,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	}
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeValidFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
+	if err := testhelpers.MustRunFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
@@ -80,7 +72,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	callCount = 0
 	mockT = &MockT{}
 
-	if err := testhelpers.MustBeValidFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
+	if err := testhelpers.MustRunFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -95,7 +87,7 @@ func TestMustBeInvalid(t *testing.T) {
 	ruleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
+	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 0 {
@@ -104,7 +96,7 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Wrong code
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeMin); err != nil {
+	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeMin); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 1 {
@@ -115,7 +107,7 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Is actually valid
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
+	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {

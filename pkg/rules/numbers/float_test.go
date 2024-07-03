@@ -86,10 +86,10 @@ func TestFloatCustom(t *testing.T) {
 		return
 	}
 
-	expected := 456.0
+	rule := testhelpers.NewMockRule[float64]()
 
-	actual, err := numbers.NewFloat64().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
+	_, err = numbers.NewFloat64().
+		WithRuleFunc(rule.Function()).
 		Validate(123.0)
 
 	if err != nil {
@@ -97,8 +97,8 @@ func TestFloatCustom(t *testing.T) {
 		return
 	}
 
-	if expected != actual {
-		t.Errorf("Expected '%f' to equal '%f'", actual, expected)
+	if c := rule.CallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
 }

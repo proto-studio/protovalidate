@@ -15,14 +15,14 @@ type maxRule[T integer | floating] struct {
 }
 
 // Evaluate takes a context and integer value and returns an error if it is not equal or higher than the specified value.
-func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if value > rule.max {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMax, ctx, "field cannot be greater than %d", rule.max),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any maximum rule.

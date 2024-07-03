@@ -51,7 +51,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 
 func tryStringCoercion(t testing.TB, val interface{}, expected string) {
 	ruleSet := strings.New()
-	testhelpers.MustBeValid(t, ruleSet.Any(), val, expected)
+	testhelpers.MustRunMutation(t, ruleSet.Any(), val, expected)
 }
 
 func TestStringCoercionFromInt(t *testing.T) {
@@ -91,7 +91,7 @@ func TestStringCoercionFromUknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustBeInvalid(t, strings.New().Any(), &val, errors.CodeType)
+	testhelpers.MustNotRun(t, strings.New().Any(), &val, errors.CodeType)
 }
 
 // Requirements:
@@ -122,10 +122,10 @@ func TestStringCustom(t *testing.T) {
 		return
 	}
 
-	expected := "abc"
+	rule := testhelpers.NewMockRule[string]()
 
-	actual, err := strings.New().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
+	_, err = strings.New().
+		WithRuleFunc(rule.Function()).
 		Validate("123")
 
 	if err != nil {
@@ -133,8 +133,8 @@ func TestStringCustom(t *testing.T) {
 		return
 	}
 
-	if expected != actual {
-		t.Errorf("Expected '%s' to equal '%s'", actual, expected)
+	if c := rule.CallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
 }

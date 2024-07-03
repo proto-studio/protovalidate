@@ -14,14 +14,13 @@ type minLenRule[T any] struct {
 }
 
 // Evaluate takes a context and array/slice value and returns an error if it is not equal or lower in length than the specified value.
-func (rule *minLenRule[T]) Evaluate(ctx context.Context, value []T) ([]T, errors.ValidationErrorCollection) {
+func (rule *minLenRule[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
 	if len(value) < rule.min {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMin, ctx, "list must be at least %d items long", rule.min),
 		)
 	}
-
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any minimum length rule.

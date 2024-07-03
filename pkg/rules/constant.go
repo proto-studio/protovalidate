@@ -59,19 +59,15 @@ func (ruleSet *ConstantRuleSet[T]) ValidateWithContext(value any, ctx context.Co
 	if !ok {
 		return ruleSet.empty, errors.Collection(errors.NewCoercionError(ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(value).String()))
 	}
-	return ruleSet.Evaluate(ctx, v)
+	return v, ruleSet.Evaluate(ctx, v)
 }
 
-// Evaluate performs a validation of a RuleSet against a value and returns a value of the same type
-// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
-// added directly to the WrapConstantRuleSet.
-//
-// For WrapAny, Evaluate is identical to ValidateWithContext except for the argument order.
-func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+// Evaluate performs a validation of a RuleSet against a value and returns any errors.
+func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if value != ruleSet.value {
-		return ruleSet.empty, errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value does not match"))
+		return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value does not match"))
 	}
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for all rules since by definition no rule can be a superset of it.

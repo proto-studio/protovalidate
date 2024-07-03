@@ -117,10 +117,9 @@ func TestIntCustom(t *testing.T) {
 		return
 	}
 
-	expected := 456
-
-	actual, err := numbers.NewInt().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(expected).Function()).
+	rule := testhelpers.NewMockRule[int]()
+	_, err = numbers.NewInt().
+		WithRuleFunc(rule.Function()).
 		Validate(123)
 
 	if err != nil {
@@ -128,8 +127,8 @@ func TestIntCustom(t *testing.T) {
 		return
 	}
 
-	if expected != actual {
-		t.Errorf("Expected '%d' to equal '%d'", actual, expected)
+	if c := rule.CallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
 }

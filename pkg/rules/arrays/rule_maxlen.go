@@ -14,14 +14,13 @@ type maxLenRule[T any] struct {
 }
 
 // Evaluate takes a context and array/slice value and returns an error if it is not equal or higher in length than the specified value.
-func (rule *maxLenRule[T]) Evaluate(ctx context.Context, value []T) ([]T, errors.ValidationErrorCollection) {
+func (rule *maxLenRule[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
 	if len(value) > rule.max {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMax, ctx, "list cannot be more than %d items long", rule.max),
 		)
 	}
-
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any maximum length rule.

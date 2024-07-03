@@ -11,17 +11,17 @@ import (
 func TestWithMaxInt(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMax(10).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, 9, 9)
-	testhelpers.MustBeValid(t, ruleSet, 10, 10)
-	testhelpers.MustBeInvalid(t, ruleSet, 11, errors.CodeMax)
+	testhelpers.MustRun(t, ruleSet, 9)
+	testhelpers.MustRun(t, ruleSet, 10)
+	testhelpers.MustNotRun(t, ruleSet, 11, errors.CodeMax)
 }
 
 func TestWithMaxFloat(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMax(10.0).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, 9.9, 9.9)
-	testhelpers.MustBeValid(t, ruleSet, 10.0, 10.0)
-	testhelpers.MustBeInvalid(t, ruleSet, 10.1, errors.CodeMax)
+	testhelpers.MustRun(t, ruleSet, 9.9)
+	testhelpers.MustRun(t, ruleSet, 10.0)
+	testhelpers.MustNotRun(t, ruleSet, 10.1, errors.CodeMax)
 }
 
 // Requirements:

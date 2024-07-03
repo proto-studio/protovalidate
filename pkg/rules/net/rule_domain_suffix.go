@@ -18,7 +18,7 @@ type domainSuffixRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it does not appear to be a valid domain.
-func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	// Convert to punycode
 	punycode, _ := idna.ToASCII(value)
 
@@ -27,11 +27,11 @@ func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) (strin
 	// Check against the suffix list.
 	for _, suffix := range rule.suffix {
 		if len(suffix) < len(parts) && compareSuffix(parts[len(parts)-len(suffix):], suffix) {
-			return value, nil
+			return nil
 		}
 	}
 
-	return value, errors.Collection(
+	return errors.Collection(
 		errors.Errorf(errors.CodePattern, ctx, "domain suffix does not match any valid suffixes"),
 	)
 }

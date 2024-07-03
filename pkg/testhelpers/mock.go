@@ -20,7 +20,7 @@ type MockRule[T any] struct {
 	callCount int64
 
 	// fn stores the function representation of the rule
-	fn func(_ context.Context, _ T) (T, errors.ValidationErrorCollection)
+	fn func(_ context.Context, _ T) errors.ValidationErrorCollection
 
 	// Errors is used to return errors to the mock caller.
 	Errors []errors.ValidationError
@@ -28,16 +28,11 @@ type MockRule[T any] struct {
 	// ConflictKey is used to determine if a MockCustomRule collides with another
 	// If two rules have the same ConflictKey they will be treated as a collision.
 	ConflictKey string
-
-	// Value to return from Evaluate.
-	ReturnValue *T
 }
 
-// NewMockRule creates a new MockRule with a specific return value.
-func NewMockRuleWithValue[T any](value T) *MockRule[T] {
-	return &MockRule[T]{
-		ReturnValue: &value,
-	}
+// NewMockRule creates a new MockRule.
+func NewMockRule[T any]() *MockRule[T] {
+	return &MockRule[T]{}
 }
 
 // NewMockRule creates a new MockRule with errors set.
@@ -52,20 +47,14 @@ func NewMockRuleWithErrors[T any](count int) *MockRule[T] {
 // - If errors are set then it will return all the errors.
 // - If an override return value is set it will return that.
 // - If neither, it will return the original value and no errors.
-func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	atomic.AddInt64(&rule.callCount, 1)
 
-	retValue := value
-
-	if rule.ReturnValue != nil {
-		retValue = *rule.ReturnValue
-	}
-
 	if rule.Errors != nil && len(rule.Errors) > 0 {
-		return retValue, errors.Collection(rule.Errors...)
+		return errors.Collection(rule.Errors...)
 	}
 
-	return retValue, nil
+	return nil
 }
 
 // Conflict returns true for any MockCustomRule with the ConflictKey set to the same value.
@@ -98,9 +87,9 @@ func (rule *MockRule[T]) Reset() {
 // store a copy of the MockCustomRule if you wish to retrieve the count.
 //
 // Calling this function more than once will result in the same function being returned.
-func (rule *MockRule[T]) Function() func(_ context.Context, _ T) (T, errors.ValidationErrorCollection) {
+func (rule *MockRule[T]) Function() func(_ context.Context, _ T) errors.ValidationErrorCollection {
 	if rule.fn == nil {
-		rule.fn = func(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+		rule.fn = func(ctx context.Context, value T) errors.ValidationErrorCollection {
 			return rule.Evaluate(ctx, value)
 		}
 	}

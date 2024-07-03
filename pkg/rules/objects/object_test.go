@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	stringsHelper "strings"
 	"sync/atomic"
 	"testing"
@@ -17,10 +16,6 @@ import (
 	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
-
-func mutateIntPlusOne(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
-	return x + 1, nil
-}
 
 func testMap() map[string]any {
 	return map[string]any{"X": 10, "Y": 20}
@@ -73,7 +68,7 @@ func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
 	out, err := objects.NewObjectMap[any]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
@@ -87,18 +82,13 @@ func TestObjectFromMapToMap(t *testing.T) {
 		return
 	}
 
-	if out["X"] != 11 {
-		t.Errorf("Expected output X to be 11 but got %v", out["X"])
+	if out["X"] != 10 {
+		t.Errorf("Expected output X to be 10 but got %v", out["X"])
 		return
 	}
 
 	if out["Y"] != 20 {
 		t.Errorf("Expected output Y to be 20 but got %v", out["Y"])
-		return
-	}
-
-	if in["X"] != 10 {
-		t.Errorf("Expected input X to still be 10 but got %v", in["X"])
 		return
 	}
 }
@@ -107,7 +97,7 @@ func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
 	out, err := objects.New[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
@@ -121,18 +111,13 @@ func TestObjectFromMapToStruct(t *testing.T) {
 		return
 	}
 
-	if out.X != 11 {
-		t.Errorf("Expected output X to be 11 but got %v", out.X)
+	if out.X != 10 {
+		t.Errorf("Expected output X to be 10 but got %v", out.X)
 		return
 	}
 
 	if out.Y != 20 {
 		t.Errorf("Expected output Y to be 20 but got %v", out.Y)
-		return
-	}
-
-	if in["X"] != 10 {
-		t.Errorf("Expected input X to still be 10 but got %v", in["X"])
 		return
 	}
 }
@@ -143,7 +128,7 @@ func TestObjectFromStructToMap(t *testing.T) {
 	in.Y = 20
 
 	out, err := objects.NewObjectMap[any]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
@@ -157,18 +142,13 @@ func TestObjectFromStructToMap(t *testing.T) {
 		return
 	}
 
-	if out["X"] != 11 {
-		t.Errorf("Expected output X to be 11 but got %v", out["X"])
+	if out["X"] != 10 {
+		t.Errorf("Expected output X to be 10 but got %v", out["X"])
 		return
 	}
 
 	if out["Y"] != 20 {
 		t.Errorf("Expected output Y to be 20 but got %v", out["Y"])
-		return
-	}
-
-	if in.X != 10 {
-		t.Errorf("Expected input X to still be 10 but got %v", in.X)
 		return
 	}
 }
@@ -179,7 +159,7 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	in.Y = 20
 
 	out, err := objects.New[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(mutateIntPlusOne).Any()).
+		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Validate(in)
 
@@ -193,18 +173,13 @@ func TestObjectFromStructToStruct(t *testing.T) {
 		return
 	}
 
-	if out.X != 11 {
-		t.Errorf("Expected output X to be 11 but got %v", out.X)
+	if out.X != 10 {
+		t.Errorf("Expected output X to be 10 but got %v", out.X)
 		return
 	}
 
 	if out.Y != 20 {
 		t.Errorf("Expected output Y to be 20 but got %v", out.Y)
-		return
-	}
-
-	if in.X != 10 {
-		t.Errorf("Expected input X to still be 10 but got %v", in.X)
 		return
 	}
 }
@@ -390,10 +365,10 @@ func TestUnknownFields(t *testing.T) {
 	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt())
 	value := map[string]any{"A": 123, "C": 456}
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), value, errors.CodeUnexpected)
+	testhelpers.MustNotRun(t, ruleSet.Any(), value, errors.CodeUnexpected)
 
 	ruleSet = ruleSet.WithUnknown()
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
+	testhelpers.MustRunFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
 }
 
 func TestInputNotObjectLike(t *testing.T) {
@@ -488,22 +463,6 @@ func TestCustom(t *testing.T) {
 	}
 }
 
-func TestCustomMutation(t *testing.T) {
-
-	result := testStructInit()
-	result.z = 123
-
-	obj, err := objects.New[*testStruct]().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue[*testStruct](result).Function()).
-		Validate(map[string]any{})
-
-	if err != nil {
-		t.Errorf("Expected errors to be nil, got: %s", err)
-	} else if obj.z != 123 {
-		t.Errorf("Expected obj.z to be 123, got: %d", obj.z)
-	}
-}
-
 func TestAny(t *testing.T) {
 	ruleSet := numbers.NewFloat64().Any()
 
@@ -590,7 +549,7 @@ func TestWithItemRuleSetString(t *testing.T) {
 // - Serializes to WithRule()
 func TestWithRuleString(t *testing.T) {
 	ruleSet := objects.New[*testStruct]().
-		WithRuleFunc(testhelpers.NewMockRuleWithValue(testStructInit()).Function())
+		WithRuleFunc(testhelpers.NewMockRule[*testStruct]().Function())
 
 	expected := "ObjectRuleSet[*objects_test.testStruct].WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
@@ -611,12 +570,8 @@ func TestEvaluate(t *testing.T) {
 	input.X = 12
 	input.Y = 34
 
-	v1, err1 := ruleSet.Evaluate(ctx, input)
-	v2, err2 := ruleSet.ValidateWithContext(input, ctx)
-
-	if !reflect.DeepEqual(v1, v2) {
-		t.Errorf("Expected values to match, got %v and %v", v1, v2)
-	}
+	err1 := ruleSet.Evaluate(ctx, input)
+	_, err2 := ruleSet.ValidateWithContext(input, ctx)
 
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
@@ -631,14 +586,14 @@ func TestMultipleRules(t *testing.T) {
 		WithKey("X", numbers.NewInt().WithMax(4).Any()).
 		Any()
 
-	testhelpers.MustBeValidFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
+	testhelpers.MustRunFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
 		if a.(*testStruct).X != b.(*testStruct).X {
 			return fmt.Errorf("Expected X to be %d, got: %d", b.(*testStruct).X, a.(*testStruct).X)
 		}
 		return nil
 	})
-	testhelpers.MustBeInvalid(t, ruleSet, &testStruct{X: 1}, errors.CodeMin)
-	testhelpers.MustBeInvalid(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
+	testhelpers.MustNotRun(t, ruleSet, &testStruct{X: 1}, errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
 }
 
 // Requirement:
@@ -651,9 +606,9 @@ func TestTimeoutInObjectRule(t *testing.T) {
 
 	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(2).Any()).
-		WithRuleFunc(func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 			time.Sleep(1 * time.Second)
-			return x, nil
+			return nil
 		})
 
 	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
@@ -676,9 +631,9 @@ func TestTimeoutInKeyRule(t *testing.T) {
 	defer cancel()
 
 	ruleSet := objects.New[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+		WithKey("X", numbers.NewInt().WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
 			time.Sleep(1 * time.Second)
-			return x, nil
+			return nil
 		}).Any())
 
 	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
@@ -700,17 +655,17 @@ func TestCancelled(t *testing.T) {
 	var intCallCount int32 = 0
 	var structCallCount int32 = 0
 
-	intRule := func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
 		atomic.AddInt32(&intCallCount, 1)
 		cancel()
 		time.Sleep(1 * time.Second)
-		return x, nil
+		return nil
 	}
 
-	structRule := func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 		atomic.AddInt32(&structCallCount, 1)
 		time.Sleep(1 * time.Second)
-		return x, nil
+		return nil
 	}
 
 	ruleSet := objects.New[*testStruct]().
@@ -749,11 +704,11 @@ func TestCancelledObjectRules(t *testing.T) {
 
 	var structCallCount int32 = 0
 
-	structRule := func(_ context.Context, x *testStruct) (*testStruct, errors.ValidationErrorCollection) {
+	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 		atomic.AddInt32(&structCallCount, 1)
 		cancel()
 		time.Sleep(1 * time.Second)
-		return x, nil
+		return nil
 	}
 
 	ruleSet := objects.New[*testStruct]().
@@ -780,15 +735,22 @@ func TestCancelledObjectRules(t *testing.T) {
 // - Conditional rules are called only when the condition returns no errors
 // - Conditional rules are not called until dependent keys are evaluated
 func TestConditionalKey(t *testing.T) {
+	// Values to make sure the functions get called in order
+	var intState int32 = 0
+	var condValue int32 = 0
+
 	// This rule mutates the value of X.
 	// If the condition is evaluated before this rule finishes then the value will be incorrect
-	intRule := func(_ context.Context, x int) (int, errors.ValidationErrorCollection) {
+	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
+		atomic.StoreInt32(&intState, 1)
 		time.Sleep(100 * time.Millisecond)
-		return x * 2, nil
+		atomic.StoreInt32(&intState, 2)
+		return nil
 	}
 
-	condValueRule := func(_ context.Context, y int) (int, errors.ValidationErrorCollection) {
-		return y * 3, nil
+	condValueRule := func(_ context.Context, y int) errors.ValidationErrorCollection {
+		condValue = atomic.LoadInt32(&intState)
+		return nil
 	}
 
 	// Only run the conditional rule if X is greater than 4. Which it should only be if the intRule
@@ -798,6 +760,7 @@ func TestConditionalKey(t *testing.T) {
 
 	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
+		WithKey("Y", numbers.NewInt().Any()).
 		WithConditionalKey("Y", condKeyRuleSet, numbers.NewInt().WithRuleFunc(condValueRule).Any())
 
 	checkFn := func(a, b any) error {
@@ -810,11 +773,26 @@ func TestConditionalKey(t *testing.T) {
 		return nil
 	}
 
-	// Both X and Y should be mutated
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &testStruct{X: 3, Y: 3}, &testStruct{X: 6, Y: 9}, checkFn)
+	// Mock rule should not have been called
+	testhelpers.MustRunFunc(t, ruleSet.Any(), &testStruct{X: 3, Y: 3}, &testStruct{X: 3, Y: 3}, checkFn)
+	if intState != 2 {
+		t.Fatalf("Expected the int validator to be finished")
+	}
+	if condValue != 0 {
+		t.Errorf("Expected conditional rules to not be called")
+	}
 
-	// Only X should be mutated
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &testStruct{X: 1, Y: 3}, &testStruct{X: 2, Y: 0}, checkFn)
+	intState = 0
+	condValue = 0
+
+	// Mock rule should have been called
+	testhelpers.MustRunFunc(t, ruleSet.Any(), &testStruct{X: 1, Y: 3}, &testStruct{X: 1, Y: 3}, checkFn)
+	if intState != 2 {
+		t.Fatalf("Expected the int validator to be finished")
+	}
+	if condValue != 0 {
+		t.Errorf("Expected conditional rules to be called after the dependency finished")
+	}
 }
 
 // Requirement:
@@ -941,18 +919,18 @@ func TestStructRightType(t *testing.T) {
 		return nil
 	}
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), in, in, check)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), in, in, check)
 
 	in.A = 3
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), in, errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet.Any(), in, errors.CodeMin)
 
 	in.A = 5
 
 	in.B = 50
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), in, errors.CodeMin)
+	testhelpers.MustNotRun(t, ruleSet.Any(), in, errors.CodeMin)
 
 	in.B = 150
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), *in, in, check)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), *in, in, check)
 }
 
 // Requirements:
@@ -973,7 +951,7 @@ func TestNestedPointer(t *testing.T) {
 		"Test": &testStruct{},
 	}
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
+	testhelpers.MustRunFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
 }
 
 // Requirement:
@@ -1044,9 +1022,9 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 		return nil
 	}
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
+	testhelpers.MustNotRun(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
 }
 
 // Requirements:
@@ -1126,15 +1104,15 @@ func TestJsonString(t *testing.T) {
 	j := `{"X": 123}`
 	invalid := "x"
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), &j, errors.CodeType)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), &invalid, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), &j, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), &invalid, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), &invalid, errors.CodeType)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+	testhelpers.MustNotRun(t, ruleSet.Any(), &invalid, errors.CodeType)
 }
 
 // Requirements:
@@ -1146,11 +1124,11 @@ func TestJsonBytes(t *testing.T) {
 
 	j := []byte(`{"X": 123}`)
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
 }
 
 // Requirements:
@@ -1163,13 +1141,13 @@ func TestJsonRawMessage(t *testing.T) {
 
 	j := json.RawMessage([]byte(`{"X": 123}`))
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), j, errors.CodeType)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), &j, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotRun(t, ruleSet.Any(), &j, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
-	testhelpers.MustBeValidFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustRunFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
 }
 
 // Requirements:
@@ -1281,5 +1259,5 @@ func TestWithUknownTypedMap(t *testing.T) {
 		WithUnknown().
 		WithUnknownKeyValue(objects.New[*testStructMapped]().WithKey("A", numbers.NewInt().Any()))
 
-	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"test": {"A": 123}}`)
+	testhelpers.MustRunAny(t, ruleSet.Any(), `{"test": {"A": 123}}`)
 }

@@ -11,9 +11,9 @@ import (
 func TestMaxLen(t *testing.T) {
 	ruleSet := strings.New().WithMaxLen(2).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, "a", "a")
-	testhelpers.MustBeValid(t, ruleSet, "ab", "ab")
-	testhelpers.MustBeInvalid(t, ruleSet, "abc", errors.CodeMax)
+	testhelpers.MustRun(t, ruleSet, "a")
+	testhelpers.MustRun(t, ruleSet, "ab")
+	testhelpers.MustNotRun(t, ruleSet, "abc", errors.CodeMax)
 
 }
 

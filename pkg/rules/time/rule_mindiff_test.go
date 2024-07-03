@@ -17,8 +17,8 @@ func TestWithMinDiff(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMinDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before16, errors.CodeMin)
-	testhelpers.MustBeValid(t, ruleSet, before14, before14)
+	testhelpers.MustNotRun(t, ruleSet, before16, errors.CodeMin)
+	testhelpers.MustRun(t, ruleSet, before14)
 }
 
 func TestStringWithMinDiff(t *testing.T) {
@@ -28,8 +28,8 @@ func TestStringWithMinDiff(t *testing.T) {
 
 	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMinDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before16, errors.CodeMin)
-	testhelpers.MustBeValid(t, ruleSet, before14, before14.Format(internalTime.RFC3339))
+	testhelpers.MustNotRun(t, ruleSet, before16, errors.CodeMin)
+	testhelpers.MustRunMutation(t, ruleSet, before14, before14.Format(internalTime.RFC3339))
 }
 
 // Requirements:

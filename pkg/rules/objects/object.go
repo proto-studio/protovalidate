@@ -412,8 +412,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 		ok := func() bool {
 			outValueMutex.Lock()
 			defer outValueMutex.Unlock()
-			_, err := ruleSet.condition.Evaluate(ctx, *out)
-			return err == nil
+			return ruleSet.condition.Evaluate(ctx, *out) == nil
 		}()
 
 		if !ok {
@@ -566,11 +565,8 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out 
 					return
 				}
 
-				newOutput, err := objRule.Evaluate(ctx, *out)
-				if err != nil {
+				if err := objRule.Evaluate(ctx, *out); err != nil {
 					errorsCh <- err
-				} else {
-					final = newOutput
 				}
 
 			}(currentRuleSet.objRule)
@@ -680,9 +676,10 @@ func (v *ObjectRuleSet[T, TK, TV]) ValidateWithContext(in any, ctx context.Conte
 
 // Evaluate performs a validation of a RuleSet against a value of the object type and returns an object value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
-	return ruleSet.ValidateWithContext(value, ctx)
+	_, errs := ruleSet.ValidateWithContext(value, ctx)
+	return errs
 }
 
 // WithJson allows the input to be a Json encoded string.

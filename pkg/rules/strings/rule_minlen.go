@@ -14,14 +14,14 @@ type minLenRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it is not equal or greater in length than the specified value.
-func (rule *minLenRule) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (rule *minLenRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if len(value) < rule.min {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMin, ctx, "field must be at least %d characters long", rule.min),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any minimum length rule.

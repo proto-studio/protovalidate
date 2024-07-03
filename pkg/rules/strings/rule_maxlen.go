@@ -14,14 +14,14 @@ type maxLenRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it is not equal or higher in length than the specified value.
-func (rule *maxLenRule) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (rule *maxLenRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if len(value) > rule.max {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodeMax, ctx, "field must be at most %d characters long", rule.max),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // Conflict returns true for any maximum length rule.

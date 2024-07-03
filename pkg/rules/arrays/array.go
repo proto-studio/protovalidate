@@ -126,11 +126,8 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 	// This must be done after the item rules because we want to make sure all values are cast first.
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			newOutput, err := currentRuleSet.rule.Evaluate(ctx, output)
-			if err != nil {
+			if err := currentRuleSet.rule.Evaluate(ctx, output); err != nil {
 				allErrors = append(allErrors, err...)
-			} else {
-				output = newOutput
 			}
 		}
 	}
@@ -144,9 +141,11 @@ func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([
 
 // Evaluate performs a validation of a RuleSet against a the array/slice type and returns a value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *ArrayRuleSet[T]) Evaluate(ctx context.Context, value []T) ([]T, errors.ValidationErrorCollection) {
-	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
-	return ruleSet.ValidateWithContext(value, ctx)
+func (ruleSet *ArrayRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
+	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us.
+	// We ignore the return value in this case.
+	_, errs := ruleSet.ValidateWithContext(value, ctx)
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

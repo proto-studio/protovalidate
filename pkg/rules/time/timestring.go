@@ -84,8 +84,11 @@ func (ruleSet *TimeStringRuleSet) ValidateWithContext(value any, ctx context.Con
 
 // Evaluate performs a validation of a RuleSet against a string value and returns a string value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *TimeStringRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, ctx)
+func (ruleSet *TimeStringRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+	// We have to cast from string to time no matter what in this case so we call ValidateWithContext
+	// and ignore the potentially mutated value.
+	_, errs := ruleSet.ValidateWithContext(value, ctx)
+	return errs
 }
 
 // WithRule returns a new child rule set with a rule added to the list of

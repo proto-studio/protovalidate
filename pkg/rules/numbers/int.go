@@ -172,29 +172,26 @@ func (v *IntRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, 
 		return 0, errors.Collection(validationErr)
 	}
 
-	return v.Evaluate(ctx, intval)
+	return intval, v.Evaluate(ctx, intval)
 }
 
 // Evaluate performs a validation of a RuleSet against an integer value and returns an integer value of the
 // same type or a ValidationErrorCollection.
-func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			newInt, err := currentRuleSet.rule.Evaluate(ctx, value)
-			if err != nil {
+			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
 				allErrors = append(allErrors, err...)
-			} else {
-				value = newInt
 			}
 		}
 	}
 
 	if len(allErrors) != 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 

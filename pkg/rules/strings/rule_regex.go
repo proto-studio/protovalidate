@@ -17,14 +17,14 @@ type regexpRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it does not match the expected pattern.
-func (rule *regexpRule) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (rule *regexpRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if !rule.exp.MatchString(value) {
-		return value, errors.Collection(
+		return errors.Collection(
 			errors.Errorf(errors.CodePattern, ctx, rule.msg),
 		)
 	}
 
-	return value, nil
+	return nil
 }
 
 // String returns the string representation of the regex rule.

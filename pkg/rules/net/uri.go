@@ -19,7 +19,7 @@ func isHex(c rune) bool {
 	return (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 }
 
-func percentEncodingRule(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func percentEncodingRule(ctx context.Context, value string) errors.ValidationErrorCollection {
 	runes := []rune(value)
 
 	l := len(runes)
@@ -29,13 +29,13 @@ func percentEncodingRule(ctx context.Context, value string) (string, errors.Vali
 		}
 
 		if i >= l-2 || !isHex(runes[i+1]) || !isHex(runes[i+2]) {
-			return value, errors.Collection(
+			return errors.Collection(
 				errors.Errorf(errors.CodeEncoding, ctx, "field is not URI encoded %d >= %d - 2", i, l),
 			)
 		}
 	}
 
-	return value, nil
+	return nil
 }
 
 var baseUriPartRuleSet *strings.StringRuleSet = strings.New().WithRuleFunc(percentEncodingRule)
@@ -266,7 +266,7 @@ func (ruleSet *URIRuleSet) ValidateWithContext(value any, ctx context.Context) (
 		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
 	}
 
-	return ruleSet.Evaluate(ctx, valueStr)
+	return valueStr, ruleSet.Evaluate(ctx, valueStr)
 }
 
 // evaluateScheme evaluates the scheme portion of the URI and also returns a context with the scheme set.
@@ -545,7 +545,7 @@ func (ruleSet *URIRuleSet) evaluateURIPart(ctx context.Context, name, value, pre
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	const URIRegex = `^` +
 		`(?:(?P<scheme>[^:/?#]+):)?` + // Scheme
 		`(?:(//)(?P<authority>[^/?#]*))?` + // Authority
@@ -574,11 +574,8 @@ func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) (string, 
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newStr
 			}
 		}
 
@@ -586,10 +583,10 @@ func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) (string, 
 	}
 
 	if len(allErrors) > 0 {
-		return "", allErrors
+		return allErrors
 	}
 
-	return value, nil
+	return nil
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.
