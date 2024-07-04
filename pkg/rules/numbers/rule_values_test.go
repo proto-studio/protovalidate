@@ -6,7 +6,6 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules/numbers"
-	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -37,30 +36,30 @@ func TestWithAllowedValues(t *testing.T) {
 // Requirements:
 // - Only the first 3 values are displayed.
 // - Values are separated by commas.
-// - Values are quoted.
+// - Values are not quoted.
 func TestWithAllowedValuesMore(t *testing.T) {
-	values := []string{
-		"a",
-		"b",
-		"c",
-		"d",
-		"e",
+	values := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
 	}
 
-	ruleSet := strings.New().WithAllowedValues(values[0], values[1])
-	expected := fmt.Sprintf("StringRuleSet.WithAllowedValues(\"%s\", \"%s\")", values[0], values[1])
+	ruleSet := numbers.NewInt().WithAllowedValues(values[0], values[1])
+	expected := fmt.Sprintf("IntRuleSet[int].WithAllowedValues(%d, %d)", values[0], values[1])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	ruleSet = ruleSet.WithAllowedValues(values[2])
-	expected = fmt.Sprintf("StringRuleSet.WithAllowedValues(\"%s\", \"%s\", \"%s\")", values[0], values[1], values[2])
+	expected = fmt.Sprintf("IntRuleSet[int].WithAllowedValues(%d, %d, %d)", values[0], values[1], values[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	ruleSet = ruleSet.WithAllowedValues(values[3], values[4:]...)
-	expected = fmt.Sprintf("StringRuleSet.WithAllowedValues(\"%s\", \"%s\", \"%s\" ... and 2 more)", values[0], values[1], values[2])
+	expected = fmt.Sprintf("IntRuleSet[int].WithAllowedValues(%d, %d, %d ... and 2 more)", values[0], values[1], values[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -76,7 +75,7 @@ func TestWithRejectedValues(t *testing.T) {
 	testhelpers.MustNotRun(t, ruleSet.Any(), 5, errors.CodeForbidden)
 	testhelpers.MustRun(t, ruleSet.Any(), 10)
 
-	expected := fmt.Sprintf("IntRuleSet[int].WithRejectedValues(1, 5)")
+	expected := "IntRuleSet[int].WithRejectedValues(1, 5)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -85,7 +84,7 @@ func TestWithRejectedValues(t *testing.T) {
 	testhelpers.MustNotRun(t, ruleSet.Any(), 1, errors.CodeForbidden)
 	testhelpers.MustNotRun(t, ruleSet.Any(), 10, errors.CodeForbidden)
 
-	expected = fmt.Sprintf("IntRuleSet[int].WithRejectedValues(1, 5).WithRejectedValues(10)")
+	expected = "IntRuleSet[int].WithRejectedValues(1, 5).WithRejectedValues(10)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
