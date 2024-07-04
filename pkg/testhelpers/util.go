@@ -97,6 +97,13 @@ func MustRunMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output any
 	return MustRunFunc(t, ruleSet, input, output, checkEqual)
 }
 
+// MustBeValidAny is a test helper that expects a RuleSet to finish without an error.
+// It does not check the return value.
+func MustBeValidAny(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
+	t.Helper()
+	return MustBeValidFunc(t, ruleSet, input, nil, checkAlways)
+}
+
 // MustBeInvalid is a test helper that expects a RuleSet to return an error and checks for a specific error code.
 // If the error is nil or the code does not match, a testing error is printed and the function returns false.
 //
