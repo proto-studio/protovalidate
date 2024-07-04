@@ -429,7 +429,7 @@ func TestReturnsCorrectPaths(t *testing.T) {
 	}
 }
 
-func TesMixedMap(t *testing.T) {
+func TestMixedMap(t *testing.T) {
 	_, err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("B", numbers.NewInt().Any()).

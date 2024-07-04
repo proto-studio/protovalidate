@@ -52,7 +52,6 @@ func TestAnyRequired(t *testing.T) {
 // Requirements:
 // - Custom rules are executed.
 // - Custom rules can return errors.
-// - Mutated values from the custom rules are returned.
 func TestAnyCustom(t *testing.T) {
 	ruleSet := rules.Any().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())

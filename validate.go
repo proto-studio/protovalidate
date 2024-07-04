@@ -8,6 +8,7 @@
 package validate
 
 import (
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/arrays"
 	"proto.zip/studio/validate/pkg/rules/net"
 	"proto.zip/studio/validate/pkg/rules/numbers"
@@ -28,6 +29,19 @@ func Array[T any]() *arrays.ArrayRuleSet[T] {
 // These are useful for array that come from untyped formats such as Json.
 func ArrayAny() *arrays.ArrayRuleSet[any] {
 	return arrays.New[any]()
+}
+
+// Constant returns a new rule set that can be used to validate a constant value.
+// Constant rule set only return without error when the value is exactly equal
+// including type and pointer address (if relevant).
+func Constant[T comparable](value T) *rules.ConstantRuleSet[T] {
+	return rules.Constant[T](value)
+}
+
+// Interface returns a new rule set that can be used to validate a value that
+// implements the specific interface.
+func Interface[T comparable](value T) *rules.InterfaceRuleSet[T] {
+	return rules.Interface[T]()
 }
 
 // Int returns a new rule set that can be used to validate integers with type int.
