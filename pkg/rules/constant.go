@@ -8,6 +8,10 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
+type constCache[T comparable] map[T]*ConstantRuleSet[T]
+
+var constCacheMap map[any]any
+
 // ConstantRuleSet implements RuleSet that returns an error for
 // any value that does not match the constant.
 //
@@ -21,9 +25,28 @@ type ConstantRuleSet[T comparable] struct {
 
 // Constant creates a new Constant rule set for the specified value.
 func Constant[T comparable](value T) *ConstantRuleSet[T] {
-	return &ConstantRuleSet[T]{
+	var empty T
+	var typedCache constCache[T]
+
+	if constCacheMap == nil {
+		constCacheMap = make(map[any]any)
+		typedCache = make(map[T]*ConstantRuleSet[T])
+		constCacheMap[empty] = typedCache
+	} else if tmp, ok := constCacheMap[empty]; ok {
+		typedCache = tmp.(constCache[T])
+	} else {
+		typedCache = make(map[T]*ConstantRuleSet[T])
+		constCacheMap[empty] = typedCache
+	}
+
+	if val, ok := typedCache[value]; ok {
+		return val
+	}
+
+	typedCache[value] = &ConstantRuleSet[T]{
 		value: value,
 	}
+	return typedCache[value]
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -79,4 +102,9 @@ func (ruleSet *ConstantRuleSet[T]) String() string {
 		return str + ".WithRequired()"
 	}
 	return str
+}
+
+// Value returns the constant value in the correct type.
+func (ruleSet *ConstantRuleSet[T]) Value() T {
+	return ruleSet.value
 }

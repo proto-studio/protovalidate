@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 )
 
@@ -27,7 +28,7 @@ func TestMissingMapping(t *testing.T) {
 	ruleSet := New[*testStruct]().withParent()
 
 	// Manually create a mapping that is not on the struct
-	ruleSet.key = "A"
+	ruleSet.key = rules.Constant[string]("A")
 	ruleSet.mapping = "A"
 
 	// This should work
@@ -62,7 +63,7 @@ func TestUnexportedField(t *testing.T) {
 	ruleSet := New[*testStruct]().withParent()
 
 	// Manually create a mapping for the unexported field
-	ruleSet.key = "z"
+	ruleSet.key = rules.Constant[string]("z")
 	ruleSet.mapping = "z"
 
 	ruleSet.WithKey("z", numbers.NewInt().Any())

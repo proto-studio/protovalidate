@@ -1,8 +1,11 @@
 package objects
 
 import (
+	"context"
 	"fmt"
 	"sync"
+
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 // counter is used for evaluating rules and keeps track of how many rules
@@ -101,16 +104,18 @@ func (cs *counterSet[TK]) Unlock(key TK) {
 	}
 }
 
-// Wait waits for the counters associated with the provided keys to reach 0.
-// If a key doesn't have an associated counter, it simply moves on to the next key.
-func (cs *counterSet[TK]) Wait(keys ...TK) {
-	for _, key := range keys {
-		cs.mu.RLock()
-		c, exists := cs.counters[key]
-		cs.mu.RUnlock()
+// Wait waits for the counters associated with the provided key rules to reach 0.
+// If a rule doesn't have an associated counter, it simply moves on to the next rule.
+func (cs *counterSet[TK]) Wait(keyRules ...rules.Rule[TK]) {
+	ctx := context.Background()
 
-		if exists {
-			c.Wait()
+	cs.mu.RLock()
+	for key, c := range cs.counters {
+		for _, rule := range keyRules {
+			if rule.Evaluate(ctx, key) == nil {
+				c.Wait()
+			}
 		}
 	}
+	cs.mu.RUnlock()
 }

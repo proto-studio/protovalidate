@@ -8,15 +8,22 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+type knownKeyType byte
+
+const (
+	knownConstKey knownKeyType = iota
+	knownDynamicKey
+)
+
 // knownKeys is a utility structure to track which keys are seen during validation.
 type knownKeys[TK comparable] struct {
-	keys map[TK]bool
+	keys map[TK]knownKeyType
 }
 
 // newKnownKeys creates a new instance of knownKeys.
 func newKnownKeys[TK comparable](track bool) *knownKeys[TK] {
 	if track {
-		return &knownKeys[TK]{keys: make(map[TK]bool)}
+		return &knownKeys[TK]{keys: make(map[TK]knownKeyType)}
 	}
 	return &knownKeys[TK]{}
 }
@@ -24,7 +31,7 @@ func newKnownKeys[TK comparable](track bool) *knownKeys[TK] {
 // Add registers a known key.
 func (k *knownKeys[TK]) Add(key TK) {
 	if k.keys != nil {
-		k.keys[key] = true
+		k.keys[key] = knownConstKey
 	}
 }
 

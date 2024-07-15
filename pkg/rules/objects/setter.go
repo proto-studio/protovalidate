@@ -9,6 +9,7 @@ import (
 // requiring less variables to be passed between validation function.
 type setter[TK comparable] interface {
 	Set(key TK, value any)
+	SetBucket(bucketName, key TK, value any)
 	Map() bool
 }
 
@@ -24,6 +25,27 @@ func (ms *mapSetter[TK]) Set(key TK, value any) {
 		return
 	}
 	ms.out.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+}
+
+func (ms *mapSetter[TK]) SetBucket(bucketName, key TK, value any) {
+	// Check if the bucket already exists
+	bucketValue := ms.out.MapIndex(reflect.ValueOf(bucketName))
+	if !bucketValue.IsValid() {
+		// If no bucket exists, create a new map[TK]interface{}
+		newMap := make(map[TK]interface{})
+		ms.out.SetMapIndex(reflect.ValueOf(bucketName), reflect.ValueOf(newMap))
+		bucketValue = reflect.ValueOf(newMap)
+	} else {
+		bucketValue = bucketValue.Elem()
+	}
+
+	// Set the key-value pair in the bucket
+	if value == nil {
+		elemType := bucketValue.Type().Elem()
+		bucketValue.SetMapIndex(reflect.ValueOf(key), reflect.Zero(elemType))
+	} else {
+		bucketValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+	}
 }
 
 func (ms *mapSetter[TK]) Map() bool {
@@ -56,6 +78,29 @@ func (ss *structSetter[TK]) Set(key TK, value any) {
 	} else {
 		field.Set(valueReflect)
 	}
+}
+
+func (ss *structSetter[TK]) SetBucket(bucketName, key TK, value any) {
+	// Get the field by bucket name
+	field := ss.out.FieldByName(any(bucketName).(string))
+
+	if !field.IsValid() || field.Kind() != reflect.Map {
+		return
+	}
+
+	if field.IsNil() {
+		// Initialize the map if it is nil
+		mapType := field.Type()
+		field.Set(reflect.MakeMap(mapType))
+	}
+
+	// Set the key-value pair in the map
+	keyValue := reflect.ValueOf(key)
+	valueValue := reflect.ValueOf(value)
+	if value == nil {
+		valueValue = reflect.Zero(field.Type().Elem())
+	}
+	field.SetMapIndex(keyValue, valueValue)
 }
 
 func (ss *structSetter[TK]) Map() bool {

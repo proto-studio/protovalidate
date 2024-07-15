@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	stringsHelper "strings"
 	"sync/atomic"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/rules/objects"
 	"proto.zip/studio/validate/pkg/rules/strings"
@@ -200,7 +202,7 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 
 		if err == nil || !ok {
 			t.Error("Expected panic with error interface")
-		} else if err.Error() != "missing mapping for key: a" {
+		} else if err.Error() != `missing mapping for key: a` {
 			t.Errorf("Expected missing mapping error, got: %s", err)
 		}
 	}()
@@ -739,7 +741,6 @@ func TestConditionalKey(t *testing.T) {
 	var intState int32 = 0
 	var condValue int32 = 0
 
-	// This rule mutates the value of X.
 	// If the condition is evaluated before this rule finishes then the value will be incorrect
 	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
 		atomic.StoreInt32(&intState, 1)
@@ -800,19 +801,33 @@ func TestConditionalKey(t *testing.T) {
 // - Does not return keys with no rules
 // - Returns conditional keys
 // - Only returns each key once
-func TestKeys(t *testing.T) {
+func TestKeyRules(t *testing.T) {
 
 	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("X", numbers.NewInt().Any()).
 		WithConditionalKey("Y", objects.New[*testStruct](), numbers.NewInt().Any())
 
-	keys := ruleSet.Keys()
+	keys := ruleSet.KeyRules()
 
 	if len(keys) != 2 {
 		t.Errorf("Expected 2 keys, got %d (%s)", len(keys), keys)
-	} else if !((keys[0] == "X" && keys[1] == "Y") || (keys[0] == "Y" && keys[1] == "X")) {
-		t.Errorf("Expected [X Y], got %s", keys)
+	} else {
+		key0, ok := keys[0].(*rules.ConstantRuleSet[string])
+		if !ok {
+			t.Error("Expected key 0 to be a constant rule set with type string")
+		}
+		key1, ok := keys[1].(*rules.ConstantRuleSet[string])
+		if !ok {
+			t.Error("Expected key 1 to be a constant rule set with type string")
+		}
+
+		key0v := key0.Value()
+		key1v := key1.Value()
+
+		if !((key0v == "X" && key1v == "Y") || (key0v == "Y" && key1v == "X")) {
+			t.Errorf("Expected [X Y], got %s", keys)
+		}
 	}
 
 }
@@ -1205,59 +1220,375 @@ func TestWithUnknownIdempotent(t *testing.T) {
 	}
 }
 
-/*
 // Requirements:
-// - AllowUnknown is implicitly false.
-// - WithUnknownKey rules run on all unknown keys.
-// - If any rules fail the validation fails with unknown key.
-func TestWithUnknownKey(t *testing.T) {
+// - Dynamic keys are not considered "unknown"
+// - Rule is run for each matching key
+// - Errors are passed through
+func TestWithDynamicKeyToMap(t *testing.T) {
+	ruleSet := objects.NewObjectMap[float64]().WithJson()
+
+	validJson := `{"__abc": 123, "__xyz": 789}`
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
+
+	rule := testhelpers.NewMockRuleSet[float64]()
+
+	ruleSet = ruleSet.WithDynamicKey(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), rule)
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
+	testhelpers.MustBeValidAny(t, ruleSet.Any(), validJson)
+}
+
+// Requirements:
+// - Keys in dynamic buckets are not considered "unknown"
+// - Value is copied into all matching buckets
+// - If no fields match, bucket is not present
+func TestWithDynamicBucketToMap(t *testing.T) {
 	ruleSet := objects.NewObjectMap[any]().WithJson()
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": 123}`, errors.CodeUnexpected)
+	validJson := `{"__abc": "abc", "__123": 123}`
 
-	// Purposely setting two different rule sets so we can test that all rules are evaluated
-	// until one fails.
-	// Must be exactly two characters long.
-	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2))
-	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMinLen(2))
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"X": 123}`, errors.CodeUnexpected)
-	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": 123}`)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": 123}`, errors.CodeUnexpected)
-}
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "numbers")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "letters")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "nomatch")
 
-// Requirements:
-// - Rules run on unknown values with valid keys.
-func TestWithUnknownKeyValue(t *testing.T) {
-	ruleSet := objects.NewObjectMap[string]().WithJson()
-	ruleSet = ruleSet.WithUnknownKey(strings.New().WithMaxLen(2).Any())
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XYZ": "AB"}`, errors.CodeUnexpected)
-	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), validJson)
+	if err == nil {
+		output, ok := o.(map[string]any)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
 
-	// Purposely setting two different rule sets so we can test that all rules are always evaluated.
-	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithMaxLen(2).Any())
+		if _, ok := output["nomatch"].(map[string]any); ok {
+			t.Errorf(`expect "nomatch" bucket to not be present`)
+		}
 
-	testhelpers.MustBeValidAny(t, ruleSet.Any(), `{"XY": "AB"}`)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeMax)
+		if m, ok := output["all"].(map[string]any); ok {
+			if len(m) != 2 {
+				t.Errorf(`expected "all" to have 2 items, got %d`, len(m))
+			}
+		} else {
+			t.Errorf(`expected "all" to be map`)
+		}
 
-	ruleSet = ruleSet.WithUnknownKeyValue(strings.New().WithAllowedValues("A", "B", "C").Any())
+		if m, ok := output["letters"].(map[string]any); ok {
+			if len(m) != 1 {
+				t.Errorf(`expected "letters" to have 1 item, got %d`, len(m))
+			}
+			if v, ok := m["__abc"]; !ok || v.(string) != "abc" {
+				t.Errorf(`expected letters["__abc"] to be "abc", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "letters" to be map`)
+		}
 
-	errs := testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"XY": "ABC"}`, errors.CodeNotAllowed).(errors.ValidationErrorCollection)
-	if l := len(errs); l != 2 {
-		t.Errorf("Expected %d errors, got: %d", 2, l)
+		if m, ok := output["numbers"].(map[string]any); ok {
+			if len(m) != 1 {
+				t.Errorf(`expected "numbers" to have 1 item, got %d`, len(m))
+			}
+			if v, ok := m["__123"]; !ok || v.(float64) != 123.0 {
+				t.Errorf(`expected letters["__123"] to be "123", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "numbers" to be map`)
+		}
 	}
 }
-*/
 
 // Requirements:
-// - Unknown values that are mapped to a specific type should not error if validators return the correct type.
-// - Should not panic.
-func TestWithUknownTypedMap(t *testing.T) {
-	ruleSet := objects.NewObjectMap[*testStructMapped]().
-		WithJson().
-		WithUnknown().
-		WithUnknownKeyValue(objects.New[*testStructMapped]().WithKey("A", numbers.NewInt().Any()))
+// - Keys in dynamic buckets are not considered "unknown"
+// - Value is copied into all matching buckets
+// - If no fields match, bucket is nil
+func TestWithDynamicBucketToStruct(t *testing.T) {
 
-	testhelpers.MustRunAny(t, ruleSet.Any(), `{"test": {"A": 123}}`)
+	type outputType struct {
+		All     map[string]any
+		Letters map[string]string
+		Numbers map[string]float64
+		NoMatch map[string]any
+	}
+
+	ruleSet := objects.New[outputType]().WithJson()
+
+	validJson := `{"__abc": "abc", "__123": 123}`
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
+
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "All")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "Numbers")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "Letters")
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "NoMatch")
+
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": "abc", "__xyz": "xyz"}`, errors.CodeUnexpected)
+
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), validJson)
+	if err == nil {
+		output, ok := o.(outputType)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
+
+		if output.NoMatch != nil {
+			t.Errorf(`expect "nomatch" bucket to not be present`)
+		}
+
+		if output.All != nil {
+			if len(output.All) != 2 {
+				t.Errorf(`expected "output.All" to have 2 items, got %d`, len(output.All))
+			}
+		} else {
+			t.Errorf(`expected "output.All" to not be nil`)
+		}
+
+		if output.Letters != nil {
+			if len(output.Letters) != 1 {
+				t.Errorf(`expected "output.Letters" to have 1 item, got %d`, len(output.Letters))
+			}
+			if v, ok := output.Letters["__abc"]; !ok || v != "abc" {
+				t.Errorf(`expected output.Letters["__abc"] to be "abc", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "output.Letters" to not be nil`)
+		}
+
+		if output.Numbers != nil {
+			if len(output.Numbers) != 1 {
+				t.Errorf(`expected "output.Numbers" to have 1 item, got %d`, len(output.Numbers))
+			}
+			if v, ok := output.Numbers["__123"]; !ok || v != 123.0 {
+				t.Errorf(`expected output.Numbers["__123"] to be "123", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "output.Numbers" to not be nil`)
+		}
+	}
+}
+
+// Requirements:
+// - If no dynamic bucket is matched then the key is considered unknown
+// - Dynamic buckets are not created unless condition is met
+// - Values are not put in the bucket unless condition is met
+func TestWithConditionalDynamicBucket(t *testing.T) {
+	ruleSet := objects.NewObjectMap[any]().WithJson()
+
+	rootCondition := objects.NewObjectMap[any]().WithUnknown()
+
+	trueRule := rules.Constant(true).WithRequired().Any()
+
+	ruleSet = ruleSet.WithKey("allowLetters", rules.Any()).WithKey("allowNumbers", rules.Any())
+	ruleSet = ruleSet.WithConditionalDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), rootCondition.WithKey("allowNumbers", trueRule), "numbers")
+	ruleSet = ruleSet.WithConditionalDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), rootCondition.WithKey("allowLetters", trueRule), "letters")
+
+	// Conditions not met so these properties should still be unknown
+	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`, errors.CodeUnexpected)
+
+	// This will make it so the rule set always passes
+	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
+
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`)
+	if err == nil {
+		output, ok := o.(map[string]any)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
+
+		if m, ok := output["all"].(map[string]any); ok {
+			if len(m) != 2 {
+				t.Errorf(`expected "all" to have 2 items, got %d`, len(m))
+			}
+		} else {
+			t.Errorf(`expected "all" to be map`)
+		}
+
+		if _, ok := output["letters"].(map[string]any); ok {
+			t.Errorf(`expect "letters" bucket to not be present`)
+		}
+
+		if _, ok := output["numbers"].(map[string]any); ok {
+			t.Errorf(`expect "numbers" bucket to not be present`)
+		}
+	}
+
+	o, err = testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123, "allowLetters":true}`)
+	if err == nil {
+		output, ok := o.(map[string]any)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
+
+		if m, ok := output["all"].(map[string]any); ok {
+			if len(m) != 2 {
+				t.Errorf(`expected "all" to have 2 items, got %d`, len(m))
+			}
+		} else {
+			t.Errorf(`expected "all" to be map`)
+		}
+
+		if m, ok := output["letters"].(map[string]any); ok {
+			if len(m) != 1 {
+				t.Errorf(`expected "letters" to have 1 item, got %d`, len(m))
+			}
+			if v, ok := m["__abc"]; !ok || v.(string) != "abc" {
+				t.Errorf(`expected letters["__abc"] to be "abc", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "letters" to be map`)
+		}
+
+		if _, ok := output["numbers"].(map[string]any); ok {
+			t.Errorf(`expect "numbers" bucket to not be present`)
+		}
+	}
+}
+
+// Requirements:
+// - Keys are still added to dynamic buckets when they match a dynamic key rule.
+// - Keys are not added to output map.
+func TestDynamicKeyWithBucket(t *testing.T) {
+	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+
+	ruleSet := objects.NewObjectMap[any]().
+		WithJson().
+		WithDynamicKey(keyRule, rules.Any()).
+		WithDynamicBucket(keyRule, "letters")
+
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc"}`)
+	if err == nil {
+		output, ok := o.(map[string]any)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
+
+		if _, ok := output["__abc"]; ok {
+			t.Errorf("expected __abc to be absent from output")
+		}
+
+		if m, ok := output["letters"].(map[string]any); ok {
+			if len(m) != 1 {
+				t.Errorf(`expected "letters" to have 1 item, got %d`, len(m))
+			}
+			if v, ok := m["__abc"]; !ok || v.(string) != "abc" {
+				t.Errorf(`expected letters["__abc"] to be "abc", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "letters" to be map`)
+		}
+	}
+}
+
+// Requirements:
+// - Static keys are not added to buckets.
+//
+// NOTE: This is UNDEFINED behavior. Rule writers should avoid having dynamic keys overlap with static keys.
+// The purpose of this test is just to let us know if this behavior unintentionally changes.
+func TestStaticKeyWithBucket(t *testing.T) {
+	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+
+	ruleSet := objects.NewObjectMap[any]().
+		WithJson().
+		WithKey("__xyz", rules.Any()).
+		WithDynamicBucket(keyRule, "letters")
+
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
+	if err == nil {
+		output, ok := o.(map[string]any)
+		if !ok {
+			t.Errorf("expected output to be a map of any")
+			return
+		}
+
+		if _, ok := output["__abc"]; ok {
+			t.Errorf("expected __abc to be absent from output")
+		}
+
+		if _, ok := output["__xyz"]; !ok {
+			t.Errorf("expected __xyz to be present in output")
+		}
+
+		if m, ok := output["letters"].(map[string]any); ok {
+			if len(m) != 1 {
+				t.Errorf(`expected "letters" to have 1 item, got %d`, len(m))
+			}
+			if v, ok := m["__abc"]; !ok || v.(string) != "abc" {
+				t.Errorf(`expected letters["__abc"] to be "abc", got %v`, v)
+			}
+		} else {
+			t.Errorf(`expected "letters" to be map`)
+		}
+	}
+}
+
+// Setup:
+// Two unconditional rule sets act on key "__abc". One is dynamic and the other is static. There is an additional
+// static conditional rule set that depends on "__abc". The conditional rule should not run until both the dynamic
+// and static unconditional rules run.
+// Requirements:
+// - Conditional rules are not run until after any dynamic keys that affect the keys they are dependent on.
+//
+// This test triggered a bug with reference counting and the initial dynamic key code. It is important that the dynamic
+// key matches more than one input key to continue to test the reference bug.
+func TestDynamicKeyAsConditionalDependency(t *testing.T) {
+	// Values to make sure the functions get called in order
+	var intState int32 = 0
+	var condValue int32 = 0
+
+	valueRule := rules.Any().WithRuleFunc(func(ctx context.Context, x any) errors.ValidationErrorCollection {
+		if rulecontext.Path(ctx).String() == "__abc" {
+			time.Sleep(50 * time.Millisecond)
+		} else {
+			time.Sleep(200 * time.Millisecond)
+		}
+		atomic.AddInt32(&intState, 1)
+		return nil
+	})
+
+	finalValueRule := rules.Any().WithRuleFunc(func(_ context.Context, x any) errors.ValidationErrorCollection {
+		condValue = atomic.LoadInt32(&intState)
+		return nil
+	})
+
+	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+
+	ruleSet := objects.NewObjectMap[any]().
+		WithJson().
+		WithKey("__abc", valueRule).
+		WithDynamicKey(keyRule, valueRule).
+		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithKey("__abc", rules.Any()), finalValueRule)
+
+	_, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
+	if err == nil {
+		// The way the timeouts are setup, the condValue should be set after the two rules for __abc finish but before __xyz
+		if condValue != 2 {
+			t.Errorf("expected condValue to be 2, got: %d", condValue)
+		}
+		if intState != 3 {
+			t.Errorf("expected intState to be 3, got: %d", intState)
+		}
+	}
+}
+
+// Requirements:
+// - Ref tracker should panic if you try to use a dynamic key in a conditional.
+// In the future we may change this behavior but for now it would complicate the code to much.
+func TestDynamicKeyAsDependentConditional(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic")
+		}
+	}()
+
+	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+
+	objects.NewObjectMap[any]().
+		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())
 }

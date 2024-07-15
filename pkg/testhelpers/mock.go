@@ -106,3 +106,41 @@ func NewMockErrors(count int) []errors.ValidationError {
 
 	return out
 }
+
+// MockRuleSet is a mock implementation of the RuleSet interface that can be used for testing.
+// They can be used to return errors, return mutated values, and simulate rule collisions.
+//
+// Call count tracks how many times the mock was evaluated.
+//
+// Because rule evaluation can happen in parallel (for example, with object keys or arrays)
+// the call count is thread safe.
+type MockRuleSet[T any] struct {
+	MockRule[T]
+}
+
+// NewMockRule creates a new MockRule.
+func NewMockRuleSet[T any]() *MockRuleSet[T] {
+	return &MockRuleSet[T]{}
+}
+
+// Required always returns false for the mock rule set
+func (mockRuleSet *MockRuleSet[T]) Required() bool {
+	return false
+}
+
+// Run tries to do a simple cast and returns an error if it fails. It then calls
+// Evaluate. Cast errors do not count towards the run count.
+func (mockRuleSet *MockRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
+	if valueOfType, ok := value.(T); ok {
+		return valueOfType, mockRuleSet.Evaluate(ctx, valueOfType)
+	}
+	var empty T
+	return empty, errors.Collection(
+		errors.NewCoercionError(ctx, "mock", "mock"),
+	)
+}
+
+// Any returns a rule set that matches the any interface.
+func (mockRuleSet *MockRuleSet[T]) Any() rules.RuleSet[any] {
+	return rules.WrapAny[T](mockRuleSet)
+}

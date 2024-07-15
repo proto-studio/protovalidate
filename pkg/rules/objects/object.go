@@ -17,21 +17,12 @@ import (
 
 const annotation = "validate"
 
-type objectRuleScope int
-
-const (
-	scopeKey          objectRuleScope = 0
-	scopeUnknownKey   objectRuleScope = 1
-	scopeUnknownValue objectRuleScope = 2
-)
-
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	rules.NoConflict[T]
 	allowUnknown bool
-	key          TK
+	key          rules.Rule[TK]
 	rule         rules.RuleSet[TV]
-	ruleScope    objectRuleScope
 	objRule      rules.Rule[T]
 	mapping      TK
 	outputType   reflect.Type
@@ -41,6 +32,7 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	label        string
 	condition    Conditional[T, TK]
 	refs         *refTracker[TK]
+	bucket       TK
 	json         bool
 }
 
@@ -104,7 +96,7 @@ func New[T any]() *ObjectRuleSet[T, string, any] {
 
 		ruleSet = &ObjectRuleSet[T, string, any]{
 			parent:     ruleSet,
-			key:        key,
+			key:        rules.Constant[string](key),
 			mapping:    field.Name,
 			outputType: ruleSet.outputType,
 			ptr:        ruleSet.ptr,
@@ -155,60 +147,29 @@ func (v *ObjectRuleSet[T, TK, TV]) WithUnknown() *ObjectRuleSet[T, TK, TV] {
 	return newRuleSet
 }
 
-/*
-// WithDynamicKey returns a new rule set that run evaluates the rule for any keys that
-// match the key rule. If any rules match, the key is no longer considered "unknown" and
-// will pass validation even if WithUnknown is not set.
-//
-// Dynamic key rules will be run for all keys that match the rule regardless of if they
-// are already known keys.
-//
-// Note: Rules will be evaluates for both structs and maps. However, if you want to be
-// able to access the dynamic values on structs you need to specific a receptor property
-// for the values to be put into. Use WithDynamicKeyBucket instead.
-func (v *ObjectRuleSet[T,TV]) WithUnknownKey(keyRule rules.RuleSet[string], valueRule rules.RuleSet[T]) *ObjectRuleSet[T,TV] {
-{
-
-}
-
-*/
-
-// WithUnknownKeyValue returns a new rule set with a validation function for unknown key values.
-// Rules are cumulative. Unlike WithUnknownKey, all rules will always be run.
-// If the unknown flag was not previously set, this will set it.
-//
-// The rules will not run if the key fails validation.
-func (v *ObjectRuleSet[T, TK, TV]) WithUnknownKeyValue(rule rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
-	newRuleSet.allowUnknown = true
-	newRuleSet.rule = rule
-	newRuleSet.ruleScope = scopeUnknownValue
-	return newRuleSet
-}
-
 // fullMapping is a helper function that returns the full object field mappings as a map.
 func (v *ObjectRuleSet[T, TK, TV]) fullMapping() map[TK]TK {
 	mapping := make(map[TK]TK)
 	empty := new(TK)
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.key != *empty && currentRuleSet.mapping != *empty {
-			mapping[currentRuleSet.key] = currentRuleSet.mapping
+		if currentRuleSet.key != nil && currentRuleSet.mapping != *empty {
+			mapping[currentRuleSet.key.(*rules.ConstantRuleSet[TK]).Value()] = currentRuleSet.mapping
 		}
 	}
 	return mapping
 }
 
 // mappingFor is a helper function that returns the key mapping given a specific key.
-func (v *ObjectRuleSet[T, TK, TV]) mappingFor(key TK) (TK, bool) {
-	empty := new(TK)
+func (v *ObjectRuleSet[T, TK, TV]) mappingFor(ctx context.Context, key TK) (TK, bool) {
+	var empty TK
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.key == key && currentRuleSet.mapping != *empty {
+		if currentRuleSet.key != nil && currentRuleSet.key.Evaluate(ctx, key) == nil && currentRuleSet.mapping != empty {
 			return currentRuleSet.mapping, true
 		}
 	}
-	return *empty, false
+	return empty, false
 }
 
 // WithKey returns a new RuleSet with a validation rule for the specified key.
@@ -216,9 +177,80 @@ func (v *ObjectRuleSet[T, TK, TV]) mappingFor(key TK) (TK, bool) {
 // If more than one call is made with the same key than all will be evaluated. However, the order
 // in which they are run is not guaranteed.
 //
-// Multiple rule sets may run in parallel but only one will run a time for each key.
+// Multiple rule sets may run in parallel but only one will run a time for each key since rule sets
+// can return a mutated value.
 func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithConditionalKey(key, nil, ruleSet)
+}
+
+// WithDynamicKey returns a new RuleSet with a validation rule for any key that matches the key rule.
+// Dynamic rules are run even if they match a key that has an already defined rule. Mappings are not applied
+// to dynamic rules.
+//
+// If more than one call is made with the same key or overlapping dynamic rules, than all will be evaluated.
+// However, the order in which they are run is not guaranteed.
+//
+// Multiple rule sets may run in parallel but only one will run a time for each key since rule sets
+// can return a mutated value. This is true even for constant value keys and other dynamic rules if the
+// patterns overlap.
+//
+// If a key matches the key rules of any unconditional dynamic rule it will no longer be considered an "unknown" key.
+//
+// With maps, the dynamic keys are directly set on the output map. For structs you must set a dynamic key
+// bucket using WithDynamicBucket.
+func (v *ObjectRuleSet[T, TK, TV]) WithDynamicKey(keyRule rules.Rule[TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+	var empty TK
+
+	return v.withKeyHelper(
+		keyRule,
+		empty,
+		nil,
+		ruleSet,
+	)
+}
+
+// WithDynamicBucket tells the Rule Set to put matching keys into specific buckets. A bucket is expected to be a
+// map with the key type (string for structs targets or variable for map) and a value type that matches the expected
+// value.
+//
+// To avoid runtime errors it is usually best to also add a validation rule for the key using WithDynamic key to
+// ensure the value is the correct type.
+//
+// This method is designed for unknown and dynamic keys only. If you have any explicit rules for your key, it will not
+// be put into the dynamic bucket.
+//
+// If a key matches the dynamic bucket key rules then it will no longer be considered "unknown" and will not trigger an
+// unknown key error. You are encouraged to add additional validation rules for the values.
+//
+// If a key belongs to more than one bucket it will be included in all of them.
+//
+// For structs:
+//
+//	When WithDynamicBucket is called this function will panic if the bucket property does not exist on the struct or
+//	bucket property is not a map.
+//	The value of the property will be nil until at least one key matches.
+//
+// For maps:
+//
+//	Running the rule set will panic if the value type is not "any" since any other type of value will not allow the bucket
+//	map to be created.
+//	The value of the bucket key in the map will not exist unless at least one key matches.
+func (v *ObjectRuleSet[T, TK, TV]) WithDynamicBucket(keyRule rules.Rule[TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
+	return v.WithConditionalDynamicBucket(keyRule, nil, bucket)
+}
+
+// WithConditionalDynamicBucket behaves like WithDynamicBucket except the value is not sorted into the bucket unless the
+// condition is met.
+//
+// If the only dynamic rules are conditional, the key will be considered unknown if no conditions match.
+func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicBucket(keyRule rules.Rule[TK], condition Conditional[T, TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
+	newRuleSet := v.withParent()
+
+	newRuleSet.key = keyRule
+	newRuleSet.condition = condition
+	newRuleSet.bucket = bucket
+
+	return newRuleSet
 }
 
 // Keys returns the keys names that have rule sets associated with them.
@@ -229,13 +261,13 @@ func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet rules.RuleSet[TV]) *O
 // inside WithKey.
 //
 // The results are not sorted. You should not depend on the order of the results.
-func (v *ObjectRuleSet[T, TK, TV]) Keys() []TK {
-	mapping := make(map[TK]bool)
-	keys := make([]TK, 0)
-	empty := new(TK)
+func (v *ObjectRuleSet[T, TK, TV]) KeyRules() []rules.Rule[TK] {
+	// Don't return identical keys more than once
+	mapping := make(map[rules.Rule[TK]]bool)
+	keys := make([]rules.Rule[TK], 0)
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.key != *empty && currentRuleSet.rule != nil {
+		if currentRuleSet.key != nil && currentRuleSet.rule != nil {
 			if !mapping[currentRuleSet.key] {
 				mapping[currentRuleSet.key] = true
 				keys = append(keys, currentRuleSet.key)
@@ -267,11 +299,12 @@ func (v *ObjectRuleSet[T, TK, TV]) Keys() []TK {
 //
 // This method will panic immediately if a circular dependency is detected.
 func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
+	var destKey TK
 
 	// Only check mapping if output type is a struct (not a map)
 	if v.outputType.Kind() != reflect.Map {
-		destKey, ok := v.mappingFor(key)
+		var ok bool
+		destKey, ok = v.mappingFor(context.Background(), key)
 		if !ok {
 			panic(fmt.Errorf("missing mapping for key: %s", toPath(key)))
 		}
@@ -290,12 +323,37 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 			// and New ignores unexported fields.
 			panic(fmt.Errorf("field is not exported: %s", toPath(destKey)))
 		}
-		newRuleSet.mapping = destKey
 	}
 
+	return v.withKeyHelper(
+		rules.Constant[TK](key),
+		destKey,
+		condition,
+		ruleSet,
+	)
+}
+
+// WithConditionalDynamicKey behaves like WithDynamicKet except that it will only run if the condition is met.
+//
+// If all the dynamic keys are conditional and no condition is met then the key is considered to be unknown.
+func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicKey(keyRule rules.Rule[TK], condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+	var empty TK
+
+	return v.withKeyHelper(
+		keyRule,
+		empty,
+		condition,
+		ruleSet,
+	)
+}
+
+// withKeyHelper returns a new rule set with the appropriate keys, conditions, and mappings set.
+func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key rules.Rule[TK], destKey TK, condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+	newRuleSet := v.withParent()
+
+	newRuleSet.mapping = destKey
 	newRuleSet.key = key
 	newRuleSet.rule = ruleSet
-	newRuleSet.ruleScope = scopeKey
 	newRuleSet.condition = condition
 
 	if condition != nil {
@@ -305,8 +363,8 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 			newRuleSet.refs = newRuleSet.refs.Clone()
 		}
 
-		for _, dependsOn := range condition.Keys() {
-			if err := newRuleSet.refs.Add(key, dependsOn); err != nil {
+		for _, dependsOn := range condition.KeyRules() {
+			if err := newRuleSet.refs.Add(newRuleSet.key, dependsOn); err != nil {
 				panic(err)
 			}
 		}
@@ -390,17 +448,19 @@ func done(ctx context.Context) bool {
 
 // evaluateKeyRule evaluates a single key rule.
 // Note that this function is meant to be called on the rule set that contains the rule.
-func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, out *T, wg *sync.WaitGroup, outValueMutex *sync.Mutex, errorsCh chan errors.ValidationErrorCollection, inFieldValue reflect.Value, s setter[TK], counters *counterSet[TK]) {
+func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, out *T, wg *sync.WaitGroup, outValueMutex *sync.Mutex, errorsCh chan errors.ValidationErrorCollection, key TK, inFieldValue reflect.Value, s setter[TK], counters *counterSet[TK], dynamicBuckets []*ObjectRuleSet[T, TK, TV]) {
 	defer wg.Done()
-	counters.Lock(ruleSet.key)
-	defer counters.Unlock(ruleSet.key)
+	counters.Lock(key)
+	defer counters.Unlock(key)
 
+	// Don't keep evaluating if the context has been canceled.
 	if done(ctx) {
 		return
 	}
 
+	// Exit early if the condition is not met.
 	if ruleSet.condition != nil {
-		keys := ruleSet.condition.Keys()
+		keys := ruleSet.condition.KeyRules()
 		counters.Wait(keys...)
 
 		ok := func() bool {
@@ -432,23 +492,65 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 	outValueMutex.Lock()
 	defer outValueMutex.Unlock()
 
-	s.Set(ruleSet.key, val)
+	bucketMatched := false
+	for _, bucketRuleSet := range dynamicBuckets {
+		if bucketRuleSet.key.Evaluate(ctx, key) == nil && (bucketRuleSet.condition == nil || bucketRuleSet.condition.Evaluate(ctx, *out) == nil) {
+			s.SetBucket(bucketRuleSet.bucket, key, inFieldValue.Interface())
+			bucketMatched = true
+		}
+	}
+
+	if !bucketMatched {
+		s.Set(key, val)
+	}
 }
 
-// evaluateKeyRules evaluates the rules for each key.
+// keyValue is a helper function that returns the name of a key for use in mapping and conditions
+func (v *ObjectRuleSet[T, TK, TV]) keyValue(key TK, currentRuleSet *ObjectRuleSet[T, TK, TV], inValue reflect.Value, fromMap, fromSame bool) reflect.Value {
+	var inFieldValue reflect.Value
+
+	if fromMap {
+		inFieldValue = inValue.MapIndex(reflect.ValueOf(key))
+	} else if fromSame {
+		// From same always has string keys since only structs would get this far so we can cast it.
+		keyStr := any(currentRuleSet.mapping).(string)
+		inFieldValue = inValue.FieldByName(keyStr)
+	} else {
+		// We know this isn't a map so the only option for a key is a string
+		keyStr := any(key).(string)
+		inFieldValue = inValue.FieldByName(keyStr)
+	}
+
+	return inFieldValue
+}
+
+// evaluateKeyRules evaluates the rules for each key and called evaluateKeyRule.
 func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter[TK], fromMap, fromSame bool) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
-	empty := new(TK)
+	var emptyKey TK
 
 	// Tracks which keys are known so we can create errors for unknown keys.
 	knownKeys := newKnownKeys[TK]((!v.allowUnknown || s.Map()) && fromMap)
 
-	// Create a table of how keys and a counter.
-	// We need this because conditional keys cannot run.
+	// Add each key to the counter.
+	// We need this because conditional keys cannot run until all rule sets are run since rule sets are able
+	// to mutate values.
+	// For dynamic keys we must increment for all matching keys.
 	counters := newCounterSet[TK]()
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.key != *empty && currentRuleSet.rule != nil {
-			counters.Increment(currentRuleSet.key)
+		if currentRuleSet.key != nil && currentRuleSet.rule != nil {
+			if c, ok := currentRuleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+				counters.Increment(c.Value())
+			} else if fromMap {
+				// Dynamic keys only make sense if the source is a map.
+				for _, mapKeyValue := range inValue.MapKeys() {
+					key, ok := mapKeyValue.Interface().(TK)
+
+					if ok && currentRuleSet.key.Evaluate(ctx, key) == nil {
+						counters.Increment(key)
+					}
+				}
+			}
 		}
 	}
 
@@ -457,77 +559,76 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	defer close(errorsCh)
 	var outValueMutex sync.Mutex
 
+	// Pre caching a list of dynamic buckets lets us avoid extra loops.
+	// This method is faster in all cases where there is at least one bucket and the input has dynamic values
+	dynamicBuckets := make([]*ObjectRuleSet[T, TK, TV], 0)
+	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+		if currentRuleSet.bucket != emptyKey {
+			dynamicBuckets = append(dynamicBuckets, currentRuleSet)
+		}
+	}
+
 	// Wait for all the rules to finish
 	var wg sync.WaitGroup
 
-	// Loop through the rule set and evaluate each one.
-	// Run each rule set in a goroutine.
-	var unknownValueRuleSets []rules.RuleSet[TV]
-
+	// Loop through all the rule sets
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-
 		if currentRuleSet.rule == nil {
 			continue
 		}
 
-		switch currentRuleSet.ruleScope {
-		case scopeUnknownValue:
-			unknownValueRuleSets = append(unknownValueRuleSets, currentRuleSet.rule)
-			continue
-		}
-
-		key := currentRuleSet.key
-
-		var inFieldValue reflect.Value
-
-		if fromMap {
-			inFieldValue = inValue.MapIndex(reflect.ValueOf(key))
+		if c, ok := currentRuleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+			key := c.Value()
+			inFieldValue := v.keyValue(key, currentRuleSet, inValue, fromMap, fromSame)
 			knownKeys.Add(key)
-		} else if fromSame {
-			// From same always has string keys so we can cast it
-			keyStr := any(currentRuleSet.mapping).(string)
-			inFieldValue = inValue.FieldByName(keyStr)
-		} else {
-			// We know this isn't a map so the only option for a key is a string
-			keyStr := any(key).(string)
-			inFieldValue = inValue.FieldByName(keyStr)
+			subContext := rulecontext.WithPathString(ctx, toPath(key))
+			wg.Add(1)
+			go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, key, inFieldValue, s, counters, nil)
+
+		} else if fromMap {
+			// Dynamic keys only make sense if the source is a map.
+			for _, mapKeyValue := range inValue.MapKeys() {
+				key, ok := mapKeyValue.Interface().(TK)
+
+				if ok && currentRuleSet.key.Evaluate(ctx, key) == nil {
+					inFieldValue := v.keyValue(key, currentRuleSet, inValue, fromMap, fromSame)
+					subContext := rulecontext.WithPathString(ctx, toPath(key))
+					knownKeys.Add(key)
+					wg.Add(1)
+					go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, key, inFieldValue, s, counters, dynamicBuckets)
+				}
+			}
 		}
-
-		subContext := rulecontext.WithPathString(ctx, toPath(key))
-
-		wg.Add(1)
-		go currentRuleSet.evaluateKeyRule(subContext, out, &wg, &outValueMutex, errorsCh, inFieldValue, s, counters)
 	}
 
-	// Unknown fields are not concurrent for now
+	// Unknown fields are not concurrent for now so we need to wait for all rule evaluations to finish
 	ruleErrors := wait(ctx, &wg, errorsCh, true)
 
+	// Throw all applicable unknown keys into dynamic buckets.
+	// Keys in dynamic buckets should not trigger an unknown key error.
+	if len(dynamicBuckets) > 0 {
+		unk := knownKeys.Unknown(inValue)
+		for _, key := range unk {
+			for _, bucketRuleSet := range dynamicBuckets {
+				inFieldValue := v.keyValue(key, bucketRuleSet, inValue, fromMap, fromSame)
+
+				if bucketRuleSet.key.Evaluate(ctx, key) == nil && (bucketRuleSet.condition == nil || bucketRuleSet.condition.Evaluate(ctx, *out) == nil) {
+					knownKeys.Add(key)
+					s.SetBucket(bucketRuleSet.bucket, key, inFieldValue.Interface())
+				}
+			}
+		}
+	}
+
+	// Check for unknown values
 	if !v.allowUnknown {
+		// If allowUnknown is not set we want to error for each unknown value
 		knownKeyErrors := knownKeys.Check(ctx, inValue)
 		allErrors = append(allErrors, knownKeyErrors...)
 	} else if fromMap && s.Map() {
+		// If allowUnknown is set and the output is a map we want to assign each key to the map output.
 		for _, key := range knownKeys.Unknown(inValue) {
-			validKey := true
-
-			subContext := rulecontext.WithPathString(ctx, toPath(key))
-
-			if validKey {
-				val := inValue.MapIndex(reflect.ValueOf(key)).Interface()
-				validValue := true
-				var verr errors.ValidationErrorCollection
-
-				for i := range unknownValueRuleSets {
-					val, verr = unknownValueRuleSets[i].Run(subContext, val)
-					if len(verr) > 0 {
-						allErrors = append(allErrors, verr...)
-						validValue = false
-					}
-				}
-
-				if validValue {
-					s.Set(key, val)
-				}
-			}
+			s.Set(key, inValue.MapIndex(reflect.ValueOf(key)).Interface())
 		}
 	}
 
@@ -741,7 +842,12 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) String() string {
 			if ruleSet.condition != nil {
 				label = fmt.Sprintf("WithConditionalKey(\"%s\", %s, %s)", toPath(ruleSet.key), ruleSet.condition, ruleSet.rule)
 			} else {
-				label = fmt.Sprintf("WithKey(\"%s\", %s)", toPath(ruleSet.key), ruleSet.rule)
+				path := "<dynamic>"
+				if c, ok := ruleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+					path = toQuotedPath(c.Value())
+				}
+
+				label = fmt.Sprintf("WithKey(%s, %s)", path, ruleSet.rule)
 			}
 		} else if ruleSet.objRule != nil {
 			label = ruleSet.objRule.String()

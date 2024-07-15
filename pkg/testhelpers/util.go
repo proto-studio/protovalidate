@@ -41,7 +41,8 @@ func checkAlways(_, _ any) error {
 // Deprecated: MustBeValidFunc is deprecated and will be removed in v1.0.0. Use MustRunFunc instead.
 func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) error {
 	t.Helper()
-	return MustRunFunc(t, ruleSet, input, expectedOutput, fn)
+	_, err := MustRunFunc(t, ruleSet, input, expectedOutput, fn)
+	return err
 }
 
 // MustBeValid is a test helper that expects a RuleSet to return a specific value and nil error.
@@ -50,12 +51,13 @@ func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOu
 // Deprecated: MustBeValid is deprecated and will be removed in v1.0.0. Use MustRun instead.
 func MustBeValid(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any) error {
 	t.Helper()
-	return MustRunFunc(t, ruleSet, input, expectedOutput, checkEqual)
+	_, err := MustRunFunc(t, ruleSet, input, expectedOutput, checkEqual)
+	return err
 }
 
 // MustRunFunc is a test helper that expects a RuleSet to a nil error.
 // If the error is non-nil or the check function returns an error, this function prints the error and returns it.
-func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) error {
+func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) (any, error) {
 	t.Helper()
 
 	actualOutput, err := ruleSet.Run(context.TODO(), input)
@@ -68,31 +70,31 @@ func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput
 		}
 
 		t.Errorf(str)
-		return err
+		return actualOutput, err
 	} else if err := fn(expectedOutput, actualOutput); err != nil {
 		t.Error(err)
-		return err
+		return actualOutput, err
 	}
 
-	return nil
+	return actualOutput, nil
 }
 
 // MustRun is a test helper that expects a RuleSet to return the input value and nil error.
 // If the error is non-nil or the expected output does not match, this function prints the error and returns it.
-func MustRun(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
+func MustRun(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
 	t.Helper()
 	return MustRunFunc(t, ruleSet, input, input, checkEqual)
 }
 
 // MustRunAny is a test helper that expects a RuleSet to finish without an error.
-func MustRunAny(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
+func MustRunAny(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
 	t.Helper()
 	return MustRunFunc(t, ruleSet, input, input, checkAlways)
 }
 
 // MustRunMutation is a test helper that expects a RuleSet to return a specific value and nil error.
 // If the error is non-nil or the expected output does not match, this function prints the error and returns it.
-func MustRunMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output any) error {
+func MustRunMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output any) (any, error) {
 	t.Helper()
 	return MustRunFunc(t, ruleSet, input, output, checkEqual)
 }
@@ -109,6 +111,7 @@ func MustBeValidAny(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
 //
 // This function returns the error on "success" so that you can perform additional comparisons.
 func MustBeInvalid(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
+	t.Helper()
 	return MustNotRun(t, ruleSet, input, errorCode)
 }
 
