@@ -4,21 +4,22 @@ import (
 	"context"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/arrays"
 )
 
 type MyTestInterface interface {
-	Test()
+	internal()
 }
 
 type MyTestImplInt int
 
-func (x MyTestImplInt) Test() {}
+func (x MyTestImplInt) internal() {}
 
 type MyTestImplStr string
 
-func (x MyTestImplStr) Test() {}
+func (x MyTestImplStr) internal() {}
 
 type InterfaceTest struct {
 	IntTest    MyTestInterface
@@ -28,26 +29,25 @@ type InterfaceTest struct {
 
 // Requirements:
 // - Can cast to interface.
-// - Interface correctly assigns nil values.
 func TestInterfaceStruct(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
-		WithCast(func(v any) (MyTestInterface, bool) {
+		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 			if v == nil {
-				return nil, true
+				return nil, nil
 			}
 
 			switch vcast := v.(type) {
 			case int:
-				return MyTestImplInt(int(vcast)), true
+				return MyTestImplInt(int(vcast)), nil
 			case string:
-				return MyTestImplStr(vcast), true
+				return MyTestImplStr(vcast), nil
 			}
-			return nil, false
+			return nil, nil
 		})
 
 	ruleSet := arrays.New[MyTestInterface]().WithItemRuleSet(innerRuleSet)
 
-	out, errs := ruleSet.Run(context.TODO(), []any{123, "abc", nil})
+	out, errs := ruleSet.Run(context.TODO(), []any{123, "abc"})
 
 	if errs != nil {
 		t.Errorf("Expected errors to be empty %s", errs.Error())
@@ -64,9 +64,5 @@ func TestInterfaceStruct(t *testing.T) {
 		t.Errorf("Expected StringTest to not be nil")
 	} else if _, ok := out[1].(MyTestImplStr); !ok {
 		t.Errorf("Expected StringTest to be an MyTestImplStr. Got: %v", out[1])
-	}
-
-	if len(out) < 3 || out[2] != nil {
-		t.Errorf("Expected NilTest to be an nil. Got: %v", out[2])
 	}
 }

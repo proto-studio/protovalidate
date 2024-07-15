@@ -16,7 +16,7 @@ type InterfaceRuleSet[T any] struct {
 	rule     Rule[T]
 	parent   *InterfaceRuleSet[T]
 	label    string
-	cast     func(value any) (T, bool)
+	cast     func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)
 	empty    T // leave empty
 }
 
@@ -34,8 +34,11 @@ func Interface[T any]() *InterfaceRuleSet[T] {
 //
 // Cast functions are stacking, You may call this function as many times as you need in order
 // to cast from different type. Newly defined cast functions take priority. Execution will stop
-// at the first successful function.
-func (v *InterfaceRuleSet[T]) WithCast(fn func(value any) (T, bool)) *InterfaceRuleSet[T] {
+// at the first function to return a non-nil value or an error collection.
+//
+// A third boolean return value is added to differentiate between a successful cast to a nil value
+// and
+func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)) *InterfaceRuleSet[T] {
 	return &InterfaceRuleSet[T]{
 		required: v.required,
 		parent:   v,
@@ -65,6 +68,9 @@ func (v *InterfaceRuleSet[T]) WithRequired() *InterfaceRuleSet[T] {
 
 // Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
 // or a ValidationErrorCollection.
+//
+// This will attempt to cast the value directly to your interface and will call each of your cast functions
+// in order if it can't. See WithCast() for more information.
 func (ruleSet *InterfaceRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
 	if v, ok := value.(T); ok {
 		return v, ruleSet.Evaluate(ctx, v)
@@ -72,8 +78,12 @@ func (ruleSet *InterfaceRuleSet[T]) Run(ctx context.Context, value any) (T, erro
 
 	for curRuleSet := ruleSet; curRuleSet != nil; curRuleSet = curRuleSet.parent {
 		if curRuleSet.cast != nil {
-			if v, ok := curRuleSet.cast(value); ok {
-				return v, ruleSet.Evaluate(ctx, v)
+			if v, errs := curRuleSet.cast(ctx, value); any(v) != nil || errs != nil {
+				if errs != nil {
+					return v, errs
+				} else {
+					return v, ruleSet.Evaluate(ctx, v)
+				}
 			}
 		}
 	}

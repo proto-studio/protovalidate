@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -121,21 +122,21 @@ func TestInterfaceWithCast(t *testing.T) {
 
 	testhelpers.MustNotRun(t, ruleSet.Any(), 123, errors.CodeType)
 
-	ruleSet = ruleSet.WithCast(func(v any) (MyTestInterface, bool) {
+	ruleSet = ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if intval, ok := v.(int); ok {
-			return MyTestImplInt(intval), true
+			return MyTestImplInt(intval), nil
 		}
-		return nil, false
+		return nil, nil
 	})
 
 	testhelpers.MustRunMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
 	testhelpers.MustNotRun(t, ruleSet.Any(), "abc", errors.CodeType)
 
-	ruleSet = ruleSet.WithCast(func(v any) (MyTestInterface, bool) {
+	ruleSet = ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if strval, ok := v.(string); ok {
-			return MyTestImplStr(strval), true
+			return MyTestImplStr(strval), nil
 		}
-		return nil, false
+		return nil, nil
 	})
 
 	testhelpers.MustRunMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))

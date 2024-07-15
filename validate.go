@@ -40,7 +40,7 @@ func Constant[T comparable](value T) *rules.ConstantRuleSet[T] {
 
 // Interface returns a new rule set that can be used to validate a value that
 // implements the specific interface.
-func Interface[T comparable](value T) *rules.InterfaceRuleSet[T] {
+func Interface[T any]() *rules.InterfaceRuleSet[T] {
 	return rules.Interface[T]()
 }
 
@@ -136,6 +136,11 @@ func String() *strings.StringRuleSet {
 // Domain returns a new rule set that can be used to validate domain names.
 func Domain() *net.DomainRuleSet {
 	return net.NewDomain()
+}
+
+// URI returns a new rule set that can be used to validate URIs / URLs.
+func URI() *net.URIRuleSet {
+	return net.NewURI()
 }
 
 // Email returns a new rule set that can be used to validate domain names.
