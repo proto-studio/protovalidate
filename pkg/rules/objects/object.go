@@ -753,8 +753,10 @@ func (v *ObjectRuleSet[T, TK, TV]) Run(ctx context.Context, in any) (T, errors.V
 			)
 		}
 
-		inValue = reflect.ValueOf(result)
-		inKind = inValue.Kind()
+		if attempted {
+			inValue = reflect.ValueOf(result)
+			inKind = inValue.Kind()
+		}
 	}
 
 	fromMap := inKind == reflect.Map

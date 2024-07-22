@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"proto.zip/studio/validate"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
@@ -1591,4 +1592,33 @@ func TestDynamicKeyAsDependentConditional(t *testing.T) {
 
 	objects.NewObjectMap[any]().
 		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())
+}
+
+// Bug: Passing a non-string into a Rule Set that supports Json deserialization results in empty output.
+func TestJsonEmptyOutputBug(t *testing.T) {
+	jsonIn := `{"Name":"Abc"}`
+	mapIn := map[string]any{"Name": "Abc"}
+
+	type outStruct struct {
+		Name string
+	}
+
+	ruleSet := objects.New[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ctx := context.Background()
+
+	expected := "Abc"
+
+	jsonOut, errs := ruleSet.Run(ctx, jsonIn)
+	if errs != nil {
+		t.Errorf("Expected nil errors on Json input, got: %s", errs)
+	} else if jsonOut.Name != expected {
+		t.Errorf(`Expected "%s", got: "%s"`, expected, jsonOut.Name)
+	}
+
+	mapOut, errs := ruleSet.Run(ctx, mapIn)
+	if errs != nil {
+		t.Errorf("Expected nil errors on map input, got: %s", errs)
+	} else if mapOut.Name != expected {
+		t.Errorf(`Expected "%s", got: "%s"`, expected, mapOut.Name)
+	}
 }
