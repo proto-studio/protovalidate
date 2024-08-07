@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	stringsHelper "strings"
 	"sync/atomic"
@@ -1454,15 +1455,16 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 // Requirements:
 // - Keys are still added to dynamic buckets when they match a dynamic key rule.
 // - Keys are not added to output map.
+// - Keys have the correct data type.
 func TestDynamicKeyWithBucket(t *testing.T) {
 	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
 
 	ruleSet := objects.NewObjectMap[any]().
 		WithJson().
-		WithDynamicKey(keyRule, rules.Any()).
-		WithDynamicBucket(keyRule, "letters")
+		WithDynamicKey(keyRule, validate.Int().Any()).
+		WithDynamicBucket(keyRule, "numbers")
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc"}`)
+	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__123": "123"}`)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1470,19 +1472,26 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 			return
 		}
 
-		if _, ok := output["__abc"]; ok {
-			t.Errorf("expected __abc to be absent from output")
+		if _, ok := output["__123"]; ok {
+			t.Errorf("expected __123 to be absent from output")
 		}
 
-		if m, ok := output["letters"].(map[string]any); ok {
+		if m, ok := output["numbers"].(map[string]any); ok {
 			if len(m) != 1 {
-				t.Errorf(`expected "letters" to have 1 item, got %d`, len(m))
+				t.Errorf(`expected "numbers" to have 1 item, got %d`, len(m))
 			}
-			if v, ok := m["__abc"]; !ok || v.(string) != "abc" {
-				t.Errorf(`expected letters["__abc"] to be "abc", got %v`, v)
+			if _, ok := m["__123"]; !ok {
+				t.Errorf(`expected numbers["__123"] to be in the bucket`)
+			} else if v, ok := m["__123"].(int); !ok || v != 123 {
+				if ok {
+					t.Errorf(`expected numbers["__123"] to be 123, got %v`, v)
+				} else {
+					t.Errorf(`expected numbers["__123"] to be an int`)
+				}
 			}
+
 		} else {
-			t.Errorf(`expected "letters" to be map`)
+			t.Errorf(`expected "numbers" to be map`)
 		}
 	}
 }
@@ -1620,5 +1629,31 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 		t.Errorf("Expected nil errors on map input, got: %s", errs)
 	} else if mapOut.Name != expected {
 		t.Errorf(`Expected "%s", got: "%s"`, expected, mapOut.Name)
+	}
+}
+
+// Requirement:
+// - url.Values can be passed to object validator as input.
+//
+// This should always work because url.Values is simply a map[string] []string but this test
+// serves as an example and also to guard against regressions.
+func TestQueryString(t *testing.T) {
+	qs := "abc=123&xyz=789"
+	parsed, err := url.ParseQuery(qs)
+	if err != nil {
+		t.Fatalf("Expected parse error to be nil, got: %s", err)
+	}
+
+	itemRuleSet := validate.Array[int]().WithItemRuleSet(validate.Int()).WithMaxLen(1)
+
+	ruleSet := objects.NewObjectMap[[]int]().
+		WithKey("abc", itemRuleSet).
+		WithKey("xyz", itemRuleSet)
+
+	out, errs := ruleSet.Run(context.Background(), parsed)
+	if errs != nil {
+		t.Errorf("Expected nil errors on input, got: %s", errs)
+	} else if v, ok := out["abc"]; !ok || len(v) != 1 {
+		t.Errorf(`Expected "abc" to exist in output"`)
 	}
 }

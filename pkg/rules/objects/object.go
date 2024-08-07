@@ -495,7 +495,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 	bucketMatched := false
 	for _, bucketRuleSet := range dynamicBuckets {
 		if bucketRuleSet.key.Evaluate(ctx, key) == nil && (bucketRuleSet.condition == nil || bucketRuleSet.condition.Evaluate(ctx, *out) == nil) {
-			s.SetBucket(bucketRuleSet.bucket, key, inFieldValue.Interface())
+			s.SetBucket(bucketRuleSet.bucket, key, val)
 			bucketMatched = true
 		}
 	}
