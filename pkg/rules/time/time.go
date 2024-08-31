@@ -14,11 +14,12 @@ import (
 // TimeRuleSet implements the RuleSet interface for the time.Time struct.
 type TimeRuleSet struct {
 	rules.NoConflict[time.Time]
-	required bool
-	layouts  []string
-	parent   *TimeRuleSet
-	rule     rules.Rule[time.Time]
-	label    string
+	required     bool
+	layouts      []string
+	outputLayout string
+	parent       *TimeRuleSet
+	rule         rules.Rule[time.Time]
+	label        string
 }
 
 // backgroundTimeRuleSet is the base time rule set. Since rule sets are immutable.
@@ -40,9 +41,10 @@ func (ruleSet *TimeRuleSet) Required() bool {
 // Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	return &TimeRuleSet{
-		required: true,
-		parent:   ruleSet,
-		label:    "WithRequired()",
+		required:     true,
+		parent:       ruleSet,
+		outputLayout: ruleSet.outputLayout,
+		label:        "WithRequired()",
 	}
 }
 
@@ -58,66 +60,90 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 	layouts = append(layouts, rest...)
 
 	return &TimeRuleSet{
-		required: ruleSet.required,
-		layouts:  layouts,
-		parent:   ruleSet,
-		label:    util.StringsToRuleOutput("WithLayouts", layouts),
+		required:     ruleSet.required,
+		layouts:      layouts,
+		parent:       ruleSet,
+		outputLayout: ruleSet.outputLayout,
+		label:        util.StringsToRuleOutput("WithLayouts", layouts),
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a time.Time value or
-// a ValidationErrorCollection.
-//
-// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *TimeRuleSet) Validate(value any) (time.Time, errors.ValidationErrorCollection) {
-	return ruleSet.Run(context.Background(), value)
-}
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Ensure output is a non-nil pointer
+	outputVal := reflect.ValueOf(output)
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
 
-// Validate performs a validation of a RuleSet against a value and returns a time.Time value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-//
-// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *TimeRuleSet) ValidateWithContext(value any, ctx context.Context) (time.Time, errors.ValidationErrorCollection) {
-	return ruleSet.Run(ctx, value)
-
-}
-
-func (ruleSet *TimeRuleSet) Run(ctx context.Context, value any) (time.Time, errors.ValidationErrorCollection) {
 	var t time.Time
+	ok := false
 
-	switch x := value.(type) {
+	// Set the default layout
+	layout := time.RFC3339
+
+	// Handle different types of input
+	switch x := input.(type) {
 	case time.Time:
 		t = x
+		ok = true
 	case *time.Time:
-		t = *x
+		if x != nil {
+			t = *x
+			ok = true
+		}
 	case string:
-		ok := false
-
 		for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 			if currentRuleSet.layouts != nil {
-				for _, layout := range currentRuleSet.layouts {
-
+				for _, l := range currentRuleSet.layouts {
 					var err error
-					t, err = time.Parse(layout, x)
+					t, err = time.Parse(l, x)
 					if err == nil {
+						layout = l // Overwrite layout with the one used for parsing
 						ok = true
 						break
 					}
 				}
-				break
+				if ok {
+					break
+				}
 			}
 		}
-
 		if !ok {
-			return t, errors.Collection(errors.NewCoercionError(ctx, "date time", "string"))
+			return errors.Collection(errors.NewCoercionError(ctx, "date time", "string"))
 		}
 	default:
-		return t, errors.Collection(errors.NewCoercionError(ctx, "date time", reflect.ValueOf(value).Kind().String()))
+		return errors.Collection(errors.NewCoercionError(ctx, "date time", reflect.TypeOf(input).String()))
 	}
 
-	return t, ruleSet.Evaluate(ctx, t)
+	// Overwrite layout if outputLayout is set
+	if ruleSet.outputLayout != "" {
+		layout = ruleSet.outputLayout
+	}
+
+	// Handle setting the value in output
+	outputElem := outputVal.Elem()
+
+	// If output is assignable from time.Time, set it directly to the new time value
+	if outputElem.Kind() == reflect.Interface && outputElem.IsNil() {
+		outputElem.Set(reflect.ValueOf(t))
+	} else if outputElem.Type().AssignableTo(reflect.TypeOf(t)) {
+		outputElem.Set(reflect.ValueOf(t))
+	} else if outputElem.Type().AssignableTo(reflect.TypeOf("")) { // Check if output is assignable from string
+		// Use the determined layout to format time as a string
+		formattedTime := t.Format(layout)
+		outputElem.Set(reflect.ValueOf(formattedTime))
+	} else {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign %T to %T", t, outputElem.Interface(),
+		))
+	}
+
+	// Evaluate the time value and return any validation errors
+	return ruleSet.Evaluate(ctx, t)
 }
 
 // Evaluate performs a validation of a RuleSet against a time.Time value and returns a time.Time value of the
@@ -168,11 +194,12 @@ func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet 
 	}
 
 	return &TimeRuleSet{
-		rule:     ruleSet.rule,
-		layouts:  ruleSet.layouts,
-		parent:   newParent,
-		required: ruleSet.required,
-		label:    ruleSet.label,
+		rule:         ruleSet.rule,
+		layouts:      ruleSet.layouts,
+		outputLayout: ruleSet.outputLayout,
+		parent:       newParent,
+		required:     ruleSet.required,
+		label:        ruleSet.label,
 	}
 }
 

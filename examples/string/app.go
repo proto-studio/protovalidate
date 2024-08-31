@@ -24,7 +24,10 @@ func checkAll(w io.Writer, str ...string) {
 	}
 
 	for _, s := range str {
-		_, err := ruleSet.Run(context.TODO(), s)
+		var output string
+
+		// Use Apply instead of Run to validate the string
+		err := ruleSet.Apply(context.TODO(), s, &output)
 		if err == nil {
 			fmt.Fprintf(w, "'%s' is valid\n", s)
 		} else {

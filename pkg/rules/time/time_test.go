@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -17,18 +18,23 @@ import (
 func TestTimeRuleSet(t *testing.T) {
 	now := internalTime.Now()
 
-	tm, err := time.NewTime().Validate(now)
+	// Prepare an output variable for Apply
+	var output internalTime.Time
+
+	// Use Apply to validate the current time
+	err := time.NewTime().Apply(context.TODO(), now, &output)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
 		return
 	}
 
-	if tm != now {
+	if output != now {
 		t.Error("Expected test time to be returned")
 		return
 	}
 
+	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.NewTime())
 	if !ok {
 		t.Error("Expected rule set to be implemented")

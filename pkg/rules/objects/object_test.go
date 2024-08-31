@@ -57,7 +57,7 @@ func TestObjectRuleSet(t *testing.T) {
 		Validate(testMap())
 
 	if err != nil {
-		t.Error("Expected errors to be empty")
+		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
@@ -65,6 +65,103 @@ func TestObjectRuleSet(t *testing.T) {
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
+	}
+}
+
+func TestObjectOutput_Apply(t *testing.T) {
+	type outStruct struct {
+		Name string
+	}
+
+	ruleSet := objects.New[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ctx := context.Background()
+
+	input := `{"Name": "Test"}`
+	expected := "Test"
+
+	// Correct type
+	var out1 outStruct
+	err := ruleSet.Apply(ctx, input, &out1)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out1.Name != expected {
+		t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out1.Name)
+	}
+
+	// Non pointer
+	err = ruleSet.Apply(ctx, input, out1)
+	if err == nil || err.First().Code() != errors.CodeInternal {
+		t.Errorf("Expected error to not be internal")
+	}
+
+	// Any
+	var out3 any
+	err = ruleSet.Apply(ctx, input, &out3)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else {
+		out3struct, ok := out3.(outStruct)
+		if !ok {
+			t.Errorf(`Expected output to be outStruct, got %T`, out3)
+
+		} else if out3struct.Name != expected {
+			t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out3struct.Name)
+		}
+	}
+
+	// Pointer to incorrect type
+	var out4 int
+	err = ruleSet.Apply(ctx, input, out4)
+	if err == nil || err.First().Code() != errors.CodeInternal {
+		t.Errorf("Expected error to not be internal")
+	}
+}
+
+func TestObjectOutputPointer_Apply(t *testing.T) {
+	type outStruct struct {
+		Name string
+	}
+
+	ruleSet := objects.New[*outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ctx := context.Background()
+
+	input := `{"Name": "Test"}`
+	expected := "Test"
+
+	// Correct type
+	var out1 outStruct
+	err := ruleSet.Apply(ctx, input, &out1)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out1.Name != expected {
+		t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out1.Name)
+	}
+
+	// Non pointer
+	err = ruleSet.Apply(ctx, input, out1)
+	if err == nil || err.First().Code() != errors.CodeInternal {
+		t.Errorf("Expected error to not be internal")
+	}
+
+	// Any
+	var out3 any
+	err = ruleSet.Apply(ctx, input, &out3)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else {
+		out3struct, ok := out3.(*outStruct)
+		if !ok {
+			t.Errorf(`Expected output to be *outStruct, got %T`, out3)
+		} else if out3struct.Name != expected {
+			t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out3struct.Name)
+		}
+	}
+
+	// Pointer to incorrect type
+	var out4 int
+	err = ruleSet.Apply(ctx, input, out4)
+	if err == nil || err.First().Code() != errors.CodeInternal {
+		t.Errorf("Expected error to not be internal")
 	}
 }
 
@@ -1617,14 +1714,20 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 
 	expected := "Abc"
 
-	jsonOut, errs := ruleSet.Run(ctx, jsonIn)
+	// Prepare output variables for Apply
+	var jsonOut outStruct
+	var mapOut outStruct
+
+	// Apply with JSON input
+	errs := ruleSet.Apply(ctx, jsonIn, &jsonOut)
 	if errs != nil {
 		t.Errorf("Expected nil errors on Json input, got: %s", errs)
 	} else if jsonOut.Name != expected {
 		t.Errorf(`Expected "%s", got: "%s"`, expected, jsonOut.Name)
 	}
 
-	mapOut, errs := ruleSet.Run(ctx, mapIn)
+	// Apply with map input
+	errs = ruleSet.Apply(ctx, mapIn, &mapOut)
 	if errs != nil {
 		t.Errorf("Expected nil errors on map input, got: %s", errs)
 	} else if mapOut.Name != expected {
@@ -1637,7 +1740,7 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 //
 // This should always work because url.Values is simply a map[string] []string but this test
 // serves as an example and also to guard against regressions.
-func TestQueryString(t *testing.T) {
+func TestQueryStringInput(t *testing.T) {
 	qs := "abc=123&xyz=789"
 	parsed, err := url.ParseQuery(qs)
 	if err != nil {
@@ -1650,10 +1753,14 @@ func TestQueryString(t *testing.T) {
 		WithKey("abc", itemRuleSet).
 		WithKey("xyz", itemRuleSet)
 
-	out, errs := ruleSet.Run(context.Background(), parsed)
+	// Prepare the output variable for Apply
+	var out map[string][]int
+
+	// Use Apply instead of Run
+	errs := ruleSet.Apply(context.Background(), parsed, &out)
 	if errs != nil {
 		t.Errorf("Expected nil errors on input, got: %s", errs)
 	} else if v, ok := out["abc"]; !ok || len(v) != 1 {
-		t.Errorf(`Expected "abc" to exist in output"`)
+		t.Errorf(`Expected "abc" to exist in output and have length 1`)
 	}
 }

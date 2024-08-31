@@ -73,33 +73,24 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a value of the correct integer type or
-// a ValidationErrorCollection.
-//
-// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *FloatRuleSet[T]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return ruleSet.Run(context.Background(), value)
-}
-
-// ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by validation rules and error formatting.
-//
-// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *FloatRuleSet[T]) ValidateWithContext(value any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	return ruleSet.Run(ctx, value)
-}
-
-// Run performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-func (v *FloatRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
-	floatval, validationErr := v.coerceFloat(value, ctx)
-
-	if validationErr != nil {
-		return 0, errors.Collection(validationErr)
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Ensure output is a non-nil pointer
+	outputVal := reflect.ValueOf(output)
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
 	}
 
+	// Attempt to coerce the input value to the correct float type
+	floatval, validationErr := v.coerceFloat(input, ctx)
+	if validationErr != nil {
+		return errors.Collection(validationErr)
+	}
+
+	// Apply rounding if specified
 	if v.rounding != RoundingNone {
 		mul := math.Pow10(v.precision)
 		tempFloatval := float64(floatval) * mul
@@ -119,6 +110,27 @@ func (v *FloatRuleSet[T]) Run(ctx context.Context, value any) (T, errors.Validat
 		floatval = T(tempFloatval)
 	}
 
+	// Handle setting the value in output
+	outputElem := outputVal.Elem()
+
+	var assignable bool
+
+	// If output is a nil interface, or an assignable type, set it directly to the new float value
+	if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
+		(outputElem.Kind() == reflect.Float32 || outputElem.Kind() == reflect.Float64 ||
+			outputElem.Type().AssignableTo(reflect.TypeOf(floatval))) {
+
+		outputElem.Set(reflect.ValueOf(floatval))
+		assignable = true
+	}
+
+	// If the types are incompatible, return an error
+	if !assignable {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign %T to %T", floatval, outputElem.Interface(),
+		))
+	}
+
 	allErrors := errors.Collection()
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
@@ -130,19 +142,16 @@ func (v *FloatRuleSet[T]) Run(ctx context.Context, value any) (T, errors.Validat
 	}
 
 	if len(allErrors) != 0 {
-		return 0, allErrors
-	} else {
-		return floatval, nil
+		return allErrors
 	}
+	return nil
 }
 
 // Evaluate performs a validation of a RuleSet against a float value and returns a float value of the
 // same type or a ValidationErrorCollection.
 func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	// Because of the rounding it is easiest to call ValidateWithContext and ignore the return value.
-	// Skipping the rounding could cause both false positives and negatives in the validation rules.
-	_, errs := v.ValidateWithContext(value, ctx)
-	return errs
+	var out T
+	return v.Apply(ctx, value, &out)
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

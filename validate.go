@@ -156,18 +156,3 @@ func Email() *net.EmailRuleSet {
 func Time() *time.TimeRuleSet {
 	return time.NewTime()
 }
-
-// Time returns a new rule set that can be used to validate time objects.
-// This behaves identical to Time except that the value returned from validation
-// is a string representation of the time.
-//
-// It takes the desired output layout as an argument.
-// See: time.Format
-//
-// Input can be either a time.Time instance or a string.
-//
-// When accepting string it will default the same same format as the output. You can
-// call WithLayouts to override the default behavior.
-func TimeString(layout string) *time.TimeStringRuleSet {
-	return time.NewTimeString(layout)
-}

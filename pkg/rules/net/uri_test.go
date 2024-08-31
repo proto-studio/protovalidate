@@ -18,26 +18,30 @@ func uriPartRequiredMissingHelper(t testing.TB, name, value string, withRequired
 
 	ctx := rulecontext.WithPathString(context.Background(), "uri")
 
-	_, err := withRequired.Run(ctx, value)
+	// Prepare the output variable for Apply
+	var output string
+
+	// Use Apply for the shallow error check
+	err := withRequired.Apply(ctx, value, &output)
 
 	if err == nil {
 		t.Errorf("Expected shallow error to not be nil on %s", value)
 	} else if code := err.First().Code(); code != errors.CodeRequired {
-		t.Errorf("Expected shallow error code of %s got %s (%s)", errors.CodeRequired, code, err)
+		t.Errorf("Expected shallow error code of %s, got %s (%s)", errors.CodeRequired, code, err)
 	} else if path := err.First().Path(); path != "/uri" {
-		t.Errorf("Expected shallow error path of %s got %s (on %s)", "/uri/"+name, path, value)
+		t.Errorf("Expected shallow error path of %s, got %s (on %s)", "/uri/"+name, path, value)
 	}
 
-	_, err = withDeepErrors.Run(ctx, value)
+	// Use Apply for the deep error check
+	err = withDeepErrors.Apply(ctx, value, &output)
 
 	if err == nil {
 		t.Errorf("Expected deep error to not be nil on %s", value)
 	} else if code := err.First().Code(); code != errors.CodeRequired {
-		t.Errorf("Expected deep error code of %s got %s (%s on %s)", errors.CodeRequired, code, err, value)
+		t.Errorf("Expected deep error code of %s, got %s (%s on %s)", errors.CodeRequired, code, err, value)
 	} else if path := err.First().Path(); path != "/uri/"+name {
-		t.Errorf("Expected deep error path of %s got %s (on %s)", "/uri/"+name, path, value)
+		t.Errorf("Expected deep error path of %s, got %s (on %s)", "/uri/"+name, path, value)
 	}
-
 }
 
 // uriPartRequiredHelper takes in two rule set (required and not) and three values:
@@ -87,18 +91,23 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestURIRuleSet(t *testing.T) {
-	d, err := net.NewURI().Run(context.TODO(), "https://example.com")
+	// Prepare the output variable for Apply
+	var output string
+
+	// Use Apply instead of Run
+	err := net.NewURI().Apply(context.TODO(), "https://example.com", &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if d != "https://example.com" {
+	if output != "https://example.com" {
 		t.Error("Expected test URI to be returned")
 		return
 	}
 
+	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[string](net.NewURI())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
@@ -194,7 +203,8 @@ func TestURICustomContext(t *testing.T) {
 	testUserinfo := fmt.Sprintf("%s:%s", testUser, testPassword)
 	testAuthority := fmt.Sprintf("%s@%s:%s", testUserinfo, testHost, testPort)
 
-	_, err := ruleSet.Run(context.TODO(), fmt.Sprintf("%s://%s%s?%s#%s", testScheme, testAuthority, testPath, testQuery, testFragment))
+	var output string
+	err := ruleSet.Apply(context.TODO(), fmt.Sprintf("%s://%s%s?%s#%s", testScheme, testAuthority, testPath, testQuery, testFragment), &output)
 	if err != nil {
 		t.Fatalf("Expected error to not be nil, got: %s", err)
 	}
@@ -282,6 +292,8 @@ func TestURIDeepErrors(t *testing.T) {
 		"fragment": "https://example.com/#%",
 	}
 
+	var output string
+
 	ruleSet := net.NewURI()
 	ctx := rulecontext.WithPathString(context.Background(), "url")
 
@@ -290,7 +302,7 @@ func TestURIDeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		_, errs := ruleSet.Run(ctx, value)
+		errs := ruleSet.Apply(ctx, value, &output)
 
 		if len(errs) != 1 {
 			t.Errorf("Expected 1 error for %s, got: %d", path, len(errs))
@@ -311,7 +323,7 @@ func TestURIDeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		_, errs := ruleSet.Run(ctx, value)
+		errs := ruleSet.Apply(ctx, value, &output)
 
 		if len(errs) != 1 {
 			// We would have already printed this error
@@ -526,10 +538,11 @@ func TestURICustom(t *testing.T) {
 
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
-	_, err := net.NewURI().
+	var output string
+	err := net.NewURI().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
-		Run(context.TODO(), testVal)
+		Apply(context.TODO(), testVal, &output)
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
@@ -548,13 +561,14 @@ func TestURICustomConflict(t *testing.T) {
 
 	mockB := testhelpers.NewMockRule[string]()
 
-	_, err := net.NewURI().
+	var output string
+	err := net.NewURI().
 		WithRule(mockB).
 		WithRule(mockA).
 		WithRule(mockB).
 		WithRule(mockA).
 		WithRule(mockB).
-		Run(context.TODO(), testVal)
+		Apply(context.TODO(), testVal, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be nil, got: %s", err)

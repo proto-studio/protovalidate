@@ -67,14 +67,28 @@ func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 	}
 }
 
-// Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-func (ruleSet *ConstantRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
-	v, ok := value.(T)
+// Apply validates a RuleSet against an input value and assigns the validated value to output.
+// It returns a ValidationErrorCollection.
+func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Attempt to coerce input to type T.
+	v, ok := input.(T)
 	if !ok {
-		return ruleSet.empty, errors.Collection(errors.NewCoercionError(ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(value).String()))
+		// Return a coercion error if input is not of type T.
+		return errors.Collection(errors.NewCoercionError(ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String()))
 	}
-	return v, ruleSet.Evaluate(ctx, v)
+
+	// Ensure the output is assignable to the coerced value.
+	outVal := reflect.ValueOf(output)
+	if outVal.Kind() != reflect.Ptr || outVal.IsNil() || !reflect.ValueOf(v).Type().AssignableTo(outVal.Elem().Type()) {
+		// Return an error if the output is not assignable.
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output))
+	}
+
+	// Assign the validated value to the output.
+	outVal.Elem().Set(reflect.ValueOf(v))
+
+	// Evaluate the RuleSet and return any validation errors.
+	return ruleSet.Evaluate(ctx, v)
 }
 
 // Evaluate performs a validation of a RuleSet against a value and returns any errors.

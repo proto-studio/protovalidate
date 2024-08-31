@@ -2,6 +2,7 @@ package rules
 
 import (
 	"context"
+	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -63,7 +64,9 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 //
 // Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *AnyRuleSet) Validate(value any) (any, errors.ValidationErrorCollection) {
-	return v.Run(context.Background(), value)
+	var retval any
+	err := v.Apply(context.Background(), value, &retval)
+	return retval, err
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
@@ -73,13 +76,43 @@ func (v *AnyRuleSet) Validate(value any) (any, errors.ValidationErrorCollection)
 //
 // Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *AnyRuleSet) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
-	return v.Run(ctx, value)
+	var retval any
+	err := v.Apply(ctx, value, &retval)
+	return retval, err
 }
 
-// Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
+// Apply performs a validation of a RuleSet against a value and assigns the value to the output
 // or a ValidationErrorCollection.
-func (v *AnyRuleSet) Run(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
-	return value, v.Evaluate(ctx, value)
+func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+
+	err := v.Evaluate(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	// Ensure output is a pointer
+	rv := reflect.ValueOf(output)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.Collection(
+			errors.Errorf(errors.CodeInternal, ctx, "Output must be a non-nil pointer"),
+		)
+	}
+
+	// Get the element the pointer points to
+	elem := rv.Elem()
+
+	// Convert input to reflect.Value
+	inputValue := reflect.ValueOf(input)
+
+	// Check if the input can be assigned to the output
+	if inputValue.Type().AssignableTo(elem.Type()) {
+		elem.Set(inputValue)
+		return nil
+	}
+
+	return errors.Collection(
+		errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output),
+	)
 }
 
 // Evaluate performs a validation of a RuleSet against a value and returns a value of the same type

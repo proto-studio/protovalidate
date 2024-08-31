@@ -14,18 +14,23 @@ import (
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestEmailRuleSet(t *testing.T) {
-	d, err := net.NewEmail().Validate("hello@example.com")
+	// Prepare the output variable for Apply
+	var output string
+
+	// Use Apply instead of Validate
+	err := net.NewEmail().Apply(context.TODO(), "hello@example.com", &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if d != "hello@example.com" {
+	if output != "hello@example.com" {
 		t.Error("Expected test email to be returned")
 		return
 	}
 
+	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[string](net.NewEmail())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
@@ -74,9 +79,13 @@ func TestEmailRequired(t *testing.T) {
 func TestEmailCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
-	_, err := net.NewEmail().
+	// Prepare the output variable for Apply
+	var output string
+
+	// Apply with a mock rule that should trigger an error
+	err := net.NewEmail().
 		WithRuleFunc(mock.Function()).
-		Validate("name@example.com")
+		Apply(context.TODO(), "name@example.com", &output)
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -84,10 +93,11 @@ func TestEmailCustom(t *testing.T) {
 	}
 
 	if mock.CallCount() != 1 {
-		t.Errorf("Expected rule to be called 1 times, got %d", mock.CallCount())
+		t.Errorf("Expected rule to be called 1 time, got %d", mock.CallCount())
 		return
 	}
 
+	// Check the string representation of the rule set
 	str := net.NewEmail().WithRuleFunc(mock.Function()).String()
 	expected := "EmailRuleSet.WithRuleFunc(...)"
 	if str != expected {
@@ -96,9 +106,10 @@ func TestEmailCustom(t *testing.T) {
 
 	rule := testhelpers.NewMockRule[string]()
 
-	_, err = net.NewEmail().
+	// Apply with a mock rule that should pass without errors
+	err = net.NewEmail().
 		WithRuleFunc(rule.Function()).
-		Validate("name@example.com")
+		Apply(context.TODO(), "name@example.com", &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -114,7 +125,7 @@ func TestEmailCustom(t *testing.T) {
 // Requirements:
 // - Custom domain RuleSet overrides default set.
 func TestEmailWithDomain(t *testing.T) {
-	domainRuleSet := net.NewDomain().WithSuffix("edu").Any()
+	domainRuleSet := net.NewDomain().WithSuffix("edu")
 	ruleSet := net.NewEmail().WithDomain(domainRuleSet).Any()
 
 	testhelpers.MustRun(t, ruleSet, "hello@example.edu")
@@ -170,7 +181,11 @@ func TestEmailDomainContext(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "tests")
 	ctx = rulecontext.WithPathString(ctx, "email")
 
-	_, err := ruleSet.Run(ctx, "hello@example.bogusbogus")
+	// Prepare the output variable for Apply
+	var output string
+
+	// Use Apply instead of Run
+	err := ruleSet.Apply(ctx, "hello@example.bogusbogus", &output)
 
 	expected := "/tests/email"
 

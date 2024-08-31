@@ -59,42 +59,32 @@ func (v *ArrayRuleSet[T]) WithItemRuleSet(itemRules rules.RuleSet[T]) *ArrayRule
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns an array of the correct type or
-// a ValidationErrorCollection.
-//
-// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
-func (v *ArrayRuleSet[T]) Validate(value any) ([]T, errors.ValidationErrorCollection) {
-	return v.Run(context.Background(), value)
-}
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (v *ArrayRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Ensure output is a non-nil pointer
+	outputVal := reflect.ValueOf(output)
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
 
-// ValidateWithContext performs a validation of a RuleSet against a value and returns an array of the correct type or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-//
-// Deprecated: ValidateContext is deprecated and will be removed in v1.0.0. Use Run instead.
-func (v *ArrayRuleSet[T]) ValidateWithContext(value any, ctx context.Context) ([]T, errors.ValidationErrorCollection) {
-	return v.Run(ctx, value)
-}
-
-// Run performs a validation of a RuleSet against a value and returns an array of the correct type or
-// a ValidationErrorCollection.
-func (v *ArrayRuleSet[T]) Run(ctx context.Context, value any) ([]T, errors.ValidationErrorCollection) {
-	valueOf := reflect.ValueOf(value)
+	valueOf := reflect.ValueOf(input)
 	typeOf := valueOf.Type()
 	kind := typeOf.Kind()
 
 	if kind != reflect.Slice && kind != reflect.Array {
-		return nil, errors.Collection(errors.NewCoercionError(ctx, "array", kind.String()))
+		return errors.Collection(errors.NewCoercionError(ctx, "array", kind.String()))
 	}
 
 	l := valueOf.Len()
 
-	output := make([]T, l)
+	outputSlice := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf((*T)(nil)).Elem()), l, l)
 
 	var allErrors = errors.Collection()
 
-	// Check for a RuleSet first
+	// Check for an item RuleSet
 	var itemRuleSet rules.RuleSet[T]
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
@@ -106,55 +96,71 @@ func (v *ArrayRuleSet[T]) Run(ctx context.Context, value any) ([]T, errors.Valid
 
 	// Default to a plain type cast if the rule set is nil
 	if itemRuleSet == nil {
-		var ok bool
 		expected := ""
 
 		for i := 0; i < l; i++ {
-			output[i], ok = valueOf.Index(i).Interface().(T)
-			if !ok {
+			item := valueOf.Index(i).Interface()
+			castItem, castOk := item.(T)
+			outputSlice.Index(i).Set(reflect.ValueOf(castItem))
+			if !castOk {
 				subContext := rulecontext.WithPathString(ctx, strconv.Itoa(i))
 				if expected == "" {
-					expected = reflect.TypeOf(new(T)).Name()
+					expected = reflect.TypeOf(new(T)).Elem().Name()
 				}
 				actual := valueOf.Index(i).Kind().String()
 				allErrors = append(allErrors, errors.NewCoercionError(subContext, expected, actual))
 			}
 		}
 	} else {
-		var itemErrors errors.ValidationErrorCollection
 		for i := 0; i < l; i++ {
 			subContext := rulecontext.WithPathIndex(ctx, i)
-			output[i], itemErrors = itemRuleSet.Run(subContext, valueOf.Index(i).Interface())
-			if itemErrors != nil {
-				allErrors = append(allErrors, itemErrors...)
+			item := valueOf.Index(i).Interface()
+
+			// Prepare the output location for the item
+			var itemOutput T
+			itemErr := itemRuleSet.Apply(subContext, item, &itemOutput)
+			outputSlice.Index(i).Set(reflect.ValueOf(itemOutput))
+
+			if itemErr != nil {
+				allErrors = append(allErrors, itemErr...)
 			}
 		}
 	}
 
-	// Next apply array level rules
-	// This must be done after the item rules because we want to make sure all values are cast first.
+	// Apply array-level rules after all items are validated and cast
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			if err := currentRuleSet.rule.Evaluate(ctx, output); err != nil {
+			if err := currentRuleSet.rule.Evaluate(ctx, outputSlice.Interface().([]T)); err != nil {
 				allErrors = append(allErrors, err...)
 			}
 		}
 	}
 
-	if len(allErrors) != 0 {
-		return output, allErrors
+	// Assign the result to the output
+	outputElem := outputVal.Elem()
+	if outputElem.Kind() == reflect.Interface && outputElem.IsNil() {
+		outputElem.Set(outputSlice)
+	} else if outputSlice.Type().AssignableTo(outputElem.Type()) {
+		outputElem.Set(outputSlice)
 	} else {
-		return output, nil
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign %T to %T", outputSlice.Interface(), outputElem.Interface(),
+		))
 	}
+
+	// Return any accumulated errors
+	if len(allErrors) != 0 {
+		return allErrors
+	}
+
+	return nil
 }
 
 // Evaluate performs a validation of a RuleSet against a the array/slice type and returns a value of the
 // same type or a ValidationErrorCollection.
 func (ruleSet *ArrayRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
-	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us.
-	// We ignore the return value in this case.
-	_, errs := ruleSet.ValidateWithContext(value, ctx)
-	return errs
+	var out any
+	return ruleSet.Apply(ctx, value, &out)
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

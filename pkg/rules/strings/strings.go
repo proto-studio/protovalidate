@@ -3,6 +3,7 @@ package strings
 
 import (
 	"context"
+	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -62,7 +63,9 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 //
 // Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return v.Run(context.Background(), value)
+	var out string
+	err := v.Apply(context.Background(), value, &out)
+	return out, err
 }
 
 // Validate performs a validation of a RuleSet against a value and returns a string value or
@@ -72,19 +75,59 @@ func (v *StringRuleSet) Validate(value any) (string, errors.ValidationErrorColle
 //
 // Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
 func (v *StringRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
-	return v.Run(ctx, value)
+	var out string
+	err := v.Apply(ctx, value, &out)
+	return out, err
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
+// Apply performs a validation of a RuleSet against a value and assigns the resulting string to the output pointer
 // a ValidationErrorCollection.
-func (v *StringRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
+func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationErrorCollection {
+	// Ensure output is a pointer that can be set
+	rv := reflect.ValueOf(output)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.Collection(
+			errors.Errorf(errors.CodeInternal, ctx, "Output must be a non-nil pointer"),
+		)
+	}
+
+	// Attempt to coerce the input to a string
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {
-		return "", errors.Collection(validationErr)
+		return errors.Collection(validationErr)
 	}
 
-	return str, v.Evaluate(ctx, str)
+	verrs := v.Evaluate(ctx, str)
+	if verrs != nil {
+		return verrs
+	}
+
+	// Set the string result in the output parameter
+	elem := rv.Elem()
+
+	// Check if the interface is nil or not holding a value
+	if elem.Kind() == reflect.Interface && elem.IsNil() {
+		// Create a new string value and set the interface to point to it
+		elem.Set(reflect.ValueOf(str))
+		return nil
+	}
+
+	// If the element is still an interface, replace its entire value with the new string
+	if elem.Kind() == reflect.Interface {
+		elem.Set(reflect.ValueOf(str))
+		return nil
+	}
+
+	// If the element is a string, replace it with the new string value
+	if elem.Kind() == reflect.String {
+		elem.SetString(str)
+		return nil
+	}
+
+	return errors.Collection(
+		errors.Errorf(errors.CodeInternal, ctx, "Cannot assign string to %T", output),
+	)
 }
 
 // Evaluate performs a validation of a RuleSet against a string value and returns a string value or

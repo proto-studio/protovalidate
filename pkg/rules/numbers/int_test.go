@@ -1,6 +1,7 @@
 package numbers_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/rules"
@@ -9,7 +10,8 @@ import (
 )
 
 func TestIntRuleSet(t *testing.T) {
-	intval, err := numbers.NewInt().Validate(123)
+	var intval int
+	err := numbers.NewInt().Apply(context.Background(), 123, &intval)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -29,7 +31,8 @@ func TestIntRuleSet(t *testing.T) {
 }
 
 func TestIntStrictError(t *testing.T) {
-	_, err := numbers.NewInt().WithStrict().Validate("123")
+	var out int
+	err := numbers.NewInt().WithStrict().Apply(context.Background(), "123", &out)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -38,7 +41,8 @@ func TestIntStrictError(t *testing.T) {
 }
 
 func tryIntCoercion(t *testing.T, val interface{}, expected int) {
-	actual, err := numbers.NewInt().Validate(val)
+	var actual int
+	err := numbers.NewInt().Apply(context.Background(), val, &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -64,7 +68,8 @@ func TestIntCoercionFromInt64(t *testing.T) {
 
 func TestIntCoercionFromHex(t *testing.T) {
 	expected := 0xBEEF
-	actual, err := numbers.NewInt().WithBase(16).Validate("BeEf")
+	var actual int
+	err := numbers.NewInt().WithBase(16).Apply(context.Background(), "BeEf", &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -76,7 +81,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 		return
 	}
 
-	_, err = numbers.NewInt().WithBase(16).Validate("XYZ")
+	err = numbers.NewInt().WithBase(16).Apply(context.Background(), "XYZ", &actual)
 
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -85,7 +90,8 @@ func TestIntCoercionFromHex(t *testing.T) {
 }
 
 func TestIntCoercionFromFloatWithError(t *testing.T) {
-	_, err := numbers.NewInt().Validate(1.000001)
+	var out int
+	err := numbers.NewInt().Apply(context.Background(), 1.000001, &out)
 
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -108,9 +114,10 @@ func TestIntRequired(t *testing.T) {
 }
 
 func TestIntCustom(t *testing.T) {
-	_, err := numbers.NewInt().
+	var out int
+	err := numbers.NewInt().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[int](1).Function()).
-		Validate("123")
+		Apply(context.Background(), "123", &out)
 
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -118,9 +125,9 @@ func TestIntCustom(t *testing.T) {
 	}
 
 	rule := testhelpers.NewMockRule[int]()
-	_, err = numbers.NewInt().
+	err = numbers.NewInt().
 		WithRuleFunc(rule.Function()).
-		Validate(123)
+		Apply(context.Background(), 123, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")

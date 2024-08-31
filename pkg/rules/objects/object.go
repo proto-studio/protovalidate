@@ -483,7 +483,8 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 		return
 	}
 
-	val, errs := ruleSet.rule.Run(ctx, inFieldValue.Interface())
+	var val TV
+	errs := ruleSet.rule.Apply(ctx, inFieldValue.Interface(), &val)
 	if errs != nil {
 		errorsCh <- errs
 		return
@@ -636,9 +637,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 }
 
 // evaluateObjectRules evaluates the object rules.
-func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out *T) (T, errors.ValidationErrorCollection) {
-	final := *out
-
+func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out *T) errors.ValidationErrorCollection {
 	var wg sync.WaitGroup
 	var outValueMutex sync.Mutex
 	errorsCh := make(chan errors.ValidationErrorCollection)
@@ -668,7 +667,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out 
 		}
 	}
 
-	return final, wait(ctx, &wg, errorsCh, !done(ctx))
+	return wait(ctx, &wg, errorsCh, !done(ctx))
 }
 
 // newSetter creates a new setter for the rule set
@@ -688,7 +687,11 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 // Validate performs a validation of a RuleSet against a value and returns a value of the correct type or
 // a ValidationErrorCollection.
 func (v *ObjectRuleSet[T, TK, TV]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	return v.Run(context.Background(), value)
+	// Initialize an output variable of type T
+	var output T
+	// Use Apply instead of Run
+	err := v.Apply(context.Background(), value, &output)
+	return output, err
 }
 
 // ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
@@ -696,37 +699,117 @@ func (v *ObjectRuleSet[T, TK, TV]) Validate(value any) (T, errors.ValidationErro
 //
 // Also, takes a Context which can be used by validation rules and error formatting.
 func (v *ObjectRuleSet[T, TK, TV]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	return v.Run(ctx, in)
+	// Initialize an output variable of type T
+	var output T
+	// Use Apply instead of Run
+	err := v.Apply(ctx, in, &output)
+	return output, err
 }
 
-// Run performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-func (v *ObjectRuleSet[T, TK, TV]) Run(ctx context.Context, in any) (T, errors.ValidationErrorCollection) {
-	var out T
-
-	if v.outputType.Kind() == reflect.Map {
-		out = reflect.MakeMap(v.outputType).Interface().(T)
-	} else if v.ptr {
-		out = reflect.New(v.outputType).Interface().(T)
-	} else {
-		out = reflect.New(v.outputType).Elem().Interface().(T)
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
+	// Ensure output is a non-nil pointer
+	rv := reflect.ValueOf(output)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
 	}
 
-	// We can't use reflect.Set on a non-pointer struct so if the output is not a pointer
-	// we want to make a pointer to work with.
+	// If this is true we need to assign the output at the end of the Apply since we can't assign it directly initially.
+	assignLater := false
+
+	var out *T
+
+	// If output is the correct type, we use the pointer, otherwise we check if it can be assigned
+	// so we can assign it later. We need an pointer to the correct output type regardless of the actual type of "output"
+	// since the rules are strongly typed.
+
+	elem := rv.Elem()
+
+	if elem.Type() == v.outputType {
+		// The output directly points to the type.
+
+		if rv.IsNil() {
+			out = new(T)
+			elem.Set(reflect.ValueOf(out))
+		} else if v.outputType.Kind() == reflect.Map && elem.IsNil() {
+			elem.Set(reflect.MakeMap(v.outputType))
+			out = output.(*T)
+		} else if v.ptr {
+			x := output.(T)
+			out = &x
+		} else {
+			out = output.(*T)
+		}
+
+	} else if v.ptr && elem.Type() == reflect.PointerTo(v.outputType) {
+		// Double pointer.
+		// The type is a pointer and the output points to the pointer to the same type.
+		// This can happen when using generics and the caller is not aware that the type if a pointer already.
+
+		if rv.IsNil() {
+			out = new(T)
+		} else {
+			out = output.(*T)
+		}
+
+		indirectOutValue := reflect.Indirect(reflect.ValueOf(out))
+		if indirectOutValue.IsNil() {
+			// The pointer points to a pointer with a nil value so we need to initialize that too.
+			indirectOutValue.Set(reflect.New(v.outputType))
+			elem.Set(reflect.ValueOf(*out))
+		}
+
+	} else if elem.Kind() == reflect.Interface {
+		// We're pointing to a nil interface{}
+		// We can't set up the pointer now so we'll need to deal with it later
+		if !reflect.ValueOf(out).Type().AssignableTo(elem.Type()) {
+			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", out, output))
+		}
+
+		assignLater = true
+
+		if elem.IsNil() {
+			out = new(T)
+			elem.Set(reflect.ValueOf(out))
+		} else if reflect.ValueOf(elem).Type().AssignableTo(reflect.ValueOf(out).Type()) {
+			reflect.ValueOf(out).Set(elem)
+		}
+
+		outElem := reflect.ValueOf(out).Elem()
+		if (outElem.Kind() == reflect.Pointer || outElem.Kind() == reflect.Map) && outElem.IsNil() {
+			if v.outputType.Kind() == reflect.Map {
+				newMap := reflect.MakeMap(v.outputType)
+				elem.Set(newMap)
+				reflect.ValueOf(out).Elem().Set(newMap)
+			} else {
+				newElem := reflect.New(v.outputType)
+				elem.Set(newElem)
+				reflect.ValueOf(out).Elem().Set(newElem)
+			}
+		}
+
+	} else {
+		// Output type is not compatible
+
+		panic("Not handling this yet")
+	}
+
 	var outValue reflect.Value
 	if v.ptr {
-		outValue = reflect.Indirect(reflect.ValueOf(out))
+		outValue = reflect.Indirect(reflect.ValueOf(*out))
 	} else {
-		outValue = reflect.Indirect(reflect.ValueOf(&out))
+		outValue = reflect.Indirect(reflect.ValueOf(out))
 	}
 
 	s := v.newSetter(outValue)
 
-	inValue := reflect.Indirect(reflect.ValueOf(in))
+	inValue := reflect.Indirect(reflect.ValueOf(value))
 	inKind := inValue.Kind()
 
-	// Convert strings to Json
+	// Convert strings to JSON if necessary
 	if v.json {
 		var result map[string]interface{}
 		coerced := false
@@ -737,19 +820,16 @@ func (v *ObjectRuleSet[T, TK, TV]) Run(ctx context.Context, in any) (T, errors.V
 			if err := json.Unmarshal([]byte(inValue.String()), &result); err == nil {
 				coerced = true
 			}
-
 		} else if inKind == reflect.Slice && inValue.Type().Elem().Kind() == reflect.Uint8 {
 			attempted = true
-
-			// Note: this also matches types that have []byte as their underlying type, such as json.RawMessage
 			if err := json.Unmarshal(inValue.Bytes(), &result); err == nil {
 				coerced = true
 			}
 		}
 
 		if !coerced && attempted {
-			return out, errors.Collection(
-				errors.NewCoercionError(ctx, "object, map, or Json string", inKind.String()),
+			return errors.Collection(
+				errors.NewCoercionError(ctx, "object, map, or JSON string", inKind.String()),
 			)
 		}
 
@@ -763,24 +843,30 @@ func (v *ObjectRuleSet[T, TK, TV]) Run(ctx context.Context, in any) (T, errors.V
 	fromSame := !fromMap && inValue.Type() == v.outputType
 
 	if !fromMap && inKind != reflect.Struct {
-		return out, errors.Collection(
+		return errors.Collection(
 			errors.NewCoercionError(ctx, "object or map", inKind.String()),
 		)
 	}
 
 	allErrors := errors.Collection()
 
-	keyErrs := v.evaluateKeyRules(ctx, &out, inValue, s, fromMap, fromSame)
+	// Evaluate key rules
+	keyErrs := v.evaluateKeyRules(ctx, out, inValue, s, fromMap, fromSame)
 	allErrors = append(allErrors, keyErrs...)
 
-	// This must be done after the key rules because we want to make sure all values are cast first.
-	out, valErrs := v.evaluateObjectRules(ctx, &out)
+	// Evaluate object rules
+	valErrs := v.evaluateObjectRules(ctx, out)
 	allErrors = append(allErrors, valErrs...)
 
-	if len(allErrors) != 0 {
-		return out, allErrors
+	if len(allErrors) > 0 {
+		return allErrors
 	}
-	return out, nil
+
+	if assignLater {
+		elem.Set(reflect.ValueOf(out).Elem())
+	}
+
+	return nil
 }
 
 // Evaluate performs a validation of a RuleSet against a value of the object type and returns an object value of the

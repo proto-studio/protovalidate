@@ -55,18 +55,20 @@ func MustBeValid(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput
 	return err
 }
 
-// MustRunFunc is a test helper that expects a RuleSet to a nil error.
+// MustRunFunc is a test helper that expects a RuleSet to return a nil error.
 // If the error is non-nil or the check function returns an error, this function prints the error and returns it.
 func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) (any, error) {
 	t.Helper()
 
-	actualOutput, err := ruleSet.Run(context.TODO(), input)
+	// Initialize the actual output variable
+	var actualOutput any
+	err := ruleSet.Apply(context.TODO(), input, &actualOutput)
 
 	if err != nil {
 		str := "Expected error to be nil"
 
 		for _, inner := range err {
-			str = "\n  " + fmt.Sprintf("%s at %s", inner, inner.Path())
+			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
 		}
 
 		t.Errorf(str)
@@ -122,13 +124,14 @@ func MustBeInvalid(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCod
 func MustNotRun(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
 	t.Helper()
 
-	_, err := ruleSet.Run(context.TODO(), input)
+	var output any
+	err := ruleSet.Apply(context.TODO(), input, &output)
 
 	if err == nil {
 		t.Error("Expected error to not be nil")
 		return nil
 	} else if err.First().Code() != errorCode {
-		t.Errorf("Expected error code of %s got %s (%s)", errorCode, err.First().Code(), err)
+		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.First().Code(), err)
 		return nil
 	}
 

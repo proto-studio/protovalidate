@@ -1,6 +1,7 @@
 package numbers_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -32,23 +33,36 @@ func TestWithMinFloat(t *testing.T) {
 func TestIntMinConflict(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMin(3).WithMax(10)
 
-	if _, err := ruleSet.Validate(2); err == nil {
+	var output int
+
+	// Test validation with a value below the min (should return an error)
+	err := ruleSet.Apply(context.TODO(), 2, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(3); err != nil {
+
+	// Test validation with a value at the min (should not return an error)
+	err = ruleSet.Apply(context.TODO(), 3, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different min and test again
 	ruleSet2 := ruleSet.WithMin(2)
-	if _, err := ruleSet2.Validate(2); err != nil {
+
+	// Test validation with a value at the new min (should not return an error)
+	err = ruleSet2.Apply(context.TODO(), 2, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set is not mutated
 	expected := "IntRuleSet[int].WithMin(3).WithMax(10)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set has the updated min
 	expected = "IntRuleSet[int].WithMax(10).WithMin(2)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -63,23 +77,36 @@ func TestIntMinConflict(t *testing.T) {
 func TestFloatMinConflict(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMin(3.0).WithMax(10.0)
 
-	if _, err := ruleSet.Validate(2.0); err == nil {
+	var output float64
+
+	// Test validation with a value below the min (should return an error)
+	err := ruleSet.Apply(context.TODO(), 2.0, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(3.0); err != nil {
+
+	// Test validation with a value at the min (should not return an error)
+	err = ruleSet.Apply(context.TODO(), 3.0, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different min and test again
 	ruleSet2 := ruleSet.WithMin(2.0)
-	if _, err := ruleSet2.Validate(2.0); err != nil {
+
+	// Test validation with a value at the new min (should not return an error)
+	err = ruleSet2.Apply(context.TODO(), 2.0, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set is not mutated
 	expected := "FloatRuleSet[float64].WithMin(3.000000).WithMax(10.000000)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set has the updated min
 	expected = "FloatRuleSet[float64].WithMax(10.000000).WithMin(2.000000)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

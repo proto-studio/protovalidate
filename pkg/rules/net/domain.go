@@ -49,35 +49,48 @@ func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *DomainRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.Run(context.Background(), value)
-}
-
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-//
-// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
-func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
-	return ruleSet.Run(ctx, value)
-}
-
-// Run performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-func (ruleSet *DomainRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
-
-	valueStr, ok := value.(string)
-
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Attempt to cast the input to a string
+	valueStr, ok := input.(string)
 	if !ok {
-		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
+		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
 	}
 
-	return valueStr, ruleSet.Evaluate(ctx, valueStr)
+	// Perform the validation
+	if err := ruleSet.Evaluate(ctx, valueStr); err != nil {
+		return err
+	}
+
+	outputVal := reflect.ValueOf(output)
+
+	// Check if the output is a non-nil pointer
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
+
+	// Dereference the pointer to get the actual value that needs to be set
+	outputElem := outputVal.Elem()
+
+	switch outputElem.Kind() {
+	case reflect.String:
+		outputElem.SetString(valueStr)
+	case reflect.Interface:
+		if !outputElem.IsNil() {
+			outputElem.Set(reflect.ValueOf(valueStr))
+		} else {
+			outputElem.Set(reflect.ValueOf(valueStr))
+		}
+	default:
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+		))
+	}
+
+	return nil
 }
 
 // validateBasicDomain performs general domain validation that is valid for any and all domains.

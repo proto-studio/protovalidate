@@ -31,13 +31,17 @@ func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
 	ruleSet := numbers.NewFloat64()
 
-	out, err := ruleSet.Any().Run(context.TODO(), float32(expected))
+	var output float64
+
+	// Apply the rule set with the input value and check for errors
+	err := ruleSet.Any().Apply(context.TODO(), float32(expected), &output)
 	if err != nil {
 		t.Errorf("Expected err to be nil, got: %s", err)
-	} else if delta := math.Abs(out.(float64) - expected); delta > 10e-5 {
-		t.Errorf("Expected result to be within tolerance got: %f (%f - %f)", delta, expected, out)
+	} else if delta := math.Abs(output - expected); delta > 10e-5 {
+		t.Errorf("Expected result to be within tolerance, got: %f (%f - %f)", delta, expected, output)
 	}
 
+	// Use the MustRunMutation helper to validate the mutation
 	testhelpers.MustRunMutation(t, ruleSet.Any(), float64(expected), expected)
 }
 

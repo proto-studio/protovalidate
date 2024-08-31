@@ -1,6 +1,7 @@
 package numbers_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/rules"
@@ -9,7 +10,8 @@ import (
 )
 
 func TestFloatRuleSet(t *testing.T) {
-	floatval, err := numbers.NewFloat64().Validate(123.0)
+	var floatval float64
+	err := numbers.NewFloat64().Apply(context.Background(), 123.0, &floatval)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -29,7 +31,8 @@ func TestFloatRuleSet(t *testing.T) {
 }
 
 func TestFloatStrictError(t *testing.T) {
-	_, err := numbers.NewFloat64().WithStrict().Validate("123.0")
+	var out float64
+	err := numbers.NewFloat64().WithStrict().Apply(context.Background(), "123.0", &out)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -38,7 +41,8 @@ func TestFloatStrictError(t *testing.T) {
 }
 
 func tryFloatCoercion(t *testing.T, val interface{}, expected float64) {
-	actual, err := numbers.NewFloat64().Validate(val)
+	var actual float64
+	err := numbers.NewFloat64().Apply(context.Background(), "123.0", &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -77,9 +81,10 @@ func TestFloatRequired(t *testing.T) {
 }
 
 func TestFloatCustom(t *testing.T) {
-	_, err := numbers.NewFloat64().
+	var out float64
+	err := numbers.NewFloat64().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
-		Validate("123.0")
+		Apply(context.Background(), "123.0", &out)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -88,9 +93,9 @@ func TestFloatCustom(t *testing.T) {
 
 	rule := testhelpers.NewMockRule[float64]()
 
-	_, err = numbers.NewFloat64().
+	err = numbers.NewFloat64().
 		WithRuleFunc(rule.Function()).
-		Validate(123.0)
+		Apply(context.Background(), 123.0, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")

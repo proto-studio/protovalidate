@@ -1,6 +1,7 @@
 package numbers_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -32,23 +33,36 @@ func TestWithMaxFloat(t *testing.T) {
 func TestIntMaxConflict(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMax(10).WithMin(3)
 
-	if _, err := ruleSet.Validate(15); err == nil {
+	var output int
+
+	// Test validation with a value that exceeds the max (should return an error)
+	err := ruleSet.Apply(context.TODO(), 15, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(5); err != nil {
+
+	// Test validation with a value within the range (should not return an error)
+	err = ruleSet.Apply(context.TODO(), 5, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different max and test again
 	ruleSet2 := ruleSet.WithMax(20)
-	if _, err := ruleSet2.Validate(15); err != nil {
+
+	// Test validation with a value that is within the new max (should not return an error)
+	err = ruleSet2.Apply(context.TODO(), 15, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set is not mutated
 	expected := "IntRuleSet[int].WithMax(10).WithMin(3)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set has the updated max
 	expected = "IntRuleSet[int].WithMin(3).WithMax(20)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -63,23 +77,36 @@ func TestIntMaxConflict(t *testing.T) {
 func TestFloatMaxConflict(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMax(10.0).WithMin(3.0)
 
-	if _, err := ruleSet.Validate(15.0); err == nil {
+	var output float64
+
+	// Test validation with a value that exceeds the max (should return an error)
+	err := ruleSet.Apply(context.TODO(), 15.0, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(5.0); err != nil {
+
+	// Test validation with a value within the range (should not return an error)
+	err = ruleSet.Apply(context.TODO(), 5.0, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different max and test again
 	ruleSet2 := ruleSet.WithMax(20.0)
-	if _, err := ruleSet2.Validate(15.0); err != nil {
+
+	// Test validation with a value that is within the new max (should not return an error)
+	err = ruleSet2.Apply(context.TODO(), 15.0, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set is not mutated
 	expected := "FloatRuleSet[float64].WithMax(10.000000).WithMin(3.000000)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set has the updated max
 	expected = "FloatRuleSet[float64].WithMin(3.000000).WithMax(20.000000)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

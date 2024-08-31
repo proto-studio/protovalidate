@@ -1,6 +1,7 @@
 package net_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -13,18 +14,23 @@ import (
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestDomainRuleSet(t *testing.T) {
-	d, err := net.NewDomain().Validate("example.com")
+	// Prepare the output variable for Apply
+	var output string
+
+	// Apply with a valid domain string
+	err := net.NewDomain().Apply(context.TODO(), "example.com", &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if d != "example.com" {
+	if output != "example.com" {
 		t.Error("Expected test domain to be returned")
 		return
 	}
 
+	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[string](net.NewDomain())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
@@ -95,9 +101,13 @@ func TestDomainRequired(t *testing.T) {
 func TestDomainCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
-	_, err := net.NewDomain().
+	// Prepare the output variable for Apply
+	var output string
+
+	// Apply with a mock rule that should trigger an error
+	err := net.NewDomain().
 		WithRuleFunc(mock.Function()).
-		Validate("example.com")
+		Apply(context.TODO(), "example.com", &output)
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -105,15 +115,16 @@ func TestDomainCustom(t *testing.T) {
 	}
 
 	if mock.CallCount() != 1 {
-		t.Errorf("Expected rule to be called 1 times, got %d", mock.CallCount())
+		t.Errorf("Expected rule to be called 1 time, got %d", mock.CallCount())
 		return
 	}
 
 	rule := testhelpers.NewMockRule[string]()
 
-	_, err = net.NewDomain().
+	// Apply with a mock rule that should pass without errors
+	err = net.NewDomain().
 		WithRuleFunc(rule.Function()).
-		Validate("example.com")
+		Apply(context.TODO(), "example.com", &output)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")

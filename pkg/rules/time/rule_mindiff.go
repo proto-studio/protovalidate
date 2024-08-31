@@ -51,17 +51,3 @@ func (v *TimeRuleSet) WithMinDiff(min time.Duration) *TimeRuleSet {
 		min,
 	})
 }
-
-// WithMinDiff returns a new child RuleSet that is constrained to the provided minimum time as a difference from the current
-// time. If you want to test for absolute difference from now and the provided time then you may combine WithMinDiff and
-// WithMaxDiff.
-//
-// Some examples:
-// 0 will mean that the time must be on or after the current time.
-// -15 * time.Minutes means that the time can be no more than 15 minutes in the past.
-// 15 * time.Minutes means that the time can be no less than 15 minutes in the future.
-func (v *TimeStringRuleSet) WithMinDiff(min time.Duration) *TimeStringRuleSet {
-	return v.WithRule(&minDiffRule{
-		min,
-	})
-}

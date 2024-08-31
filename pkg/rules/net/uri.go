@@ -248,17 +248,48 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 	return newRuleSet
 }
 
-// Run performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-func (ruleSet *URIRuleSet) Run(ctx context.Context, value any) (string, errors.ValidationErrorCollection) {
-
-	valueStr, ok := value.(string)
-
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Attempt to cast the input to a string
+	valueStr, ok := input.(string)
 	if !ok {
-		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
+		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
 	}
 
-	return valueStr, ruleSet.Evaluate(ctx, valueStr)
+	// Perform the validation
+	if err := ruleSet.Evaluate(ctx, valueStr); err != nil {
+		return err
+	}
+
+	outputVal := reflect.ValueOf(output)
+
+	// Check if the output is a non-nil pointer
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
+
+	// Dereference the pointer to get the actual value that needs to be set
+	outputElem := outputVal.Elem()
+
+	switch outputElem.Kind() {
+	case reflect.String:
+		outputElem.SetString(valueStr)
+	case reflect.Interface:
+		if !outputElem.IsNil() {
+			outputElem.Set(reflect.ValueOf(valueStr))
+		} else {
+			outputElem.Set(reflect.ValueOf(valueStr))
+		}
+	default:
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+		))
+	}
+
+	return nil
 }
 
 // evaluateScheme evaluates the scheme portion of the URI and also returns a context with the scheme set.
@@ -386,7 +417,8 @@ func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (cont
 
 	subContext := ruleSet.deepErrorContext(newCtx, "port")
 
-	_, err := ruleSet.portRuleSet.ValidateWithContext(value, subContext)
+	var output int
+	err := ruleSet.portRuleSet.Apply(subContext, value, &output)
 	return newCtx, err
 }
 

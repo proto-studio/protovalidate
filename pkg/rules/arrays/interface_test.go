@@ -38,7 +38,7 @@ func TestInterfaceStruct(t *testing.T) {
 
 			switch vcast := v.(type) {
 			case int:
-				return MyTestImplInt(int(vcast)), nil
+				return MyTestImplInt(vcast), nil
 			case string:
 				return MyTestImplStr(vcast), nil
 			}
@@ -47,22 +47,27 @@ func TestInterfaceStruct(t *testing.T) {
 
 	ruleSet := arrays.New[MyTestInterface]().WithItemRuleSet(innerRuleSet)
 
-	out, errs := ruleSet.Run(context.TODO(), []any{123, "abc"})
+	// Prepare an output variable for Apply
+	var output []MyTestInterface
+
+	// Use Apply instead of Run
+	errs := ruleSet.Apply(context.TODO(), []any{123, "abc"}, &output)
 
 	if errs != nil {
 		t.Errorf("Expected errors to be empty %s", errs.Error())
 		return
 	}
 
-	if len(out) < 1 || out[0] == nil {
+	// Check the output for the expected types
+	if len(output) < 1 || output[0] == nil {
 		t.Errorf("Expected IntTest to not be nil")
-	} else if _, ok := out[0].(MyTestImplInt); !ok {
-		t.Errorf("Expected IntTest to be an MyTestImplInt. Got: %v", out[0])
+	} else if _, ok := output[0].(MyTestImplInt); !ok {
+		t.Errorf("Expected IntTest to be a MyTestImplInt. Got: %v", output[0])
 	}
 
-	if len(out) < 2 || out[1] == nil {
+	if len(output) < 2 || output[1] == nil {
 		t.Errorf("Expected StringTest to not be nil")
-	} else if _, ok := out[1].(MyTestImplStr); !ok {
-		t.Errorf("Expected StringTest to be an MyTestImplStr. Got: %v", out[1])
+	} else if _, ok := output[1].(MyTestImplStr); !ok {
+		t.Errorf("Expected StringTest to be a MyTestImplStr. Got: %v", output[1])
 	}
 }

@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -23,19 +24,6 @@ func TestWithMinTime(t *testing.T) {
 	testhelpers.MustRun(t, ruleSet, after)
 }
 
-func TestWithMinTimeString(t *testing.T) {
-	now := internalTime.Now()
-	before := now.Add(-1 * internalTime.Minute)
-	after := now.Add(1 * internalTime.Minute)
-
-	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMin(now).Any()
-
-	testhelpers.MustNotRun(t, ruleSet, before, errors.CodeMin)
-
-	testhelpers.MustRunMutation(t, ruleSet, now, now.Format(internalTime.RFC3339))
-	testhelpers.MustRunMutation(t, ruleSet, after, after.Format(internalTime.RFC3339))
-}
-
 // Requirements:
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
@@ -45,25 +33,40 @@ func TestWithMinConflict(t *testing.T) {
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)
 
+	// Create an initial rule set with min and max values
 	ruleSet := time.NewTime().WithMin(tm).WithMax(after)
 
-	if _, err := ruleSet.Validate(before); err == nil {
+	// Prepare an output variable for Apply
+	var output internalTime.Time
+
+	// Apply with a time before the min, expecting an error
+	err := ruleSet.Apply(context.TODO(), before, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(tm); err != nil {
+
+	// Apply with a time exactly at the min, expecting no error
+	err = ruleSet.Apply(context.TODO(), tm, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different min value and validate
 	ruleSet2 := ruleSet.WithMin(before)
-	if _, err := ruleSet2.Validate(before); err != nil {
+
+	// Apply with a time exactly at the new min, expecting no error
+	err = ruleSet2.Apply(context.TODO(), before, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set's string representation is correct
 	expected := fmt.Sprintf("TimeRuleSet.WithMin(%s).WithMax(%s)", tm, after)
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set's string representation is correct
 	expected = fmt.Sprintf("TimeRuleSet.WithMax(%s).WithMin(%s)", after, before)
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

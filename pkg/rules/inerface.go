@@ -66,33 +66,42 @@ func (v *InterfaceRuleSet[T]) WithRequired() *InterfaceRuleSet[T] {
 	}
 }
 
-// Run performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-//
-// This will attempt to cast the value directly to your interface and will call each of your cast functions
-// in order if it can't. See WithCast() for more information.
-func (ruleSet *InterfaceRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
-	if v, ok := value.(T); ok {
-		return v, ruleSet.Evaluate(ctx, v)
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Ensure output is a pointer
+	outputVal := reflect.ValueOf(output)
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
 	}
 
+	// Attempt to cast the input value directly to the expected type T
+	if v, ok := input.(T); ok {
+		outputVal.Elem().Set(reflect.ValueOf(v))
+		return ruleSet.Evaluate(ctx, v)
+	}
+
+	// Iterate through the rule sets to find a valid cast function
 	for curRuleSet := ruleSet; curRuleSet != nil; curRuleSet = curRuleSet.parent {
 		if curRuleSet.cast != nil {
-			if v, errs := curRuleSet.cast(ctx, value); any(v) != nil || errs != nil {
+			if v, errs := curRuleSet.cast(ctx, input); any(v) != nil || errs != nil {
+				outputVal.Elem().Set(reflect.ValueOf(v))
 				if errs != nil {
-					return v, errs
-				} else {
-					return v, ruleSet.Evaluate(ctx, v)
+					return errs
 				}
+				return ruleSet.Evaluate(ctx, v)
 			}
 		}
 	}
 
-	return ruleSet.empty, errors.Collection(
+	// If casting fails, return a coercion error
+	return errors.Collection(
 		errors.NewCoercionError(
 			ctx,
 			reflect.TypeOf(new(T)).Elem().Name(),
-			reflect.ValueOf(value).Kind().String(),
+			reflect.ValueOf(input).Kind().String(),
 		),
 	)
 }

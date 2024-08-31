@@ -128,14 +128,27 @@ func (mockRuleSet *MockRuleSet[T]) Required() bool {
 	return false
 }
 
-// Run tries to do a simple cast and returns an error if it fails. It then calls
+// Apply tries to do a simple cast and returns an error if it fails. It then calls
 // Evaluate. Cast errors do not count towards the run count.
-func (mockRuleSet *MockRuleSet[T]) Run(ctx context.Context, value any) (T, errors.ValidationErrorCollection) {
-	if valueOfType, ok := value.(T); ok {
-		return valueOfType, mockRuleSet.Evaluate(ctx, valueOfType)
+func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if output is of the correct type
+	outputVal, ok := output.(*T)
+	if !ok {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output,
+		))
 	}
+
+	// Attempt to cast the input value directly to the expected type T
+	if valueOfType, ok := input.(T); ok {
+		*outputVal = valueOfType
+		return mockRuleSet.Evaluate(ctx, valueOfType)
+	}
+
+	// If casting fails, return a coercion error
 	var empty T
-	return empty, errors.Collection(
+	*outputVal = empty
+	return errors.Collection(
 		errors.NewCoercionError(ctx, "mock", "mock"),
 	)
 }

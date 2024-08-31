@@ -43,10 +43,3 @@ func (v *TimeRuleSet) WithMax(max time.Time) *TimeRuleSet {
 		max,
 	})
 }
-
-// WithMin returns a new child RuleSet that is constrained to the provided minimum time value.
-func (v *TimeStringRuleSet) WithMax(max time.Time) *TimeStringRuleSet {
-	return v.WithRule(&maxTimeRule{
-		max,
-	})
-}
