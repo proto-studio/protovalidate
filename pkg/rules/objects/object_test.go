@@ -1741,25 +1741,28 @@ func TestStaticKeyWithBucket(t *testing.T) {
 // Requirements:
 // - Conditional rules are not run until after any dynamic keys that affect the keys they are dependent on.
 //
+// The order of this test depends heavily on weather WithDynamicKey or WithConditionalKey grab the lock first on the
+// __xyz key (as of v0.3) of for now we are just checking to make sure the __abc rules run first and it's impossible to
+// check that conditional rule does not block the __xyz rule without creating a race condition where the test sometimes
+// fails.
+//
 // This test triggered a bug with reference counting and the initial dynamic key code. It is important that the dynamic
 // key matches more than one input key to continue to test the reference bug.
 func TestDynamicKeyAsConditionalDependency(t *testing.T) {
-	// Values to make sure the functions get called in order
-	var intState int32 = 0
-	var condValue int32 = 0
+	var callCount int32 = 0
 
-	valueRule := rules.Any().WithRuleFunc(func(ctx context.Context, x any) errors.ValidationErrorCollection {
+	valueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationErrorCollection {
 		if rulecontext.Path(ctx).String() == "__abc" {
-			time.Sleep(50 * time.Millisecond)
-		} else {
 			time.Sleep(200 * time.Millisecond)
+			atomic.AddInt32(&callCount, 1)
 		}
-		atomic.AddInt32(&intState, 1)
 		return nil
 	})
 
-	finalValueRule := rules.Any().WithRuleFunc(func(_ context.Context, x any) errors.ValidationErrorCollection {
-		condValue = atomic.LoadInt32(&intState)
+	finalValueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationErrorCollection {
+		if count := atomic.LoadInt32(&callCount); count != 2 {
+			return errors.Collection(errors.Errorf(errors.CodeCancelled, ctx, "Expected count of %d, got %d", 2, count))
+		}
 		return nil
 	})
 
@@ -1771,16 +1774,7 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 		WithDynamicKey(keyRule, valueRule).
 		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithKey("__abc", rules.Any()), finalValueRule)
 
-	_, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
-	if err == nil {
-		// The way the timeouts are setup, the condValue should be set after the two rules for __abc finish but before __xyz
-		if condValue != 2 {
-			t.Errorf("expected condValue to be 2, got: %d", condValue)
-		}
-		if intState != 3 {
-			t.Errorf("expected intState to be 3, got: %d", intState)
-		}
-	}
+	testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
 }
 
 // Requirements:

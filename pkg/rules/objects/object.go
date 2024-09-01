@@ -436,7 +436,7 @@ func wait(ctx context.Context, wg *sync.WaitGroup, errorsCh chan errors.Validati
 	}
 }
 
-// isDone checks if the context is done and returns a bool.
+// done checks if the context is done and returns a bool.
 func done(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
@@ -572,7 +572,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	// Wait for all the rules to finish
 	var wg sync.WaitGroup
 
-	// Loop through all the rule sets
+	// Loop through all the rule sets and evaluate the rules
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule == nil {
 			continue
