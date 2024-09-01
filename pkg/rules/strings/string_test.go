@@ -1,6 +1,7 @@
 package strings_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -10,7 +11,11 @@ import (
 )
 
 func TestStringRuleSet(t *testing.T) {
-	str, err := strings.New().Validate("test")
+	// Prepare the output variable for Apply
+	var str string
+
+	// Use Apply instead of Validate
+	err := strings.New().Apply(context.TODO(), "test", &str)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -41,11 +46,14 @@ func TestRuleImplementation(t *testing.T) {
 }
 
 func TestStringRuleSetTypeError(t *testing.T) {
-	_, err := strings.New().WithStrict().Validate(123)
+	// Prepare the output variable for Apply
+	var str string
+
+	// Use Apply instead of Validate
+	err := strings.New().WithStrict().Apply(context.TODO(), 123, &str)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
-		return
 	}
 }
 
@@ -86,7 +94,7 @@ func TestStringCoercionFromStringPointer(t *testing.T) {
 	tryStringCoercion(t, &s, s)
 }
 
-func TestStringCoercionFromUknown(t *testing.T) {
+func TestStringCoercionFromUnknown(t *testing.T) {
 	val := new(struct {
 		x int
 	})
@@ -113,26 +121,32 @@ func TestStringRequired(t *testing.T) {
 }
 
 func TestStringCustom(t *testing.T) {
-	_, err := strings.New().
+	// Prepare the output variable for Apply
+	var out string
+
+	// Test with a rule that is expected to produce an error
+	err := strings.New().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[string](1).Function()).
-		Validate("123")
+		Apply(context.TODO(), "123", &out)
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
 		return
 	}
 
+	// Test with a rule that is not expected to produce an error
 	rule := testhelpers.NewMockRule[string]()
 
-	_, err = strings.New().
+	err = strings.New().
 		WithRuleFunc(rule.Function()).
-		Validate("123")
+		Apply(context.TODO(), "123", &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
 		return
 	}
 
+	// Verify that the rule was called exactly once
 	if c := rule.CallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 		return

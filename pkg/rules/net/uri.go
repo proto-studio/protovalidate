@@ -301,24 +301,21 @@ func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (co
 		if !ruleSet.relative {
 			return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "Scheme is required."))
 		}
-
 		return newCtx, nil
 	}
 
-	_, err := ruleSet.schemeRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.schemeRuleSet.Evaluate(subContext, value)
 }
 
-// evaluateUser evaluates the user portion of the useinfo in the URI and also returns a context with the user set.
+// evaluateUser evaluates the user portion of the userinfo in the URI and also returns a context with the user set.
 func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
 	newCtx := context.WithValue(ctx, "user", value)
 	subContext := ruleSet.deepErrorContext(newCtx, "user")
 
-	_, err := ruleSet.userRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.userRuleSet.Evaluate(subContext, value)
 }
 
-// evaluatePassword evaluates the password portion of the useinfo in the URI and also returns a context with the user set.
+// evaluatePassword evaluates the password portion of the userinfo in the URI and also returns a context with the password set.
 func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
 	newCtx := context.WithValue(ctx, "password", value)
 
@@ -328,8 +325,7 @@ func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (
 
 	subContext := ruleSet.deepErrorContext(newCtx, "password")
 
-	_, err := ruleSet.passwordRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.passwordRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateAuthorityPart takes a context, a authority part name, and its value and returns any validation errors and a modified context.
@@ -403,8 +399,7 @@ func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (cont
 	newCtx := context.WithValue(ctx, "host", value)
 	subContext := ruleSet.deepErrorContext(newCtx, "host")
 
-	_, err := ruleSet.hostRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.hostRuleSet.Evaluate(subContext, value)
 }
 
 // evaluatePort evaluates the port portion of the URI and also returns a context with the port set.
@@ -510,8 +505,7 @@ func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (cont
 	newCtx := context.WithValue(ctx, "path", value)
 	subContext := ruleSet.deepErrorContext(newCtx, "path")
 
-	_, err := ruleSet.pathRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.pathRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateQuery evaluates the fragment portion of the URI and also returns a context with the fragment set.
@@ -528,8 +522,7 @@ func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, miss
 		return newCtx, nil
 	}
 
-	_, err := ruleSet.fragmentRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.queryRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateFragment evaluates the fragment portion of the URI and also returns a context with the fragment set.
@@ -546,8 +539,7 @@ func (ruleSet *URIRuleSet) evaluateFragment(ctx context.Context, value string, m
 		return newCtx, nil
 	}
 
-	_, err := ruleSet.fragmentRuleSet.ValidateWithContext(value, subContext)
-	return newCtx, err
+	return newCtx, ruleSet.fragmentRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateURIPart takes a context, a URI part name, and its value and returns any validation errors and a modified context.

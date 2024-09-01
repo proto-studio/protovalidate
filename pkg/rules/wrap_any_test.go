@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -14,7 +15,12 @@ import (
 // - Implements the RuleSet interface.
 func TestWrapWrapAnyRuleSet(t *testing.T) {
 	innerRuleSet := rules.Any()
-	anyval, err := rules.WrapAny[any](innerRuleSet).Validate(123)
+
+	// Prepare the output variable for Apply
+	var anyval any
+
+	// Use Apply instead of Validate
+	err := rules.WrapAny[any](innerRuleSet).Apply(context.TODO(), 123, &anyval)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)

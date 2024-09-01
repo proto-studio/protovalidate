@@ -59,28 +59,6 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-//
-// Deprecated: Validate is deprecated and will be removed in v1.0.0. Use Run instead.
-func (v *AnyRuleSet) Validate(value any) (any, errors.ValidationErrorCollection) {
-	var retval any
-	err := v.Apply(context.Background(), value, &retval)
-	return retval, err
-}
-
-// ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-//
-// Deprecated: ValidateWithContext is deprecated and will be removed in v1.0.0. Use Run instead.
-func (v *AnyRuleSet) ValidateWithContext(value any, ctx context.Context) (any, errors.ValidationErrorCollection) {
-	var retval any
-	err := v.Apply(ctx, value, &retval)
-	return retval, err
-}
-
 // Apply performs a validation of a RuleSet against a value and assigns the value to the output
 // or a ValidationErrorCollection.
 func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {

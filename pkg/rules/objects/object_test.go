@@ -51,16 +51,21 @@ type testStructMapped struct {
 }
 
 func TestObjectRuleSet(t *testing.T) {
-	_, err := objects.New[*testStruct]().
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
-		Validate(testMap())
+		Apply(context.TODO(), testMap(), &out)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
+	// Verify that the rule set interface is implemented correctly
 	ok := testhelpers.CheckRuleSetInterface[*testStruct](objects.New[*testStruct]())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
@@ -168,10 +173,14 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
-	out, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[any]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
-		Validate(in)
+		Apply(context.TODO(), in, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -197,10 +206,14 @@ func TestObjectFromMapToMap(t *testing.T) {
 func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
-	out, err := objects.New[*testStruct]().
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
-		Validate(in)
+		Apply(context.TODO(), in, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -228,10 +241,14 @@ func TestObjectFromStructToMap(t *testing.T) {
 	in.X = 10
 	in.Y = 20
 
-	out, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[any]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
-		Validate(in)
+		Apply(context.TODO(), in, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -259,10 +276,14 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	in.X = 10
 	in.Y = 20
 
-	out, err := objects.New[*testStruct]().
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
-		Validate(in)
+		Apply(context.TODO(), in, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -312,10 +333,14 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 // This function is deprecated and will be removed in v1.0.0.
 // Until then, make sure it still works.
 func TestKeyFunction(t *testing.T) {
-	out, err := objects.New[*testStructMapped]().
+	// Prepare the output variable for Apply
+	var out *testStructMapped
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStructMapped]().
 		Key("A", numbers.NewInt().Any()).
 		Key("C", numbers.NewInt().Any()).
-		Validate(map[string]any{"A": 123, "C": 456})
+		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -344,10 +369,14 @@ func TestKeyFunction(t *testing.T) {
 }
 
 func TestObjectMapping(t *testing.T) {
-	out, err := objects.New[*testStructMapped]().
+	// Prepare the output variable for Apply
+	var out *testStructMapped
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStructMapped]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("C", numbers.NewInt().Any()).
-		Validate(map[string]any{"A": 123, "C": 456})
+		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -376,10 +405,14 @@ func TestObjectMapping(t *testing.T) {
 }
 
 func TestMissingField(t *testing.T) {
-	out, err := objects.NewObjectMap[int]().
+	// Prepare the output variable for Apply
+	var out map[string]int
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt()).
-		Validate(map[string]any{"A": 123})
+		Apply(context.TODO(), map[string]any{"A": 123}, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -406,14 +439,17 @@ func TestMissingField(t *testing.T) {
 // Requirements:
 // - Works when the input is a type whose underlying implementation is a map with string keys
 func TestUnderlyingMapField(t *testing.T) {
-
 	type underlyingMap map[string]string
 	input := underlyingMap(map[string]string{"A": "123"})
 
-	out, err := objects.NewObjectMap[int]().
+	// Prepare the output variable for Apply
+	var out map[string]int
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt()).
-		Validate(input)
+		Apply(context.TODO(), input, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -438,10 +474,14 @@ func TestUnderlyingMapField(t *testing.T) {
 }
 
 func TestMissingRequiredField(t *testing.T) {
-	_, err := objects.NewObjectMap[int]().
+	// Prepare the output variable for Apply
+	var out map[string]int
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt().WithRequired()).
-		Validate(map[string]any{"A": 123})
+		Apply(context.TODO(), map[string]any{"A": 123}, &out)
 
 	if len(err) == 0 {
 		t.Errorf("Expected errors to not be empty")
@@ -473,8 +513,11 @@ func TestUnknownFields(t *testing.T) {
 }
 
 func TestInputNotObjectLike(t *testing.T) {
-	_, err := objects.New[*testStruct]().
-		Validate(123)
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	err := objects.New[*testStruct]().
+		Apply(context.TODO(), 123, &out)
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -482,11 +525,15 @@ func TestInputNotObjectLike(t *testing.T) {
 }
 
 func TestReturnsAllErrors(t *testing.T) {
-	_, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
-		Validate(map[string]any{"A": 123, "B": 456, "C": 789})
+		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
@@ -498,11 +545,15 @@ func TestReturnsAllErrors(t *testing.T) {
 func TestReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
-	_, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of ValidateWithContext
+	err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
-		ValidateWithContext(map[string]any{"A": 123, "B": 456, "C": 789}, ctx)
+		Apply(ctx, map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
@@ -531,11 +582,15 @@ func TestReturnsCorrectPaths(t *testing.T) {
 }
 
 func TestMixedMap(t *testing.T) {
-	_, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[any]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().Any()).
-		Validate(map[string]any{"A": 123, "B": 456, "C": "789"})
+		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": "789"}, &out)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty %s", err.Error())
@@ -546,10 +601,14 @@ func TestMixedMap(t *testing.T) {
 func TestCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[*testStruct](1)
 
-	_, err := objects.New[*testStruct]().
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of Validate
+	err := objects.New[*testStruct]().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
-		Validate(map[string]any{"A": 123, "B": 456, "C": "789"})
+		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": "789"}, &out)
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
@@ -560,7 +619,6 @@ func TestCustom(t *testing.T) {
 
 	if mock.CallCount() != 2 {
 		t.Errorf("Expected rule to be called 2 times, got %d", mock.CallCount())
-		return
 	}
 }
 
@@ -576,14 +634,18 @@ func TestPointer(t *testing.T) {
 	// W is a pointer to an int
 	ruleSet := objects.New[*testStruct]().WithKey("W", numbers.NewInt().Any())
 
-	obj, err := ruleSet.Validate(map[string]any{"W": 123})
+	// Prepare the output variable for Apply
+	var obj *testStruct
+
+	// Use Apply instead of Validate
+	err := ruleSet.Apply(context.TODO(), map[string]any{"W": 123}, &obj)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	} else if obj.W == nil {
 		t.Errorf("Expected obj.W to not be nil")
 	} else if *obj.W != 123 {
-		t.Errorf("Expected obj.W to be 123, got: %d", obj.W)
+		t.Errorf("Expected obj.W to be 123, got: %d", *obj.W)
 	}
 }
 
@@ -600,14 +662,18 @@ func TestBug001(t *testing.T) {
 
 	expected := "hello@example.com"
 
-	out, err := ruleSet.Validate(map[string]any{
+	// Prepare the output variable for Apply
+	var out testStructMappedBug
+
+	// Use Apply instead of Validate
+	err := ruleSet.Apply(context.TODO(), map[string]any{
 		"email": expected,
-	})
+	}, &out)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	} else if out.Email != expected {
-		t.Errorf("Expected email to  be '%s', got: '%s'", expected, out.Email)
+		t.Errorf("Expected email to be '%s', got: '%s'", expected, out.Email)
 	}
 }
 
@@ -671,8 +737,14 @@ func TestEvaluate(t *testing.T) {
 	input.X = 12
 	input.Y = 34
 
+	// Evaluate directly using Evaluate method
 	err1 := ruleSet.Evaluate(ctx, input)
-	_, err2 := ruleSet.ValidateWithContext(input, ctx)
+
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of ValidateWithContext
+	err2 := ruleSet.Apply(ctx, input, &out)
 
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
@@ -702,24 +774,30 @@ func TestMultipleRules(t *testing.T) {
 // - RuleSet times out if context does
 // - Timeout error is returned
 func TestTimeoutInObjectRule(t *testing.T) {
+	// Set up a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
 	ruleSet := objects.New[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(2).Any()).
 		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
+			// Simulate a delay that exceeds the timeout
 			time.Sleep(1 * time.Second)
 			return nil
 		})
 
-	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of ValidateWithContext
+	errs := ruleSet.Apply(ctx, &testStruct{}, &out)
 
 	if errs == nil {
-		t.Error("Expected errors to be nil")
+		t.Error("Expected errors to not be nil")
 	} else if len(errs) != 2 {
 		t.Errorf("Expected 2 errors, got %d", len(errs))
 	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, errs, c)
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, c, errs.For("").First())
 	}
 }
 
@@ -728,23 +806,30 @@ func TestTimeoutInObjectRule(t *testing.T) {
 // - RuleSet times out if context does
 // - Timeout error is returned
 func TestTimeoutInKeyRule(t *testing.T) {
+	// Set up a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
 	ruleSet := objects.New[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
-			time.Sleep(1 * time.Second)
-			return nil
-		}).Any())
+		WithKey("X", numbers.NewInt().
+			WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
+				// Simulate a delay that exceeds the timeout
+				time.Sleep(1 * time.Second)
+				return nil
+			}).Any())
 
-	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of ValidateWithContext
+	errs := ruleSet.Apply(ctx, &testStruct{}, &out)
 
 	if errs == nil {
-		t.Error("Expected errors to be nil")
+		t.Error("Expected errors to not be nil")
 	} else if len(errs) != 1 {
 		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
 	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, errs, c)
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, c, errs.For("").First())
 	}
 }
 
@@ -759,13 +844,13 @@ func TestCancelled(t *testing.T) {
 	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
 		atomic.AddInt32(&intCallCount, 1)
 		cancel()
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
 		return nil
 	}
 
 	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 		atomic.AddInt32(&structCallCount, 1)
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
 		return nil
 	}
 
@@ -775,26 +860,28 @@ func TestCancelled(t *testing.T) {
 		WithRuleFunc(structRule).
 		WithRuleFunc(structRule)
 
-	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of ValidateWithContext
+	errs := ruleSet.Apply(ctx, &testStruct{}, &out)
 
 	if errs == nil {
-		t.Error("Expected errors to be nil")
+		t.Error("Expected errors to not be nil")
 	} else if len(errs) != 1 {
 		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
 	} else if c := errs.First().Code(); c != errors.CodeCancelled {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, errs, c)
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs.First())
 	}
-
-	// If these two rules succeed but the ones above fail, check to make sure "wait" is only called once
 
 	finalCallCount := atomic.LoadInt32(&intCallCount)
 	if finalCallCount != 1 {
-		t.Errorf("Expected a call count of 1, got %d", finalCallCount)
+		t.Errorf("Expected intRule to be called 1 time, got %d", finalCallCount)
 	}
 
 	finalCallCount = atomic.LoadInt32(&structCallCount)
 	if finalCallCount != 0 {
-		t.Errorf("Expected a call count of 0, got %d", finalCallCount)
+		t.Errorf("Expected structRule to not be called, got %d", finalCallCount)
 	}
 }
 
@@ -808,7 +895,7 @@ func TestCancelledObjectRules(t *testing.T) {
 	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 		atomic.AddInt32(&structCallCount, 1)
 		cancel()
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
 		return nil
 	}
 
@@ -816,19 +903,23 @@ func TestCancelledObjectRules(t *testing.T) {
 		WithRuleFunc(structRule).
 		WithRuleFunc(structRule)
 
-	_, errs := ruleSet.ValidateWithContext(&testStruct{}, ctx)
+	// Prepare the output variable for Apply
+	var out *testStruct
+
+	// Use Apply instead of ValidateWithContext
+	errs := ruleSet.Apply(ctx, &testStruct{}, &out)
 
 	if errs == nil {
-		t.Error("Expected errors to be nil")
+		t.Error("Expected errors to not be nil")
 	} else if len(errs) != 1 {
 		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
 	} else if c := errs.First().Code(); c != errors.CodeCancelled {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, errs, c)
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs.First())
 	}
 
 	finalCallCount := atomic.LoadInt32(&structCallCount)
 	if finalCallCount != 1 {
-		t.Errorf("Expected a call count of 1, got %d", finalCallCount)
+		t.Errorf("Expected structRule to be called 1 time, got %d", finalCallCount)
 	}
 }
 
@@ -1073,10 +1164,14 @@ func TestNestedPointer(t *testing.T) {
 func TestObjectFromMapToMapUnknown(t *testing.T) {
 	in := testMap()
 
-	out, err := objects.NewObjectMap[any]().
+	// Prepare the output variable for Apply
+	var out map[string]any
+
+	// Use Apply instead of Validate
+	err := objects.NewObjectMap[any]().
 		WithUnknown().
 		WithKey("X", numbers.NewInt().Any()).
-		Validate(in)
+		Apply(context.TODO(), in, &out)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -1186,13 +1281,17 @@ func TestWithKeyStringify(t *testing.T) {
 func TestUnexpectedKeyPath(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
-	_, err := objects.NewObjectMap[int]().ValidateWithContext(map[string]any{"x": 20}, ctx)
+	// Prepare the output variable for Apply
+	var out map[string]int
+
+	// Use Apply instead of ValidateWithContext
+	err := objects.NewObjectMap[int]().Apply(ctx, map[string]any{"x": 20}, &out)
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
 		return
 	} else if len(err) != 1 {
-		t.Errorf("Expected 1 error got %d: %s", len(err), err.Error())
+		t.Errorf("Expected 1 error, got %d: %s", len(err), err.Error())
 		return
 	}
 

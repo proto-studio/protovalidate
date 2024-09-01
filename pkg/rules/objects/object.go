@@ -684,28 +684,6 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-func (v *ObjectRuleSet[T, TK, TV]) Validate(value any) (T, errors.ValidationErrorCollection) {
-	// Initialize an output variable of type T
-	var output T
-	// Use Apply instead of Run
-	err := v.Apply(context.Background(), value, &output)
-	return output, err
-}
-
-// ValidateWithContext performs a validation of a RuleSet against a value and returns a value of the correct type or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by validation rules and error formatting.
-func (v *ObjectRuleSet[T, TK, TV]) ValidateWithContext(in any, ctx context.Context) (T, errors.ValidationErrorCollection) {
-	// Initialize an output variable of type T
-	var output T
-	// Use Apply instead of Run
-	err := v.Apply(ctx, in, &output)
-	return output, err
-}
-
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
@@ -869,11 +847,13 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 	return nil
 }
 
-// Evaluate performs a validation of a RuleSet against a value of the object type and returns an object value of the
-// same type or a ValidationErrorCollection.
+// Evaluate performs a validation of a RuleSet against a value of the object type and returns a ValidationErrorCollection.
 func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	// We need to use reflection no matter what so the fact the input is already the right type doesn't help us
-	_, errs := ruleSet.ValidateWithContext(value, ctx)
+	// Prepare a variable to hold the output after applying the rule set
+	var output T
+
+	// Apply the rule set to the value within the provided context
+	errs := ruleSet.Apply(ctx, value, &output)
 	return errs
 }
 

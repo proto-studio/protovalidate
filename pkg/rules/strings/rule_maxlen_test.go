@@ -1,6 +1,7 @@
 package strings_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -24,18 +25,24 @@ func TestMaxLen(t *testing.T) {
 func TestMaxLenConflict(t *testing.T) {
 	ruleSet := strings.New().WithMaxLen(2).WithMinLen(1)
 
-	if _, err := ruleSet.Validate("abc"); err == nil {
+	// Prepare the output variable for Apply
+	var out string
+
+	// First validation with max length 2
+	if err := ruleSet.Apply(context.TODO(), "abc", &out); err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate("ab"); err != nil {
+	if err := ruleSet.Apply(context.TODO(), "ab", &out); err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Update the rule set with max length 3 and validate
 	ruleSet2 := ruleSet.WithMaxLen(3)
-	if _, err := ruleSet2.Validate("abc"); err != nil {
+	if err := ruleSet2.Apply(context.TODO(), "abc", &out); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Check the string representation of the rule sets
 	expected := "StringRuleSet.WithMaxLen(2).WithMinLen(1)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
