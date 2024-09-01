@@ -10,7 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-//go:generate go run ../../../scripts/get-tlds.go -o tlds.go
+//go:generate go run ../../../_scripts/get-tlds.go -o tlds.go
 
 // Implements the Rule interface for domain validation.
 type domainSuffixRule struct {
