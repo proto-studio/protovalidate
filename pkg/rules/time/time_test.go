@@ -25,21 +25,20 @@ func TestTimeRuleSet(t *testing.T) {
 	err := time.NewTime().Apply(context.TODO(), now, &output)
 
 	if err != nil {
-		t.Error("Expected errors to be empty")
-		return
+		t.Fatal("Expected errors to be empty")
 	}
 
 	if output != now {
-		t.Error("Expected test time to be returned")
-		return
+		t.Fatal("Expected test time to be returned")
 	}
 
 	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.NewTime())
 	if !ok {
-		t.Error("Expected rule set to be implemented")
-		return
+		t.Fatal("Expected rule set to be implemented")
 	}
+
+	testhelpers.MustApplyTypes[internalTime.Time](t, time.NewTime(), now)
 }
 
 // Requirements:

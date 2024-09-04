@@ -18,21 +18,20 @@ func TestArrayRuleSet(t *testing.T) {
 	// Apply with a valid array, expecting no error
 	err := arrays.New[string]().Apply(context.TODO(), []string{"a", "b", "c"}, &output)
 	if err != nil {
-		t.Errorf("Expected errors to be empty. Got: %v", err)
-		return
+		t.Fatalf("Expected errors to be empty. Got: %v", err)
 	}
 
 	if len(output) != 3 {
-		t.Errorf("Expected returned array to have length 3 but got %d", len(output))
-		return
+		t.Fatalf("Expected returned array to have length 3 but got %d", len(output))
 	}
 
 	// Check if the rule set implements the expected interface
 	ok := testhelpers.CheckRuleSetInterface[[]string](arrays.New[string]())
 	if !ok {
-		t.Error("Expected rule set to be implemented")
-		return
+		t.Fatalf("Expected rule set to be implemented")
 	}
+
+	testhelpers.MustApplyTypes[[]string](t, arrays.New[string](), []string{"a", "b", "c"})
 }
 
 func TestArrayRuleSetTypeError(t *testing.T) {

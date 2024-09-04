@@ -21,6 +21,8 @@ func TestAnyRuleSet(t *testing.T) {
 	}
 
 	testhelpers.MustApply(t, ruleSet, 123)
+
+	testhelpers.MustApplyTypes[any](t, ruleSet, 123)
 }
 
 // Requirements:

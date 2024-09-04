@@ -28,6 +28,8 @@ func TestIntRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	testhelpers.MustApplyTypes[int](t, numbers.NewInt(), 123)
 }
 
 func TestIntStrictError(t *testing.T) {

@@ -22,6 +22,8 @@ func TestConstantRuleSet(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet.Any(), "abc")
 	testhelpers.MustNotApply(t, ruleSet.Any(), "x", errors.CodePattern)
+
+	testhelpers.MustApplyTypes[string](t, ruleSet, "abc")
 }
 
 // Requirements:

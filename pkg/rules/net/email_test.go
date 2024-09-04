@@ -17,15 +17,17 @@ func TestEmailRuleSet(t *testing.T) {
 	// Prepare the output variable for Apply
 	var output string
 
+	example := "hello@example.com"
+
 	// Use Apply instead of Validate
-	err := net.NewEmail().Apply(context.TODO(), "hello@example.com", &output)
+	err := net.NewEmail().Apply(context.TODO(), example, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if output != "hello@example.com" {
+	if output != example {
 		t.Error("Expected test email to be returned")
 		return
 	}
@@ -36,6 +38,8 @@ func TestEmailRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	testhelpers.MustApplyTypes[string](t, net.NewEmail(), example)
 }
 
 // Requirements:

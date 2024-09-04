@@ -135,7 +135,7 @@ func (mockRuleSet *MockRuleSet[T]) Required() bool {
 
 // Apply tries to do a simple cast and returns an error if it fails. It then calls
 // Evaluate. Cast errors do not count towards the run count.
-func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 	// Check if the output is a nil pointer, handle error case
 	if output == nil {
 		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output cannot be nil"))
@@ -144,8 +144,8 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input any, output 
 	outputVal := reflect.ValueOf(output)
 
 	// Check if output is a pointer
-	if outputVal.Kind() != reflect.Ptr {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output must be a pointer, got %T", output))
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output must be a non-nil pointer, got %T", output))
 	}
 
 	outputElem := outputVal.Elem()

@@ -28,6 +28,8 @@ func TestFloatRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	testhelpers.MustApplyTypes[float64](t, numbers.NewFloat64(), 123.0)
 }
 
 func TestFloatStrictError(t *testing.T) {

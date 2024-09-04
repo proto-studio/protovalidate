@@ -79,7 +79,13 @@ func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output
 
 	// Attempt to cast the input value directly to the expected type T
 	if v, ok := input.(T); ok {
-		outputVal.Elem().Set(reflect.ValueOf(v))
+		inputValue := reflect.ValueOf(v)
+		if !inputValue.Type().AssignableTo(outputVal.Elem().Type()) {
+			return errors.Collection(errors.Errorf(
+				errors.CodeInternal, ctx, "Cannot assign `%T` to `%T`", input, output,
+			))
+		}
+		outputVal.Elem().Set(inputValue)
 		return ruleSet.Evaluate(ctx, v)
 	}
 

@@ -71,6 +71,11 @@ func TestObjectRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	// Test both pointer and non-pointer.
+	// These cases are tested in more detail in other tests.
+	testhelpers.MustApplyTypes[testStruct](t, objects.New[testStruct](), testStruct{})
+	testhelpers.MustApplyTypes[*testStruct](t, objects.New[*testStruct](), &testStruct{})
 }
 
 func TestObjectOutput_Apply(t *testing.T) {

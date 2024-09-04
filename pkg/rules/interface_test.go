@@ -40,6 +40,8 @@ func TestInterfaceRuleSet(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet.Any(), MyTestImpl{})
 	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
+
+	testhelpers.MustApplyTypes[MyTestInterface](t, ruleSet, MyTestImpl{})
 }
 
 // Requirements:

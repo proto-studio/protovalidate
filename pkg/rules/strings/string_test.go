@@ -18,20 +18,19 @@ func TestStringRuleSet(t *testing.T) {
 	err := strings.New().Apply(context.TODO(), "test", &str)
 
 	if err != nil {
-		t.Error("Expected errors to be empty")
-		return
+		t.Fatal("Expected errors to be empty")
 	}
 
 	if str != "test" {
-		t.Error("Expected test string to be returned")
-		return
+		t.Fatal("Expected test string to be returned")
 	}
 
 	ok := testhelpers.CheckRuleSetInterface[string](strings.New())
 	if !ok {
-		t.Error("Expected rule set to be implemented")
-		return
+		t.Fatal("Expected rule set to be implemented")
 	}
+
+	testhelpers.MustApplyTypes[string](t, strings.New(), "abc")
 }
 
 // Requirements:

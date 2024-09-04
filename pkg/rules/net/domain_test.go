@@ -17,15 +17,17 @@ func TestDomainRuleSet(t *testing.T) {
 	// Prepare the output variable for Apply
 	var output string
 
+	example := "example.com"
+
 	// Apply with a valid domain string
-	err := net.NewDomain().Apply(context.TODO(), "example.com", &output)
+	err := net.NewDomain().Apply(context.TODO(), example, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if output != "example.com" {
+	if output != example {
 		t.Error("Expected test domain to be returned")
 		return
 	}
@@ -36,6 +38,8 @@ func TestDomainRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	testhelpers.MustApplyTypes[string](t, net.NewDomain(), example)
 }
 
 // Requirements:

@@ -94,15 +94,17 @@ func TestURIRuleSet(t *testing.T) {
 	// Prepare the output variable for Apply
 	var output string
 
+	example := "https://example.com"
+
 	// Use Apply instead of Run
-	err := net.NewURI().Apply(context.TODO(), "https://example.com", &output)
+	err := net.NewURI().Apply(context.TODO(), example, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
 	}
 
-	if output != "https://example.com" {
+	if output != example {
 		t.Error("Expected test URI to be returned")
 		return
 	}
@@ -113,6 +115,8 @@ func TestURIRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
+
+	testhelpers.MustApplyTypes[string](t, net.NewURI(), example)
 }
 
 // Requirements:

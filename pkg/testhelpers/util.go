@@ -10,6 +10,16 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// neverAssignable if an interface with a private method making it impossible to assign to while.
+// still satisfying interface{} type checks.
+// Used by MustApplyTypes and not exported.
+type neverAssignable interface{ priv() }
+
+// neverAssignableI is an implementation of neverAssignable for use in MustApplyTypes
+type neverAssignableImpl struct{ privProp int }
+
+func (na *neverAssignableImpl) priv() {}
+
 // CheckRuleSetInterface checks to see if the RuleSet interface is implemented for an interface and returns true if it is.
 func CheckRuleSetInterface[T any](v any) bool {
 	_, ok := v.(rules.RuleSet[T])
@@ -100,4 +110,73 @@ func MustNotApply(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode
 	}
 
 	return err
+}
+
+// MustApplyTypes checks to make sure apply supports the various output types expected all rule sets.
+// It is recommended all RuleSet implementations pass this assertion.
+//
+// Output types tested are:
+// - Pointer to any.
+// - Pointer to correct type.
+// - Non-pointer (should error).
+// - Pointer to nil (should error).
+// - Nil (should error).
+//
+// Be sure to use an input that should not error if the types are correct.
+// Note that Apply may implement output types other than these but these are bare minimum for any public RuleSet.
+func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
+	t.Helper()
+
+	// Do not use MustApply and MustNotApply as these require .Any() which may invalidate the test.
+
+	// Pointer to any
+	var outputAny any
+	err := ruleSet.Apply(context.TODO(), input, &outputAny)
+	if err != nil {
+		t.Errorf("Expected error to be nil on `any` output, got: %s", err)
+	}
+
+	// Pointer to correct type
+	var outputPtr *T = new(T)
+	err = ruleSet.Apply(context.TODO(), input, outputPtr)
+	if err != nil {
+		t.Errorf("Expected error to be nil on `%T` output, got: %s", outputPtr, err)
+	}
+
+	// Non-pointer to correct type
+	var outputNonPointer T
+	err = ruleSet.Apply(context.TODO(), input, outputNonPointer)
+	if err == nil {
+		t.Errorf("Expected error to not be nil on `%T` output", outputNonPointer)
+	} else if code := err.First().Code(); code != errors.CodeInternal {
+		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `%T` output, got: %s", errors.CodeInternal, outputNonPointer, code)
+	}
+
+	// Pointer to nil
+	var outputPointerToNil *T
+	err = ruleSet.Apply(context.TODO(), input, outputPointerToNil)
+	if err == nil {
+		t.Error("Expected error to not be nil on pointer to `nil` output")
+	} else if code := err.First().Code(); code != errors.CodeInternal {
+		t.Errorf("Expected error code to be %s (errors.CodeInternal) on pointer to `nil` output, got: %s", errors.CodeInternal, code)
+	}
+
+	// Incompatible type
+	// We must assign a &neverAssignableImpl{} to avoid false errors because the pointer was nil
+	var outputIncompatible neverAssignable = &neverAssignableImpl{privProp: 1}
+	outputIncompatible.priv()
+	err = ruleSet.Apply(context.TODO(), input, outputIncompatible)
+	if err == nil {
+		t.Error("Expected error to not be nil on incompatible output")
+	} else if code := err.First().Code(); code != errors.CodeInternal {
+		t.Errorf("Expected error code to be %s (errors.CodeInternal) on incompatible output, got: %s", errors.CodeInternal, code)
+	}
+
+	// Nil value
+	err = ruleSet.Apply(context.TODO(), input, nil)
+	if err == nil {
+		t.Error("Expected error to not be nil on `nil` output")
+	} else if code := err.First().Code(); code != errors.CodeInternal {
+		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `nil` output, got: %s", errors.CodeInternal, code)
+	}
 }

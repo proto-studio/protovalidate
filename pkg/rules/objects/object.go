@@ -770,9 +770,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		}
 
 	} else {
-		// Output type is not compatible
-
-		panic("Not handling this yet")
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", out, output))
 	}
 
 	var outValue reflect.Value
