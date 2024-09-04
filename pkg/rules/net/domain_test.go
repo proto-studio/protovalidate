@@ -47,8 +47,8 @@ func TestDomainSegmentLength(t *testing.T) {
 	okLabel := strings.Repeat("a", 63)
 	badLabel := strings.Repeat("a", 64)
 
-	testhelpers.MustRun(t, ruleSet, okLabel+".com")
-	testhelpers.MustNotRun(t, ruleSet, badLabel+".com", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, okLabel+".com")
+	testhelpers.MustNotApply(t, ruleSet, badLabel+".com", errors.CodePattern)
 }
 
 // Requirements:
@@ -58,7 +58,7 @@ func TestDomainPunycodeError(t *testing.T) {
 
 	// idna: invalid label "é"
 	str := "example.xn--é.com"
-	testhelpers.MustNotRun(t, ruleSet, str+".com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodePattern)
 }
 
 // Requirements:
@@ -68,7 +68,7 @@ func TestDomainLength(t *testing.T) {
 	ruleSet := net.NewDomain().Any()
 
 	str := strings.Repeat(strings.Repeat("a", 32), 9)
-	testhelpers.MustNotRun(t, ruleSet, str+".com", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodeMax)
 }
 
 // Requirements:
@@ -77,7 +77,7 @@ func TestDomainLength(t *testing.T) {
 func TestDomainType(t *testing.T) {
 	ruleSet := net.NewDomain().Any()
 
-	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
 
 // Requirements:

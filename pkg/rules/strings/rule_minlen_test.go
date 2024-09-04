@@ -12,9 +12,9 @@ import (
 func TestMinLen(t *testing.T) {
 	ruleSet := strings.New().WithMinLen(2).Any()
 
-	testhelpers.MustRun(t, ruleSet, "abc")
-	testhelpers.MustRun(t, ruleSet, "ab")
-	testhelpers.MustNotRun(t, ruleSet, "a", errors.CodeMin)
+	testhelpers.MustApply(t, ruleSet, "abc")
+	testhelpers.MustApply(t, ruleSet, "ab")
+	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMin)
 }
 
 // Requirements:

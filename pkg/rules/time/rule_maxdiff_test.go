@@ -18,8 +18,8 @@ func TestWithMaxDiff(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMaxDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustNotRun(t, ruleSet, before14, errors.CodeMax)
-	testhelpers.MustRun(t, ruleSet, before16)
+	testhelpers.MustNotApply(t, ruleSet, before14, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, before16)
 }
 
 // Requirements:

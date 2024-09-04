@@ -72,7 +72,7 @@ func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
 
 	ruleSet := rules.WrapAny[any](innerRuleSet)
 
-	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeUnknown)
 }
 
 // Requirements:
@@ -85,14 +85,14 @@ func TestWrapAnyCustom(t *testing.T) {
 	ruleSet := rules.WrapAny[any](innerRuleSet).
 		WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
-	testhelpers.MustNotRun(t, ruleSet, "123", errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet, "123", errors.CodeUnknown)
 
 	var expected any = "abc"
 
 	ruleSet = rules.WrapAny[any](innerRuleSet).
 		WithRule(testhelpers.NewMockRule[any]())
 
-	testhelpers.MustRun(t, ruleSet, expected)
+	testhelpers.MustApply(t, ruleSet, expected)
 }
 
 // Requirement:

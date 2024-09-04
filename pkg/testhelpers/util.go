@@ -35,29 +35,9 @@ func checkAlways(_, _ any) error {
 	return nil
 }
 
-// MustBeValidFunc is a test helper that expects a RuleSet to a nil error.
+// MustApplyFunc is a test helper that expects a RuleSet to return a nil error.
 // If the error is non-nil or the check function returns an error, this function prints the error and returns it.
-//
-// Deprecated: MustBeValidFunc is deprecated and will be removed in v1.0.0. Use MustRunFunc instead.
-func MustBeValidFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) error {
-	t.Helper()
-	_, err := MustRunFunc(t, ruleSet, input, expectedOutput, fn)
-	return err
-}
-
-// MustBeValid is a test helper that expects a RuleSet to return a specific value and nil error.
-// If the error is non-nil or the expected output does not match, this function prints the error and returns it.
-//
-// Deprecated: MustBeValid is deprecated and will be removed in v1.0.0. Use MustRun instead.
-func MustBeValid(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any) error {
-	t.Helper()
-	_, err := MustRunFunc(t, ruleSet, input, expectedOutput, checkEqual)
-	return err
-}
-
-// MustRunFunc is a test helper that expects a RuleSet to return a nil error.
-// If the error is non-nil or the check function returns an error, this function prints the error and returns it.
-func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) (any, error) {
+func MustApplyFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) (any, error) {
 	t.Helper()
 
 	// Initialize the actual output variable
@@ -81,47 +61,31 @@ func MustRunFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput
 	return actualOutput, nil
 }
 
-// MustRun is a test helper that expects a RuleSet to return the input value and nil error.
+// MustApply is a test helper that expects a RuleSet to return the input value and nil error.
 // If the error is non-nil or the expected output does not match, this function prints the error and returns it.
-func MustRun(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
+func MustApply(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
 	t.Helper()
-	return MustRunFunc(t, ruleSet, input, input, checkEqual)
+	return MustApplyFunc(t, ruleSet, input, input, checkEqual)
 }
 
-// MustRunAny is a test helper that expects a RuleSet to finish without an error.
-func MustRunAny(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
+// MustApplyAny is a test helper that expects a RuleSet to finish without an error.
+func MustApplyAny(t testing.TB, ruleSet rules.RuleSet[any], input any) (any, error) {
 	t.Helper()
-	return MustRunFunc(t, ruleSet, input, input, checkAlways)
+	return MustApplyFunc(t, ruleSet, input, input, checkAlways)
 }
 
-// MustRunMutation is a test helper that expects a RuleSet to return a specific value and nil error.
+// MustApplyMutation is a test helper that expects a RuleSet to return a specific value and nil error.
 // If the error is non-nil or the expected output does not match, this function prints the error and returns it.
-func MustRunMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output any) (any, error) {
+func MustApplyMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output any) (any, error) {
 	t.Helper()
-	return MustRunFunc(t, ruleSet, input, output, checkEqual)
+	return MustApplyFunc(t, ruleSet, input, output, checkEqual)
 }
 
-// MustBeValidAny is a test helper that expects a RuleSet to finish without an error.
-// It does not check the return value.
-func MustBeValidAny(t testing.TB, ruleSet rules.RuleSet[any], input any) error {
-	t.Helper()
-	return MustBeValidFunc(t, ruleSet, input, nil, checkAlways)
-}
-
-// MustBeInvalid is a test helper that expects a RuleSet to return an error and checks for a specific error code.
+// MustNotApply is a test helper that expects a RuleSet to return an error and checks for a specific error code.
 // If the error is nil or the code does not match, a testing error is printed and the function returns false.
 //
 // This function returns the error on "success" so that you can perform additional comparisons.
-func MustBeInvalid(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
-	t.Helper()
-	return MustNotRun(t, ruleSet, input, errorCode)
-}
-
-// MustNotRun is a test helper that expects a RuleSet to return an error and checks for a specific error code.
-// If the error is nil or the code does not match, a testing error is printed and the function returns false.
-//
-// This function returns the error on "success" so that you can perform additional comparisons.
-func MustNotRun(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
+func MustNotApply(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
 	t.Helper()
 
 	var output any

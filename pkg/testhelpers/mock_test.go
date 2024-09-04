@@ -97,3 +97,58 @@ func TestMockCounter(t *testing.T) {
 		t.Errorf("Expected call count to be %d, got %d", 0, mock.CallCount())
 	}
 }
+
+func TestMockRuleSet_Apply(t *testing.T) {
+	ctx := context.Background()
+
+	// Assigning mockRuleSet.OutputValue to output
+	var outputInt int
+	overrideValue := 456
+	mockRuleSet := &testhelpers.MockRuleSet[int]{OutputValue: &overrideValue}
+	err := mockRuleSet.Apply(ctx, 123, &outputInt)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+	if outputInt != overrideValue { // Should be 456 from mockRuleSet.OutputValue
+		t.Errorf("expected outputInt to be 456, got %d", outputInt)
+	}
+
+	// mockRuleSet.OutputValue is nil, fallback to input assignment
+	mockRuleSet = &testhelpers.MockRuleSet[int]{}
+	err = mockRuleSet.Apply(ctx, 789, &outputInt)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+	if outputInt != 789 { // Should be 789 from input
+		t.Errorf("expected outputInt to be 789, got %d", outputInt)
+	}
+
+	// Output is not a pointer
+	outputNonPtr := 0
+	err = mockRuleSet.Apply(ctx, 123, outputNonPtr)
+	if err == nil {
+		t.Errorf("expected an error when output is not a pointer, got nil")
+	}
+
+	// Error case when mockRuleSet.OutputValue is not assignable to output
+	var outputMismatch string
+	mockRuleSet = &testhelpers.MockRuleSet[int]{OutputValue: &overrideValue}
+	err = mockRuleSet.Apply(ctx, 123, &outputMismatch)
+	if err == nil {
+		t.Errorf("expected an error when mockRuleSet.OutputValue is not assignable to output, got nil")
+	}
+
+	// Error case when input value is not assignable to output and mockRuleSet.OutputValue is nil
+	mockRuleSet = &testhelpers.MockRuleSet[int]{}
+	err = mockRuleSet.Apply(ctx, 123, &outputMismatch)
+	if err == nil {
+		t.Errorf("expected an error when mockRuleSet.OutputValue is not assignable to output, got nil")
+	}
+
+	// Output is nil
+	mockRuleSet = &testhelpers.MockRuleSet[int]{}
+	err = mockRuleSet.Apply(ctx, 123, nil)
+	if err == nil {
+		t.Errorf("expected non-nil error")
+	}
+}

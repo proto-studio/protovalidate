@@ -14,9 +14,9 @@ import (
 func TestWithAllowedValues(t *testing.T) {
 	ruleSet := strings.New().WithAllowedValues("a", "b").WithMaxLen(1)
 
-	testhelpers.MustRun(t, ruleSet.Any(), "a")
-	testhelpers.MustRun(t, ruleSet.Any(), "b")
-	testhelpers.MustNotRun(t, ruleSet.Any(), "c", errors.CodeNotAllowed)
+	testhelpers.MustApply(t, ruleSet.Any(), "a")
+	testhelpers.MustApply(t, ruleSet.Any(), "b")
+	testhelpers.MustNotApply(t, ruleSet.Any(), "c", errors.CodeNotAllowed)
 
 	expected := fmt.Sprintf("StringRuleSet.WithAllowedValues(\"a\", \"b\").WithMaxLen(1)")
 	if s := ruleSet.String(); s != expected {
@@ -24,8 +24,8 @@ func TestWithAllowedValues(t *testing.T) {
 	}
 
 	ruleSet = ruleSet.WithAllowedValues("c")
-	testhelpers.MustRun(t, ruleSet.Any(), "a")
-	testhelpers.MustRun(t, ruleSet.Any(), "c")
+	testhelpers.MustApply(t, ruleSet.Any(), "a")
+	testhelpers.MustApply(t, ruleSet.Any(), "c")
 
 	expected = fmt.Sprintf("StringRuleSet.WithMaxLen(1).WithAllowedValues(\"a\", \"b\", \"c\")")
 	if s := ruleSet.String(); s != expected {
@@ -71,9 +71,9 @@ func TestWithAllowedValuesMore(t *testing.T) {
 func TestWithRejectedValues(t *testing.T) {
 	ruleSet := strings.New().WithRejectedValues("a", "b")
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), "a", errors.CodeForbidden)
-	testhelpers.MustNotRun(t, ruleSet.Any(), "b", errors.CodeForbidden)
-	testhelpers.MustRun(t, ruleSet.Any(), "c")
+	testhelpers.MustNotApply(t, ruleSet.Any(), "a", errors.CodeForbidden)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "b", errors.CodeForbidden)
+	testhelpers.MustApply(t, ruleSet.Any(), "c")
 
 	expected := fmt.Sprintf("StringRuleSet.WithRejectedValues(\"a\", \"b\")")
 	if s := ruleSet.String(); s != expected {
@@ -81,8 +81,8 @@ func TestWithRejectedValues(t *testing.T) {
 	}
 
 	ruleSet = ruleSet.WithRejectedValues("c")
-	testhelpers.MustNotRun(t, ruleSet.Any(), "a", errors.CodeForbidden)
-	testhelpers.MustNotRun(t, ruleSet.Any(), "c", errors.CodeForbidden)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "a", errors.CodeForbidden)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "c", errors.CodeForbidden)
 
 	expected = fmt.Sprintf("StringRuleSet.WithRejectedValues(\"a\", \"b\").WithRejectedValues(\"c\")")
 	if s := ruleSet.String(); s != expected {

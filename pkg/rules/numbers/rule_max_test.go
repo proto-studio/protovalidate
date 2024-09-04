@@ -12,17 +12,17 @@ import (
 func TestWithMaxInt(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMax(10).Any()
 
-	testhelpers.MustRun(t, ruleSet, 9)
-	testhelpers.MustRun(t, ruleSet, 10)
-	testhelpers.MustNotRun(t, ruleSet, 11, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, 9)
+	testhelpers.MustApply(t, ruleSet, 10)
+	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
 func TestWithMaxFloat(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMax(10.0).Any()
 
-	testhelpers.MustRun(t, ruleSet, 9.9)
-	testhelpers.MustRun(t, ruleSet, 10.0)
-	testhelpers.MustNotRun(t, ruleSet, 10.1, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, 9.9)
+	testhelpers.MustApply(t, ruleSet, 10.0)
+	testhelpers.MustNotApply(t, ruleSet, 10.1, errors.CodeMax)
 }
 
 // Requirements:

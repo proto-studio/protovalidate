@@ -506,10 +506,10 @@ func TestUnknownFields(t *testing.T) {
 	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt())
 	value := map[string]any{"A": 123, "C": 456}
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), value, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), value, errors.CodeUnexpected)
 
 	ruleSet = ruleSet.WithUnknown()
-	testhelpers.MustRunFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
 }
 
 func TestInputNotObjectLike(t *testing.T) {
@@ -759,14 +759,14 @@ func TestMultipleRules(t *testing.T) {
 		WithKey("X", numbers.NewInt().WithMax(4).Any()).
 		Any()
 
-	testhelpers.MustRunFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
+	testhelpers.MustApplyFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
 		if a.(*testStruct).X != b.(*testStruct).X {
 			return fmt.Errorf("Expected X to be %d, got: %d", b.(*testStruct).X, a.(*testStruct).X)
 		}
 		return nil
 	})
-	testhelpers.MustNotRun(t, ruleSet, &testStruct{X: 1}, errors.CodeMin)
-	testhelpers.MustNotRun(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, &testStruct{X: 1}, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
 }
 
 // Requirement:
@@ -965,7 +965,7 @@ func TestConditionalKey(t *testing.T) {
 	}
 
 	// Mock rule should not have been called
-	testhelpers.MustRunFunc(t, ruleSet.Any(), &testStruct{X: 3, Y: 3}, &testStruct{X: 3, Y: 3}, checkFn)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), &testStruct{X: 3, Y: 3}, &testStruct{X: 3, Y: 3}, checkFn)
 	if intState != 2 {
 		t.Fatalf("Expected the int validator to be finished")
 	}
@@ -977,7 +977,7 @@ func TestConditionalKey(t *testing.T) {
 	condValue = 0
 
 	// Mock rule should have been called
-	testhelpers.MustRunFunc(t, ruleSet.Any(), &testStruct{X: 1, Y: 3}, &testStruct{X: 1, Y: 3}, checkFn)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), &testStruct{X: 1, Y: 3}, &testStruct{X: 1, Y: 3}, checkFn)
 	if intState != 2 {
 		t.Fatalf("Expected the int validator to be finished")
 	}
@@ -1124,18 +1124,18 @@ func TestStructRightType(t *testing.T) {
 		return nil
 	}
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), in, in, check)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), in, in, check)
 
 	in.A = 3
-	testhelpers.MustNotRun(t, ruleSet.Any(), in, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet.Any(), in, errors.CodeMin)
 
 	in.A = 5
 
 	in.B = 50
-	testhelpers.MustNotRun(t, ruleSet.Any(), in, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet.Any(), in, errors.CodeMin)
 
 	in.B = 150
-	testhelpers.MustRunFunc(t, ruleSet.Any(), *in, in, check)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), *in, in, check)
 }
 
 // Requirements:
@@ -1156,7 +1156,7 @@ func TestNestedPointer(t *testing.T) {
 		"Test": &testStruct{},
 	}
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
 }
 
 // Requirement:
@@ -1231,9 +1231,9 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 		return nil
 	}
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
-	testhelpers.MustRunFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
-	testhelpers.MustNotRun(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), map[string]string{"type": "Y", "y": "!"}, &conditionalBugTest{Type: "Y", Y: "!"}, checkFn)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), map[string]string{"type": "X", "X": "!"}, &conditionalBugTest{Type: "X"}, checkFn)
+	testhelpers.MustNotApply(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
 }
 
 // Requirements:
@@ -1317,15 +1317,15 @@ func TestJsonString(t *testing.T) {
 	j := `{"X": 123}`
 	invalid := "x"
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
-	testhelpers.MustNotRun(t, ruleSet.Any(), &j, errors.CodeType)
-	testhelpers.MustNotRun(t, ruleSet.Any(), &invalid, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), &j, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), &invalid, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
-	testhelpers.MustRunFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
-	testhelpers.MustNotRun(t, ruleSet.Any(), &invalid, errors.CodeType)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+	testhelpers.MustNotApply(t, ruleSet.Any(), &invalid, errors.CodeType)
 }
 
 // Requirements:
@@ -1337,11 +1337,11 @@ func TestJsonBytes(t *testing.T) {
 
 	j := []byte(`{"X": 123}`)
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), j, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
 }
 
 // Requirements:
@@ -1354,13 +1354,13 @@ func TestJsonRawMessage(t *testing.T) {
 
 	j := json.RawMessage([]byte(`{"X": 123}`))
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), j, errors.CodeType)
-	testhelpers.MustNotRun(t, ruleSet.Any(), &j, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), j, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), &j, errors.CodeType)
 
 	ruleSet = ruleSet.WithJson()
 
-	testhelpers.MustRunFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
-	testhelpers.MustRunFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
+	testhelpers.MustApplyFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
 }
 
 // Requirements:
@@ -1427,14 +1427,14 @@ func TestWithDynamicKeyToMap(t *testing.T) {
 
 	validJson := `{"__abc": 123, "__xyz": 789}`
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
 	rule := testhelpers.NewMockRuleSet[float64]()
 
 	ruleSet = ruleSet.WithDynamicKey(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), rule)
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
-	testhelpers.MustBeValidAny(t, ruleSet.Any(), validJson)
+	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
+	testhelpers.MustApplyAny(t, ruleSet.Any(), validJson)
 }
 
 // Requirements:
@@ -1446,16 +1446,16 @@ func TestWithDynamicBucketToMap(t *testing.T) {
 
 	validJson := `{"__abc": "abc", "__123": 123}`
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "numbers")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "letters")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "nomatch")
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), validJson)
+	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), validJson)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1516,16 +1516,16 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 
 	validJson := `{"__abc": "abc", "__123": 123}`
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "All")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "Numbers")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "Letters")
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "NoMatch")
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"abc": "abc", "__xyz": "xyz"}`, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": "abc", "__xyz": "xyz"}`, errors.CodeUnexpected)
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), validJson)
+	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), validJson)
 	if err == nil {
 		output, ok := o.(outputType)
 		if !ok {
@@ -1585,12 +1585,12 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 	ruleSet = ruleSet.WithConditionalDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), rootCondition.WithKey("allowLetters", trueRule), "letters")
 
 	// Conditions not met so these properties should still be unknown
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`, errors.CodeUnexpected)
+	testhelpers.MustNotApply(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`, errors.CodeUnexpected)
 
 	// This will make it so the rule set always passes
 	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`)
+	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1615,7 +1615,7 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 		}
 	}
 
-	o, err = testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123, "allowLetters":true}`)
+	o, err = testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123, "allowLetters":true}`)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1660,7 +1660,7 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 		WithDynamicKey(keyRule, validate.Int().Any()).
 		WithDynamicBucket(keyRule, "numbers")
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__123": "123"}`)
+	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__123": "123"}`)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1705,7 +1705,7 @@ func TestStaticKeyWithBucket(t *testing.T) {
 		WithKey("__xyz", rules.Any()).
 		WithDynamicBucket(keyRule, "letters")
 
-	o, err := testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
+	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
 	if err == nil {
 		output, ok := o.(map[string]any)
 		if !ok {
@@ -1774,7 +1774,7 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 		WithDynamicKey(keyRule, valueRule).
 		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithKey("__abc", rules.Any()), finalValueRule)
 
-	testhelpers.MustRunAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
+	testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
 }
 
 // Requirements:

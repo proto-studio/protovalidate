@@ -38,8 +38,8 @@ func TestInterfaceRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustRun(t, ruleSet.Any(), MyTestImpl{})
-	testhelpers.MustNotRun(t, ruleSet.Any(), 123, errors.CodeType)
+	testhelpers.MustApply(t, ruleSet.Any(), MyTestImpl{})
+	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
 }
 
 // Requirements:
@@ -66,14 +66,14 @@ func TestInterfaceCustom(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[MyTestInterface](1).Function())
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), MyTestImpl{}, errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet.Any(), MyTestImpl{}, errors.CodeUnknown)
 
 	rule := testhelpers.NewMockRule[MyTestInterface]()
 
 	ruleSet = rules.Interface[MyTestInterface]().
 		WithRuleFunc(rule.Function())
 
-	testhelpers.MustRun(t, ruleSet.Any(), MyTestImpl{})
+	testhelpers.MustApply(t, ruleSet.Any(), MyTestImpl{})
 
 	if c := rule.CallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
@@ -111,7 +111,7 @@ func TestInterfaceComposition(t *testing.T) {
 
 	ruleSet := rules.Interface[MyTestInterface]().WithRule(innerRuleSet)
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), MyTestImpl{}, errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet.Any(), MyTestImpl{}, errors.CodeUnknown)
 }
 
 // Requirement:
@@ -120,7 +120,7 @@ func TestInterfaceComposition(t *testing.T) {
 func TestInterfaceWithCast(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]()
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), 123, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
 
 	ruleSet = ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if intval, ok := v.(int); ok {
@@ -129,8 +129,8 @@ func TestInterfaceWithCast(t *testing.T) {
 		return nil, nil
 	})
 
-	testhelpers.MustRunMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
-	testhelpers.MustNotRun(t, ruleSet.Any(), "abc", errors.CodeType)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
+	testhelpers.MustNotApply(t, ruleSet.Any(), "abc", errors.CodeType)
 
 	ruleSet = ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if strval, ok := v.(string); ok {
@@ -139,6 +139,6 @@ func TestInterfaceWithCast(t *testing.T) {
 		return nil, nil
 	})
 
-	testhelpers.MustRunMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
-	testhelpers.MustRunMutation(t, ruleSet.Any(), "abc", MyTestImplStr("abc"))
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), "abc", MyTestImplStr("abc"))
 }

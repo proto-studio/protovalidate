@@ -2,6 +2,7 @@ package testhelpers
 
 import (
 	"context"
+	"reflect"
 	"sync/atomic"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -116,6 +117,10 @@ func NewMockErrors(count int) []errors.ValidationError {
 // the call count is thread safe.
 type MockRuleSet[T any] struct {
 	MockRule[T]
+
+	// OutputValue is the value to output from the Apply function.
+	// If it is nil, the input value will be output unaltered.
+	OutputValue *T
 }
 
 // NewMockRule creates a new MockRule.
@@ -131,26 +136,44 @@ func (mockRuleSet *MockRuleSet[T]) Required() bool {
 // Apply tries to do a simple cast and returns an error if it fails. It then calls
 // Evaluate. Cast errors do not count towards the run count.
 func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
-	// Check if output is of the correct type
-	outputVal, ok := output.(*T)
-	if !ok {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output,
-		))
+	// Check if the output is a nil pointer, handle error case
+	if output == nil {
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output cannot be nil"))
 	}
 
-	// Attempt to cast the input value directly to the expected type T
-	if valueOfType, ok := input.(T); ok {
-		*outputVal = valueOfType
-		return mockRuleSet.Evaluate(ctx, valueOfType)
+	outputVal := reflect.ValueOf(output)
+
+	// Check if output is a pointer
+	if outputVal.Kind() != reflect.Ptr {
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output must be a pointer, got %T", output))
 	}
 
-	// If casting fails, return a coercion error
-	var empty T
-	*outputVal = empty
-	return errors.Collection(
-		errors.NewCoercionError(ctx, "mock", "mock"),
-	)
+	outputElem := outputVal.Elem()
+
+	// Handle mockRuleSet.OutputValue if it is not nil
+	if mockRuleSet.OutputValue != nil {
+		mockValue := reflect.ValueOf(*mockRuleSet.OutputValue)
+
+		// Ensure the mockRuleSet.OutputValue is assignable to the output's pointed type
+		if !mockValue.Type().AssignableTo(outputElem.Type()) {
+			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", mockRuleSet.OutputValue, output))
+		}
+
+		// Set the mockRuleSet.OutputValue to the output
+		outputElem.Set(mockValue)
+		return nil
+	}
+
+	// Ensure the input is assignable to the output's pointed type
+	inputVal := reflect.ValueOf(input)
+
+	if !inputVal.Type().AssignableTo(outputElem.Type()) {
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output))
+	}
+
+	// Set the input value to output
+	outputElem.Set(inputVal)
+	return nil
 }
 
 // Any returns a rule set that matches the any interface.

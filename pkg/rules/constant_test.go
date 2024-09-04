@@ -20,15 +20,15 @@ func TestConstantRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustRun(t, ruleSet.Any(), "abc")
-	testhelpers.MustNotRun(t, ruleSet.Any(), "x", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet.Any(), "abc")
+	testhelpers.MustNotApply(t, ruleSet.Any(), "x", errors.CodePattern)
 }
 
 // Requirements:
 // - Returns a coercion error if the type does not match.
 func TestConstantCoerce(t *testing.T) {
 	ruleSet := rules.Constant[string]("abc")
-	testhelpers.MustNotRun(t, ruleSet.Any(), 123, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
 }
 
 // Requirements:
@@ -49,8 +49,8 @@ func TestConstantRequired(t *testing.T) {
 		t.Error("Expected rule set to be required")
 	}
 
-	testhelpers.MustRun(t, ruleSet.Any(), "abc")
-	testhelpers.MustNotRun(t, ruleSet.Any(), "x", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet.Any(), "abc")
+	testhelpers.MustNotApply(t, ruleSet.Any(), "x", errors.CodePattern)
 
 	if ruleSet != ruleSet.WithRequired() {
 		t.Error("Expected the same rule set to be returned")

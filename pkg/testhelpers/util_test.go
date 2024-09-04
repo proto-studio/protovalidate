@@ -1,6 +1,7 @@
 package testhelpers_test
 
 import (
+	"fmt"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -11,22 +12,25 @@ import (
 type MockT struct {
 	testing.T
 
-	errorCount int
+	errorCount  int
+	errorValues []any
 }
 
-func (t *MockT) Error(...any) {
+func (t *MockT) Error(err ...any) {
 	t.errorCount++
+	t.errorValues = append(t.errorValues, err...)
 }
 
-func (t *MockT) Errorf(string, ...any) {
+func (t *MockT) Errorf(msg string, params ...any) {
 	t.errorCount++
+	t.errorValues = append(t.errorValues, fmt.Sprintf(msg, params...))
 }
 
-func TestMustBeValid(t *testing.T) {
+func TestMustApply(t *testing.T) {
 	ruleSet := rules.Any()
 
 	mockT := &MockT{}
-	if _, err := testhelpers.MustRun(mockT, ruleSet, 10); err != nil {
+	if _, err := testhelpers.MustApply(mockT, ruleSet, 10); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
@@ -36,7 +40,7 @@ func TestMustBeValid(t *testing.T) {
 	ruleSet = ruleSet.WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT = &MockT{}
-	if _, err := testhelpers.MustRun(mockT, ruleSet, 10); err == nil {
+	if _, err := testhelpers.MustApply(mockT, ruleSet, 10); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -44,7 +48,7 @@ func TestMustBeValid(t *testing.T) {
 	}
 }
 
-func TestMustBeValidFunc(t *testing.T) {
+func TestMustApplyFunc(t *testing.T) {
 	ruleSet := rules.Any()
 	callCount := 0
 
@@ -59,7 +63,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	}
 
 	mockT := &MockT{}
-	if _, err := testhelpers.MustRunFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
+	if _, err := testhelpers.MustApplyFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
@@ -72,7 +76,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	callCount = 0
 	mockT = &MockT{}
 
-	if _, err := testhelpers.MustRunFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
+	if _, err := testhelpers.MustApplyFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -83,11 +87,11 @@ func TestMustBeValidFunc(t *testing.T) {
 	}
 }
 
-func TestMustBeInvalid(t *testing.T) {
+func TestMustNotApply(t *testing.T) {
 	ruleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT := &MockT{}
-	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 0 {
@@ -96,7 +100,7 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Wrong code
-	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeMin); err != nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeMin); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 1 {
@@ -107,10 +111,32 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Is actually valid
-	if err := testhelpers.MustNotRun(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
 		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+}
+
+func TestMustApplyMutation(t *testing.T) {
+	out := 10
+
+	mockRuleSet := &testhelpers.MockRuleSet[int]{
+		OutputValue: &out,
+	}
+	mockT := &MockT{}
+
+	if _, err := testhelpers.MustApplyMutation(mockT, mockRuleSet.Any(), 5, 10); err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+
+	mockRuleSet.Reset()
+
+	if _, err := testhelpers.MustApplyMutation(mockT, mockRuleSet.Any(), 5, 7); err == nil {
+		t.Errorf("Expected error to not be nil")
 	}
 }

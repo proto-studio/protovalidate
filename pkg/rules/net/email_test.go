@@ -44,8 +44,8 @@ func TestEmailRuleSet(t *testing.T) {
 func TestEmailDefaultDomain(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
-	testhelpers.MustRun(t, ruleSet, "hello@example.com")
-	testhelpers.MustNotRun(t, ruleSet, "hello@example.bogusbogus", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, "hello@example.com")
+	testhelpers.MustNotApply(t, ruleSet, "hello@example.bogusbogus", errors.CodePattern)
 }
 
 // Requirements:
@@ -54,8 +54,8 @@ func TestEmailDefaultDomain(t *testing.T) {
 func TestEmailSplit(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
-	testhelpers.MustNotRun(t, ruleSet, "example.com", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "hello@world@example.com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "example.com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "hello@world@example.com", errors.CodePattern)
 }
 
 // Requirements:
@@ -128,8 +128,8 @@ func TestEmailWithDomain(t *testing.T) {
 	domainRuleSet := net.NewDomain().WithSuffix("edu")
 	ruleSet := net.NewEmail().WithDomain(domainRuleSet).Any()
 
-	testhelpers.MustRun(t, ruleSet, "hello@example.edu")
-	testhelpers.MustNotRun(t, ruleSet, "hello@example.com", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, "hello@example.edu")
+	testhelpers.MustNotApply(t, ruleSet, "hello@example.com", errors.CodePattern)
 }
 
 // Requirements:
@@ -138,7 +138,7 @@ func TestEmailWithDomain(t *testing.T) {
 func TestEmailType(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
-	testhelpers.MustNotRun(t, ruleSet, 123, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
 
 // Requirements:
@@ -148,10 +148,10 @@ func TestEmailType(t *testing.T) {
 func TestEmailDots(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
-	testhelpers.MustRun(t, ruleSet, "hello.world@example.com")
-	testhelpers.MustNotRun(t, ruleSet, "hello..world@example.com", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, ".helloworld@example.com", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "helloworld.@example.com", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, "hello.world@example.com")
+	testhelpers.MustNotApply(t, ruleSet, "hello..world@example.com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, ".helloworld@example.com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "helloworld.@example.com", errors.CodePattern)
 }
 
 // Requirements:
@@ -159,7 +159,7 @@ func TestEmailDots(t *testing.T) {
 func TestEmailEmptyLocal(t *testing.T) {
 	ruleSet := net.NewEmail().Any()
 
-	testhelpers.MustNotRun(t, ruleSet, "@example.com", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "@example.com", errors.CodePattern)
 }
 
 // Requirements:

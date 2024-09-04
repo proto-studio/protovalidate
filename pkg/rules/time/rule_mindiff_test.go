@@ -18,8 +18,8 @@ func TestWithMinDiff(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMinDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustNotRun(t, ruleSet, before16, errors.CodeMin)
-	testhelpers.MustRun(t, ruleSet, before14)
+	testhelpers.MustNotApply(t, ruleSet, before16, errors.CodeMin)
+	testhelpers.MustApply(t, ruleSet, before14)
 }
 
 // Requirements:

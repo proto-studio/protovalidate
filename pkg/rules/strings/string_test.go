@@ -59,7 +59,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 
 func tryStringCoercion(t testing.TB, val interface{}, expected string) {
 	ruleSet := strings.New()
-	testhelpers.MustRunMutation(t, ruleSet.Any(), val, expected)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), val, expected)
 }
 
 func TestStringCoercionFromInt(t *testing.T) {
@@ -99,7 +99,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustNotRun(t, strings.New().Any(), &val, errors.CodeType)
+	testhelpers.MustNotApply(t, strings.New().Any(), &val, errors.CodeType)
 }
 
 // Requirements:

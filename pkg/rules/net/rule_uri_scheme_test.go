@@ -11,6 +11,6 @@ import (
 func TestWithAllowedSchemes(t *testing.T) {
 	ruleSet := net.NewURI().WithAllowedSchemes("http", "https").Any()
 
-	testhelpers.MustNotRun(t, ruleSet, "ftp://example.com", errors.CodeNotAllowed)
-	testhelpers.MustRun(t, ruleSet, "http://example.com")
+	testhelpers.MustNotApply(t, ruleSet, "ftp://example.com", errors.CodeNotAllowed)
+	testhelpers.MustApply(t, ruleSet, "http://example.com")
 }

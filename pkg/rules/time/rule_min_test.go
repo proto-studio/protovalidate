@@ -18,10 +18,10 @@ func TestWithMinTime(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMin(now).Any()
 
-	testhelpers.MustNotRun(t, ruleSet, before, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, before, errors.CodeMin)
 
-	testhelpers.MustRun(t, ruleSet, now)
-	testhelpers.MustRun(t, ruleSet, after)
+	testhelpers.MustApply(t, ruleSet, now)
+	testhelpers.MustApply(t, ruleSet, after)
 }
 
 // Requirements:

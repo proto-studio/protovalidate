@@ -53,10 +53,10 @@ func TestTimeRFC3339(t *testing.T) {
 	}
 
 	ruleSet := time.NewTime()
-	testhelpers.MustNotRun(t, ruleSet.Any(), s, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339)
-	testhelpers.MustRunMutation(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
 // Requirements:
@@ -70,13 +70,13 @@ func TestTimeMultiLayout(t *testing.T) {
 	}
 
 	ruleSet := time.NewTime().WithLayouts(internalTime.RFC3339)
-	testhelpers.MustNotRun(t, ruleSet.Any(), s, errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
-	testhelpers.MustRunMutation(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.DateOnly, internalTime.RFC3339)
-	testhelpers.MustRunMutation(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
 // Requirements:
@@ -101,11 +101,11 @@ func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
 	ruleSet := time.NewTime().WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).Any()
-	testhelpers.MustNotRun(t, ruleSet, now, errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeUnknown)
 
 	rule := testhelpers.NewMockRule[internalTime.Time]()
 	ruleSet = time.NewTime().WithRuleFunc(rule.Function()).Any()
-	testhelpers.MustRun(t, ruleSet, now)
+	testhelpers.MustApply(t, ruleSet, now)
 
 	if c := rule.CallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
@@ -127,14 +127,14 @@ func TestTimePointer(t *testing.T) {
 	now := internalTime.Now()
 
 	ruleSet := time.NewTime()
-	testhelpers.MustRunMutation(t, ruleSet.Any(), &now, now)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), &now, now)
 }
 
 func TestBadType(t *testing.T) {
 	ruleSet := time.NewTime()
 	type x struct{}
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), new(x), errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), new(x), errors.CodeType)
 }
 
 // Requirements:

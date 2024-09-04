@@ -72,17 +72,17 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 		t.Errorf("Expected String() with required to be `%s`, got: `%s`", expectedStringB, actual)
 	}
 
-	testhelpers.MustRun(t, withoutRequiredAny, valid)
-	testhelpers.MustRun(t, withRequiredAny, valid)
+	testhelpers.MustApply(t, withoutRequiredAny, valid)
+	testhelpers.MustApply(t, withRequiredAny, valid)
 
-	testhelpers.MustRun(t, withoutRequiredAny, empty)
-	testhelpers.MustRun(t, withRequiredAny, empty)
+	testhelpers.MustApply(t, withoutRequiredAny, empty)
+	testhelpers.MustApply(t, withRequiredAny, empty)
 
-	testhelpers.MustRun(t, withoutRequiredAny, missing)
+	testhelpers.MustApply(t, withoutRequiredAny, missing)
 	uriPartRequiredMissingHelper(t, name, missing, withRequired)
 
 	for _, v := range additionalMissing {
-		testhelpers.MustRun(t, withoutRequiredAny, v)
+		testhelpers.MustApply(t, withoutRequiredAny, v)
 		uriPartRequiredMissingHelper(t, name, v, withRequired)
 	}
 }
@@ -147,7 +147,7 @@ func TestURICoercionFromUknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustNotRun(t, net.NewURI().Any(), &val, errors.CodeType)
+	testhelpers.MustNotApply(t, net.NewURI().Any(), &val, errors.CodeType)
 }
 
 // Requirements:
@@ -156,16 +156,16 @@ func TestURICoercionFromUknown(t *testing.T) {
 func TestURISchemeCharacterSet(t *testing.T) {
 	ruleSet := net.NewURI().Any()
 
-	testhelpers.MustRun(t, ruleSet, "test://hello")
-	testhelpers.MustRun(t, ruleSet, "test123://hello")
-	testhelpers.MustRun(t, ruleSet, "test-123://hello")
-	testhelpers.MustRun(t, ruleSet, "test.123://hello")
-	testhelpers.MustRun(t, ruleSet, "test+123://hello")
+	testhelpers.MustApply(t, ruleSet, "test://hello")
+	testhelpers.MustApply(t, ruleSet, "test123://hello")
+	testhelpers.MustApply(t, ruleSet, "test-123://hello")
+	testhelpers.MustApply(t, ruleSet, "test.123://hello")
+	testhelpers.MustApply(t, ruleSet, "test+123://hello")
 
-	testhelpers.MustNotRun(t, ruleSet, "1test://hello", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "+test://hello", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "-test://hello", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, ".test://hello", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "1test://hello", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "+test://hello", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "-test://hello", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, ".test://hello", errors.CodePattern)
 }
 
 // Requirements:
@@ -271,9 +271,9 @@ func TestURICustomContext(t *testing.T) {
 func TestURIPort(t *testing.T) {
 	ruleSet := net.NewURI().Any()
 
-	testhelpers.MustNotRun(t, ruleSet, "https://example:-1", errors.CodeMin)
-	testhelpers.MustNotRun(t, ruleSet, "https://example:65536", errors.CodeMax)
-	testhelpers.MustNotRun(t, ruleSet, "https://example:notaport", errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet, "https://example:-1", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "https://example:65536", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "https://example:notaport", errors.CodeType)
 }
 
 // Requirements:
@@ -363,11 +363,11 @@ func TestURIRelative(t *testing.T) {
 func TestURIZeroLength(t *testing.T) {
 	ruleSet := net.NewURI()
 
-	testhelpers.MustNotRun(t, ruleSet.Any(), "", errors.CodeRequired)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "", errors.CodeRequired)
 
 	ruleSet = ruleSet.WithRelative()
 
-	testhelpers.MustRun(t, ruleSet.Any(), "")
+	testhelpers.MustApply(t, ruleSet.Any(), "")
 }
 
 // Requirement:
@@ -437,7 +437,7 @@ func TestURIWithHostRequired(t *testing.T) {
 		"http:",
 	)
 
-	testhelpers.MustRun(t, withRequired.Any(), "http://")
+	testhelpers.MustApply(t, withRequired.Any(), "http://")
 }
 
 // Requirement:
@@ -515,19 +515,19 @@ func TestURIEscaping(t *testing.T) {
 	ruleSet := net.NewURI()
 
 	// Valid
-	testhelpers.MustRun(t, ruleSet.Any(), "http://example.com/hello%20world")
+	testhelpers.MustApply(t, ruleSet.Any(), "http://example.com/hello%20world")
 
 	// Strings ends exactly on two hex characters
-	testhelpers.MustRun(t, ruleSet.Any(), "http://example.com/hello%20")
+	testhelpers.MustApply(t, ruleSet.Any(), "http://example.com/hello%20")
 
 	// String ends before reading two characters
-	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%2", errors.CodeEncoding)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "http://example.com/hello%2", errors.CodeEncoding)
 
 	// Invalid hex for second character
-	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%2Zworld", errors.CodeEncoding)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "http://example.com/hello%2Zworld", errors.CodeEncoding)
 
 	// Invalid hex for both characters
-	testhelpers.MustNotRun(t, ruleSet.Any(), "http://example.com/hello%ZZworld", errors.CodeEncoding)
+	testhelpers.MustNotApply(t, ruleSet.Any(), "http://example.com/hello%ZZworld", errors.CodeEncoding)
 }
 
 // Requirements

@@ -16,8 +16,8 @@ func TestRegexString(t *testing.T) {
 	errStr := "test error"
 	ruleSet := strings.New().WithRegexpString("^[a-z]+$", errStr).Any()
 
-	testhelpers.MustRun(t, ruleSet, "abc")
-	if err := testhelpers.MustNotRun(t, ruleSet, "123", errors.CodePattern); err != nil {
+	testhelpers.MustApply(t, ruleSet, "abc")
+	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
 		if err.Error() != errStr {
 			t.Errorf("Expected error to be '%s', got: '%s'", errStr, err)
 		}
@@ -44,8 +44,8 @@ func TestRegex(t *testing.T) {
 	exp := regexp.MustCompile("^[a-z]+$")
 	ruleSet := strings.New().WithRegexp(exp, errStr).Any()
 
-	testhelpers.MustRun(t, ruleSet, "abc")
-	if err := testhelpers.MustNotRun(t, ruleSet, "123", errors.CodePattern); err != nil {
+	testhelpers.MustApply(t, ruleSet, "abc")
+	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
 		if err.Error() != errStr {
 			t.Errorf("Expected error to be '%s', got: '%s'", errStr, err)
 		}

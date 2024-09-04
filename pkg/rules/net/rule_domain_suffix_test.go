@@ -17,10 +17,10 @@ import (
 func TestDomainWithSuffix(t *testing.T) {
 	ruleSet := net.NewDomain().WithSuffix("test", "dev.local").Any()
 
-	testhelpers.MustRun(t, ruleSet, "example.test")
-	testhelpers.MustRun(t, ruleSet, "example.dev.local")
-	testhelpers.MustNotRun(t, ruleSet, "example.local", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "dev.local", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, "example.test")
+	testhelpers.MustApply(t, ruleSet, "example.dev.local")
+	testhelpers.MustNotApply(t, ruleSet, "example.local", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "dev.local", errors.CodePattern)
 }
 
 // Requirements:
@@ -30,9 +30,9 @@ func TestDomainWithSuffix(t *testing.T) {
 func TestDomainWithTLD(t *testing.T) {
 	ruleSet := net.NewDomain().WithTLD().Any()
 
-	testhelpers.MustRun(t, ruleSet, "example.com")
-	testhelpers.MustNotRun(t, ruleSet, "example.bogusbogus", errors.CodePattern)
-	testhelpers.MustNotRun(t, ruleSet, "com", errors.CodePattern)
+	testhelpers.MustApply(t, ruleSet, "example.com")
+	testhelpers.MustNotApply(t, ruleSet, "example.bogusbogus", errors.CodePattern)
+	testhelpers.MustNotApply(t, ruleSet, "com", errors.CodePattern)
 }
 
 // Requirements:

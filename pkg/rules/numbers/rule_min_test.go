@@ -12,17 +12,17 @@ import (
 func TestWithMinInt(t *testing.T) {
 	ruleSet := numbers.NewInt().WithMin(10).Any()
 
-	testhelpers.MustNotRun(t, ruleSet, 9, errors.CodeMin)
-	testhelpers.MustRun(t, ruleSet, 10)
-	testhelpers.MustRun(t, ruleSet, 11)
+	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMin)
+	testhelpers.MustApply(t, ruleSet, 10)
+	testhelpers.MustApply(t, ruleSet, 11)
 }
 
 func TestWithMinFloat(t *testing.T) {
 	ruleSet := numbers.NewFloat64().WithMin(10.0).Any()
 
-	testhelpers.MustNotRun(t, ruleSet, 9.9, errors.CodeMin)
-	testhelpers.MustRun(t, ruleSet, 10.0)
-	testhelpers.MustRun(t, ruleSet, 10.1)
+	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMin)
+	testhelpers.MustApply(t, ruleSet, 10.0)
+	testhelpers.MustApply(t, ruleSet, 10.1)
 }
 
 // Requirements:

@@ -18,9 +18,9 @@ func TestWithMaxTime(t *testing.T) {
 
 	ruleSet := time.NewTime().WithMax(now).Any()
 
-	testhelpers.MustRun(t, ruleSet, before)
-	testhelpers.MustRun(t, ruleSet, now)
-	testhelpers.MustNotRun(t, ruleSet, after, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, before)
+	testhelpers.MustApply(t, ruleSet, now)
+	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMax)
 }
 
 // Requirements:

@@ -12,9 +12,9 @@ import (
 func TestMaxLen(t *testing.T) {
 	ruleSet := strings.New().WithMaxLen(2).Any()
 
-	testhelpers.MustRun(t, ruleSet, "a")
-	testhelpers.MustRun(t, ruleSet, "ab")
-	testhelpers.MustNotRun(t, ruleSet, "abc", errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, "a")
+	testhelpers.MustApply(t, ruleSet, "ab")
+	testhelpers.MustNotApply(t, ruleSet, "abc", errors.CodeMax)
 
 }
 
