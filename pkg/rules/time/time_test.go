@@ -179,3 +179,54 @@ func TestRequiredString(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+// Requirements:
+// - Apply must convert to time.RFC3339 if output is a string.
+// - Apply must maintain input format if output and input are strings.
+// - Apply must allow the user to override the string output format.
+// - WithOutputLayout is idempotent.
+func TestTime_Apply_String(t *testing.T) {
+	now := internalTime.Now()
+	ctx := context.TODO()
+
+	rfcTime := now.Format(internalTime.RFC3339)
+	dateOnly := now.Format(internalTime.DateOnly)
+
+	ruleSet := time.NewTime()
+
+	var output string
+	errs := ruleSet.Apply(ctx, now, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != rfcTime {
+		t.Errorf(`Expected output to be "%s", got "%s"`, rfcTime, output)
+	}
+	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
+
+	errs = ruleSet.Apply(ctx, dateOnly, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != dateOnly {
+		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	}
+
+	ruleSetWithOuputLayout := ruleSet.WithOutputLayout(internalTime.DateOnly)
+
+	if ruleSet == ruleSetWithOuputLayout {
+		t.Errorf("Expected ruleSetWithOuputLayout to not equal ruleSet")
+	}
+
+	errs = ruleSetWithOuputLayout.Apply(ctx, rfcTime, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != dateOnly {
+		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	}
+
+	ruleSet = ruleSetWithOuputLayout.WithOutputLayout(internalTime.DateOnly)
+
+	if ruleSet != ruleSetWithOuputLayout {
+		t.Errorf("Expected ruleSetWithOuputLayout to equal ruleSet")
+	}
+
+}

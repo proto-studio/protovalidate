@@ -49,11 +49,18 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 }
 
 // WithLayouts returns the a new rule set with the specified string layouts allowed for string coercion.
-// The validation function will attempt each format in the order they are provided so it is recommended
-// to list more specific layouts first.
+// The validation function will attempt each format in the order they are provided and stop when a match
+// is found so it is recommended to list more specific layouts first.
+//
+// Layouts are cumulative, calling this method multiple times will result in all provided layouts across
+// all calls being allowed.
 //
 // If this method is not called then coercion from strings will not be allowed and providing a string
 // will return an error.
+//
+// By default if both the input and output of Apply are strings, the output value will be formatted to be
+// the same format as the input and non-string inputs will always be formatted as time.RFC3339. To change
+// this behavior, use WithOutputLayout.
 func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleSet {
 	layouts := make([]string, 0, 1+len(rest))
 	layouts = append(layouts, first)
@@ -65,6 +72,24 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 		parent:       ruleSet,
 		outputLayout: ruleSet.outputLayout,
 		label:        util.StringsToRuleOutput("WithLayouts", layouts),
+	}
+}
+
+// WithOutputLayout returns a new rule set with the output layout set. This layout will be used any time
+// the output value of Apply is a string pointer regardless of the type or format of the input.
+//
+// This method has no effect on input layouts. Use WithLayouts to set which layouts are allowed on input.
+// The default output format is time.RFC3339 unless the input is also a string.
+func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
+	if ruleSet.outputLayout == layout {
+		return ruleSet
+	}
+
+	return &TimeRuleSet{
+		required:     ruleSet.required,
+		parent:       ruleSet,
+		outputLayout: layout,
+		label:        util.StringsToRuleOutput("WithOutputLayout", []string{layout}),
 	}
 }
 
