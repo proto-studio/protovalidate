@@ -157,7 +157,7 @@ func TestFloatRoundingString(t *testing.T) {
 // Requirements:
 // - Evaluate behaves like Apply.
 func TestFloat_Evaluate(t *testing.T) {
-	ruleSet := numbers.NewInt().WithMin(5)
-	testhelpers.MustEvaluate[int](t, ruleSet, 10)
-	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
+	ruleSet := numbers.NewFloat64().WithMin(5)
+	testhelpers.MustEvaluate[float64](t, ruleSet, 10)
+	testhelpers.MustNotEvaluate[float64](t, ruleSet, 1, errors.CodeMin)
 }

@@ -69,3 +69,17 @@ func TestConstantRequiredString(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+// Requirements:
+// - Conflict always returns true for ConstantRuleSet.
+func TestConstantRuleSet_Conflict(t *testing.T) {
+	abc := rules.Constant("abc")
+	xyz := rules.Constant("xyz")
+
+	if !abc.Conflict(xyz) {
+		t.Error("Expected Conflict to be true for abc -> xyz")
+	}
+	if !xyz.Conflict(abc) {
+		t.Error("Expected Conflict to be true for xyz -> abc")
+	}
+}

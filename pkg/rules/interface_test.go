@@ -56,6 +56,10 @@ func TestInterfaceRequired(t *testing.T) {
 
 	ruleSet = ruleSet.WithRequired()
 
+	if ruleSet.WithRequired() != ruleSet {
+		t.Error("Expected WithRequired to be idempotent")
+	}
+
 	if !ruleSet.Required() {
 		t.Error("Expected rule set to be required")
 	}
