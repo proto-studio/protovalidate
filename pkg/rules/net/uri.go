@@ -278,11 +278,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 	case reflect.String:
 		outputElem.SetString(valueStr)
 	case reflect.Interface:
-		if !outputElem.IsNil() {
-			outputElem.Set(reflect.ValueOf(valueStr))
-		} else {
-			outputElem.Set(reflect.ValueOf(valueStr))
-		}
+		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
 		return errors.Collection(errors.Errorf(
 			errors.CodeInternal, ctx, "Cannot assign string to %T", output,

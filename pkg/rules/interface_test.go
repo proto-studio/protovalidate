@@ -77,7 +77,7 @@ func TestInterfaceCustom(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet.Any(), MyTestImpl{})
 
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 	}
 }

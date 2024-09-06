@@ -146,7 +146,7 @@ func TestStringCustom(t *testing.T) {
 	}
 
 	// Verify that the rule was called exactly once
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}

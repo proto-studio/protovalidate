@@ -622,8 +622,8 @@ func TestCustom(t *testing.T) {
 		t.Errorf("Expected 5 errors, got: %d", len(err))
 	}
 
-	if mock.CallCount() != 2 {
-		t.Errorf("Expected rule to be called 2 times, got %d", mock.CallCount())
+	if mock.EvaluateCallCount() != 2 {
+		t.Errorf("Expected rule to be called 2 times, got %d", mock.EvaluateCallCount())
 	}
 }
 

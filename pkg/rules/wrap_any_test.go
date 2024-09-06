@@ -131,3 +131,58 @@ func TestWrapAnyRuleString(t *testing.T) {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
+
+// Requirement:
+// - Evaluate calls Apply and not Evaluate on the wrapped RuleSets that do not implement Rule[any].
+// - Evaluate calls Evaluate on the wrapped RuleSets that do implement Rule[any].
+// - In both cases the custom rules gets called exactly once.
+//
+// This is the only exception to the policy that testhelper.MustEvaluate/MustNotEvaluate
+// cannot be used with WrapAnyRuleSet.
+func TestWrapAnyEvaluate(t *testing.T) {
+	v := 123
+
+	// Both these should call Evaluate on the underlying rule but not Apply
+
+	innerRuleSet := testhelpers.NewMockRuleSet[int]()
+	innerRuleSet.OutputValue = &v
+	ruleSet := rules.WrapAny[int](innerRuleSet)
+	testhelpers.MustEvaluate[any](t, ruleSet, 123)
+
+	if a := innerRuleSet.ApplyCallCount(); a != 0 {
+		t.Errorf("Expected ApplyCallCount to be 0, got: %d", a)
+	} else if e := innerRuleSet.EvaluateCallCount(); e != 1 {
+		t.Errorf("Expected EvaluateCallCount to be 1, got: %d", a)
+	}
+
+	innerRuleSetWithErrors := testhelpers.NewMockRuleSetWithErrors[int](1)
+	innerRuleSetWithErrors.OutputValue = &v
+	ruleSetWithErrors := rules.WrapAny[int](innerRuleSetWithErrors)
+	testhelpers.MustNotEvaluate[any](t, ruleSetWithErrors, 123, errors.CodeUnknown)
+
+	if a := innerRuleSetWithErrors.ApplyCallCount(); a != 0 {
+		t.Errorf("Expected ApplyCallCount to be 0, got: %d", a)
+	} else if e := innerRuleSetWithErrors.EvaluateCallCount(); e != 1 {
+		t.Errorf("Expected EvaluateCallCount to be 1, got: %d", a)
+	}
+
+	// Both of these should call Apply since the input type cannot be cast to int
+
+	innerRuleSet.Reset()
+	testhelpers.MustEvaluate[any](t, ruleSet, "123")
+
+	if e := innerRuleSet.EvaluateCallCount(); e != 0 {
+		t.Errorf("Expected EvaluateCallCount to be 0, got: %d", e)
+	} else if a := innerRuleSet.ApplyCallCount(); a != 1 {
+		t.Errorf("Expected ApplyCallCount to be 1, got: %d", a)
+	}
+
+	innerRuleSetWithErrors.Reset()
+	testhelpers.MustNotEvaluate[any](t, ruleSetWithErrors, "123", errors.CodeUnknown)
+
+	if e := innerRuleSetWithErrors.EvaluateCallCount(); e != 0 {
+		t.Errorf("Expected EvaluateCallCount to be 0, got: %d", e)
+	} else if a := innerRuleSetWithErrors.ApplyCallCount(); a != 1 {
+		t.Errorf("Expected ApplyCallCount to be 1, got: %d", a)
+	}
+}

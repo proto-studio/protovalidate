@@ -84,15 +84,9 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 	// Set the string result in the output parameter
 	elem := rv.Elem()
 
-	// Check if the interface is nil or not holding a value
-	if elem.Kind() == reflect.Interface && elem.IsNil() {
-		// Create a new string value and set the interface to point to it
-		elem.Set(reflect.ValueOf(str))
-		return nil
-	}
-
-	// If the element is still an interface, replace its entire value with the new string
+	// Check if the output is an interface
 	if elem.Kind() == reflect.Interface {
+		// Create a new string value and set the interface to point to it
 		elem.Set(reflect.ValueOf(str))
 		return nil
 	}

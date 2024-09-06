@@ -118,8 +118,8 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 
-	if mock.CallCount() != 1 {
-		t.Errorf("Expected rule to be called 1 time, got %d", mock.CallCount())
+	if mock.EvaluateCallCount() != 1 {
+		t.Errorf("Expected rule to be called 1 time, got %d", mock.EvaluateCallCount())
 		return
 	}
 
@@ -135,7 +135,7 @@ func TestDomainCustom(t *testing.T) {
 		return
 	}
 
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}

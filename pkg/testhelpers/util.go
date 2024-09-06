@@ -180,3 +180,49 @@ func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
 		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `nil` output, got: %s", errors.CodeInternal, code)
 	}
 }
+
+// MustEvaluate is a test helper that expects a Rule to return nil for an error.
+// If the error is non-nil, this function prints the error and returns it.
+//
+// WrapAnyRuleSet calls Apply because of the less strict input type, so when testing Evaluate it is important
+// to not use .Any() with this test.
+func MustEvaluate[T any](t testing.TB, rule rules.Rule[T], input T) error {
+	t.Helper()
+
+	err := rule.Evaluate(context.TODO(), input)
+
+	if err != nil {
+		str := "Expected error to be nil"
+
+		for _, inner := range err {
+			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
+		}
+
+		t.Errorf(str)
+		return err
+	}
+
+	return nil
+}
+
+// MustNotEvaluate is a test helper that expects a Rule to return an error and checks for a specific error code.
+// If the error is nil or the code does not match, a testing error is printed and the function returns false.
+//
+// This function returns the error on "success" so that you can perform additional comparisons.
+//
+// WrapAnyRuleSet calls Apply because of the less strict input type, so when testing Evaluate it is important
+// to not use .Any() with this test.
+func MustNotEvaluate[T any](t testing.TB, rule rules.Rule[T], input T, errorCode errors.ErrorCode) error {
+	t.Helper()
+	err := rule.Evaluate(context.TODO(), input)
+
+	if err == nil {
+		t.Error("Expected error to not be nil")
+		return nil
+	} else if err.First().Code() != errorCode {
+		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.First().Code(), err)
+		return nil
+	}
+
+	return err
+}

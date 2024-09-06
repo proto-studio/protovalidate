@@ -67,7 +67,7 @@ func TestAnyCustom(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet, "123")
 
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 	}
 }

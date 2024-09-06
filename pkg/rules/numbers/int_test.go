@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/testhelpers"
@@ -136,7 +137,7 @@ func TestIntCustom(t *testing.T) {
 		return
 	}
 
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
@@ -194,4 +195,12 @@ func TestIntRoundingString(t *testing.T) {
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
+}
+
+// Requirements:
+// - Evaluate behaves like Apply.
+func TestInt_Evaluate(t *testing.T) {
+	ruleSet := numbers.NewInt().WithMin(5)
+	testhelpers.MustEvaluate[int](t, ruleSet, 10)
+	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
 }

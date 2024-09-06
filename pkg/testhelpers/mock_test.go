@@ -74,27 +74,27 @@ func TestMockCounter(t *testing.T) {
 	mock := testhelpers.NewMockRule[int]()
 	ctx := context.Background()
 
-	if mock.CallCount() != 0 {
-		t.Errorf("Expected call count to be %d, got %d", 0, mock.CallCount())
+	if mock.EvaluateCallCount() != 0 {
+		t.Errorf("Expected call count to be %d, got %d", 0, mock.EvaluateCallCount())
 	}
 
 	mock.Evaluate(ctx, 1)
 
-	if mock.CallCount() != 1 {
-		t.Errorf("Expected call count to be %d, got %d", 1, mock.CallCount())
+	if mock.EvaluateCallCount() != 1 {
+		t.Errorf("Expected call count to be %d, got %d", 1, mock.EvaluateCallCount())
 	}
 
 	mock.Evaluate(ctx, 1)
 	mock.Evaluate(ctx, 1)
 
-	if mock.CallCount() != 3 {
-		t.Errorf("Expected call count to be %d, got %d", 3, mock.CallCount())
+	if mock.EvaluateCallCount() != 3 {
+		t.Errorf("Expected call count to be %d, got %d", 3, mock.EvaluateCallCount())
 	}
 
 	mock.Reset()
 
-	if mock.CallCount() != 0 {
-		t.Errorf("Expected call count to be %d, got %d", 0, mock.CallCount())
+	if mock.EvaluateCallCount() != 0 {
+		t.Errorf("Expected call count to be %d, got %d", 0, mock.EvaluateCallCount())
 	}
 }
 

@@ -578,11 +578,11 @@ func TestURICustomConflict(t *testing.T) {
 		t.Errorf("Expected errors to be nil, got: %s", err)
 	}
 
-	if mockA.CallCount() != 1 {
-		t.Errorf("Expected 1 call to Evaluate, got: %d", mockA.CallCount())
+	if mockA.EvaluateCallCount() != 1 {
+		t.Errorf("Expected 1 call to Evaluate, got: %d", mockA.EvaluateCallCount())
 	}
 
-	if mockB.CallCount() != 3 {
-		t.Errorf("Expected 3 call to Evaluate, got: %d", mockB.CallCount())
+	if mockB.EvaluateCallCount() != 3 {
+		t.Errorf("Expected 3 call to Evaluate, got: %d", mockB.EvaluateCallCount())
 	}
 }

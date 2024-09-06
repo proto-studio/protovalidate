@@ -279,3 +279,55 @@ func TestMustApplyTypes(t *testing.T) {
 		t.Errorf("Expected 2 errors on mock failed success cases, got: %d", mockT.errorCount)
 	}
 }
+
+func TestMustEvaluate(t *testing.T) {
+	rule := testhelpers.NewMockRuleWithErrors[any](1)
+
+	mockT := &MockT{}
+	if err := testhelpers.MustEvaluate[any](mockT, rule, 10); err == nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+
+	rule = testhelpers.NewMockRule[any]()
+	mockT = &MockT{}
+	if err := testhelpers.MustEvaluate[any](mockT, rule, 10); err != nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+}
+
+func TestMustNotEvaluate(t *testing.T) {
+	rule := testhelpers.NewMockRuleWithErrors[any](1)
+
+	mockT := &MockT{}
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeUnknown); err == nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+
+	mockT = &MockT{}
+	// Wrong code
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeMin); err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+
+	rule = testhelpers.NewMockRule[any]()
+	mockT = &MockT{}
+	// Is actually valid
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeUnknown); err != nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+}

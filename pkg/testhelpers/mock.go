@@ -18,7 +18,7 @@ import (
 // the call count is thread safe.
 type MockRule[T any] struct {
 	// Use int64 for atomic operations compatibility
-	callCount int64
+	evaluateCallCount int64
 
 	// fn stores the function representation of the rule
 	fn func(_ context.Context, _ T) errors.ValidationErrorCollection
@@ -43,19 +43,22 @@ func NewMockRuleWithErrors[T any](count int) *MockRule[T] {
 	}
 }
 
+// defaultErrors returns a collection of the default errors or nil depending on how the mock is configured
+func (rule *MockRule[T]) defaultErrors() errors.ValidationErrorCollection {
+	if rule.Errors != nil && len(rule.Errors) > 0 {
+		return errors.Collection(rule.Errors...)
+	}
+	return nil
+}
+
 // Evaluate takes a context and a value to evaluate.
 // The return value will be different depending on the settings of the mock:
 // - If errors are set then it will return all the errors.
 // - If an override return value is set it will return that.
 // - If neither, it will return the original value and no errors.
 func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	atomic.AddInt64(&rule.callCount, 1)
-
-	if rule.Errors != nil && len(rule.Errors) > 0 {
-		return errors.Collection(rule.Errors...)
-	}
-
-	return nil
+	atomic.AddInt64(&rule.evaluateCallCount, 1)
+	return rule.defaultErrors()
 }
 
 // Conflict returns true for any MockCustomRule with the ConflictKey set to the same value.
@@ -72,19 +75,19 @@ func (rule *MockRule[T]) String() string {
 	return "WithMock()"
 }
 
-// CallCount returns the number of times the Evaluate function was called.
-func (rule *MockRule[T]) CallCount() int64 {
-	return atomic.LoadInt64(&rule.callCount)
+// EvaluateCallCount returns the number of times the Evaluate function was called.
+func (rule *MockRule[T]) EvaluateCallCount() int64 {
+	return atomic.LoadInt64(&rule.evaluateCallCount)
 }
 
-// Reset resets the call count to 0.
+// Reset resets the evaluate call count to 0.
 func (rule *MockRule[T]) Reset() {
-	atomic.StoreInt64(&rule.callCount, 0)
+	atomic.StoreInt64(&rule.evaluateCallCount, 0)
 }
 
 // Function returns a function rule implementation of the rule for testing WithCustomFunc implementations.
 // Call count is shared so if you have a function and a struct representation of a mock rule, the counter
-// will be synchronized. However, there is no way to get teh call count directly from the function so you should
+// will be synchronized. However, there is no way to get the call count directly from the function so you should
 // store a copy of the MockCustomRule if you wish to retrieve the count.
 //
 // Calling this function more than once will result in the same function being returned.
@@ -121,6 +124,9 @@ type MockRuleSet[T any] struct {
 	// OutputValue is the value to output from the Apply function.
 	// If it is nil, the input value will be output unaltered.
 	OutputValue *T
+
+	// Use int64 for atomic operations compatibility
+	applyCallCount int64
 }
 
 // NewMockRule creates a new MockRule.
@@ -128,14 +134,36 @@ func NewMockRuleSet[T any]() *MockRuleSet[T] {
 	return &MockRuleSet[T]{}
 }
 
+// NewMockRuleSetWithErrors creates a new MockRuleSet with errors set.
+func NewMockRuleSetWithErrors[T any](count int) *MockRuleSet[T] {
+	return &MockRuleSet[T]{
+		MockRule: MockRule[T]{
+			Errors: NewMockErrors(count),
+		},
+	}
+}
+
 // Required always returns false for the mock rule set
 func (mockRuleSet *MockRuleSet[T]) Required() bool {
 	return false
 }
 
+// Reset resets the evaluate and apply call counts to 0.
+func (ruleSet *MockRuleSet[T]) Reset() {
+	atomic.StoreInt64(&ruleSet.evaluateCallCount, 0)
+	atomic.StoreInt64(&ruleSet.applyCallCount, 0)
+}
+
+// ApplyCallCount returns the number of times the Apply function was called.
+func (mockRuleSet *MockRuleSet[T]) ApplyCallCount() int64 {
+	return atomic.LoadInt64(&mockRuleSet.applyCallCount)
+}
+
 // Apply tries to do a simple cast and returns an error if it fails. It then calls
 // Evaluate. Cast errors do not count towards the run count.
 func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	atomic.AddInt64(&mockRuleSet.applyCallCount, 1)
+
 	// Check if the output is a nil pointer, handle error case
 	if output == nil {
 		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output cannot be nil"))
@@ -161,7 +189,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 
 		// Set the mockRuleSet.OutputValue to the output
 		outputElem.Set(mockValue)
-		return nil
+		return mockRuleSet.defaultErrors()
 	}
 
 	// Ensure the input is assignable to the output's pointed type
@@ -173,7 +201,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 
 	// Set the input value to output
 	outputElem.Set(inputVal)
-	return nil
+	return mockRuleSet.defaultErrors()
 }
 
 // Any returns a rule set that matches the any interface.

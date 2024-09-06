@@ -106,7 +106,7 @@ func TestTimeCustom(t *testing.T) {
 	ruleSet = time.NewTime().WithRuleFunc(rule.Function()).Any()
 	testhelpers.MustApply(t, ruleSet, now)
 
-	if c := rule.CallCount(); c != 1 {
+	if c := rule.EvaluateCallCount(); c != 1 {
 		t.Errorf("Expected rule to be called once, got %d", c)
 		return
 	}
