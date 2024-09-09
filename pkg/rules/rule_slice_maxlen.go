@@ -1,11 +1,10 @@
-package arrays
+package rules
 
 import (
 	"context"
 	"fmt"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for maximum length
@@ -24,7 +23,7 @@ func (rule *maxLenRule[T]) Evaluate(ctx context.Context, value []T) errors.Valid
 }
 
 // Conflict returns true for any maximum length rule.
-func (rule *maxLenRule[T]) Conflict(x rules.Rule[[]T]) bool {
+func (rule *maxLenRule[T]) Conflict(x Rule[[]T]) bool {
 	_, ok := x.(*maxLenRule[T])
 	return ok
 }
@@ -36,7 +35,7 @@ func (rule *maxLenRule[T]) String() string {
 }
 
 // WithMaxLen returns a new child RuleSet that is constrained to the provided maximum array/slice length.
-func (v *ArrayRuleSet[T]) WithMaxLen(min int) *ArrayRuleSet[T] {
+func (v *SliceRuleSet[T]) WithMaxLen(min int) *SliceRuleSet[T] {
 	return v.WithRule(&maxLenRule[T]{
 		min,
 	})

@@ -1,14 +1,14 @@
-package arrays_test
+package rules_test
 
 import (
 	"context"
 	"testing"
 
-	"proto.zip/studio/validate/pkg/rules/arrays"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 func TestMinLen(t *testing.T) {
-	ruleSet := arrays.New[int]().WithMinLen(2)
+	ruleSet := rules.NewSlice[int]().WithMinLen(2)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -39,7 +39,7 @@ func TestMinLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 func TestMinLenConflict(t *testing.T) {
-	ruleSet := arrays.New[int]().WithMinLen(3).WithMaxLen(10)
+	ruleSet := rules.NewSlice[int]().WithMinLen(3).WithMaxLen(10)
 
 	// Prepare an output variable for Apply
 	var output []int

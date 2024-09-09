@@ -1,4 +1,4 @@
-package arrays
+package rules
 
 import (
 	"context"
@@ -8,38 +8,37 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implementation of RuleSet for arrays of a given type.
-type ArrayRuleSet[T any] struct {
-	rules.NoConflict[[]T]
-	itemRules rules.RuleSet[T]
-	rule      rules.Rule[[]T]
+type SliceRuleSet[T any] struct {
+	NoConflict[[]T]
+	itemRules RuleSet[T]
+	rule      Rule[[]T]
 	required  bool
-	parent    *ArrayRuleSet[T]
+	parent    *SliceRuleSet[T]
 	label     string
 }
 
 // NewInt creates a new array RuleSet.
-func New[T any]() *ArrayRuleSet[T] {
+func NewSlice[T any]() *SliceRuleSet[T] {
 	var empty [0]T
 
-	return &ArrayRuleSet[T]{
+	return &SliceRuleSet[T]{
 		label: fmt.Sprintf("ArrayRuleSet[%s]", reflect.TypeOf(empty).Elem().Kind()),
 	}
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
-func (v *ArrayRuleSet[T]) Required() bool {
+func (v *SliceRuleSet[T]) Required() bool {
 	return v.required
 }
 
 // WithRequired returns a new child rule set with the required flag set.
 // Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
 // Required has no effect on integer if the RuleSet is strict since nil is not a valid number.
-func (v *ArrayRuleSet[T]) WithRequired() *ArrayRuleSet[T] {
-	return &ArrayRuleSet[T]{
+func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
+	return &SliceRuleSet[T]{
 		parent:   v,
 		required: true,
 		label:    "WithRequired()",
@@ -51,8 +50,8 @@ func (v *ArrayRuleSet[T]) WithRequired() *ArrayRuleSet[T] {
 // If this function is called more than once, only the most recent one will be used to validate the items.
 // If you don't set an item rule set then the validator will attempt to cast the items to the correct type
 // and perform no additional validation.
-func (v *ArrayRuleSet[T]) WithItemRuleSet(itemRules rules.RuleSet[T]) *ArrayRuleSet[T] {
-	return &ArrayRuleSet[T]{
+func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T] {
+	return &SliceRuleSet[T]{
 		itemRules: itemRules,
 		parent:    v,
 		required:  v.required,
@@ -61,7 +60,7 @@ func (v *ArrayRuleSet[T]) WithItemRuleSet(itemRules rules.RuleSet[T]) *ArrayRule
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
-func (v *ArrayRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
@@ -85,7 +84,7 @@ func (v *ArrayRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	var allErrors = errors.Collection()
 
 	// Check for an item RuleSet
-	var itemRuleSet rules.RuleSet[T]
+	var itemRuleSet RuleSet[T]
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.itemRules != nil {
@@ -158,14 +157,14 @@ func (v *ArrayRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 
 // Evaluate performs a validation of a RuleSet against a the array/slice type and returns a value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *ArrayRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
+func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
 	var out any
 	return ruleSet.Apply(ctx, value, &out)
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *ArrayRuleSet[T]) noConflict(rule rules.Rule[[]T]) *ArrayRuleSet[T] {
+func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 
 	if ruleSet.rule != nil {
 
@@ -186,7 +185,7 @@ func (ruleSet *ArrayRuleSet[T]) noConflict(rule rules.Rule[[]T]) *ArrayRuleSet[T
 		return ruleSet
 	}
 
-	return &ArrayRuleSet[T]{
+	return &SliceRuleSet[T]{
 		rule:      ruleSet.rule,
 		parent:    newParent,
 		required:  ruleSet.required,
@@ -199,9 +198,9 @@ func (ruleSet *ArrayRuleSet[T]) noConflict(rule rules.Rule[[]T]) *ArrayRuleSet[T
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given array and item type.
 //
-// Use this when implementing custom rules.
-func (v *ArrayRuleSet[T]) WithRule(rule rules.Rule[[]T]) *ArrayRuleSet[T] {
-	return &ArrayRuleSet[T]{
+// Use this when implementing custom
+func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
+	return &SliceRuleSet[T]{
 		rule:     rule,
 		parent:   v.noConflict(rule),
 		required: v.required,
@@ -212,19 +211,19 @@ func (v *ArrayRuleSet[T]) WithRule(rule rules.Rule[[]T]) *ArrayRuleSet[T] {
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // for the given array and item type.
 //
-// Use this when implementing custom rules.
-func (v *ArrayRuleSet[T]) WithRuleFunc(rule rules.RuleFunc[[]T]) *ArrayRuleSet[T] {
+// Use this when implementing custom
+func (v *SliceRuleSet[T]) WithRuleFunc(rule RuleFunc[[]T]) *SliceRuleSet[T] {
 	return v.WithRule(rule)
 }
 
 // Any returns a new RuleSet that wraps the array RuleSet in any Any rule set
 // which can then be used in nested validation.
-func (v *ArrayRuleSet[T]) Any() rules.RuleSet[any] {
-	return rules.WrapAny[[]T](v)
+func (v *SliceRuleSet[T]) Any() RuleSet[any] {
+	return WrapAny[[]T](v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.
-func (ruleSet *ArrayRuleSet[T]) String() string {
+func (ruleSet *SliceRuleSet[T]) String() string {
 	label := ruleSet.label
 
 	if label == "" {

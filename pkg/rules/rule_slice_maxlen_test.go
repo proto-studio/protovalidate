@@ -1,14 +1,14 @@
-package arrays_test
+package rules_test
 
 import (
 	"context"
 	"testing"
 
-	"proto.zip/studio/validate/pkg/rules/arrays"
+	"proto.zip/studio/validate/pkg/rules"
 )
 
 func TestMaxLen(t *testing.T) {
-	ruleSet := arrays.New[int]().WithMaxLen(2)
+	ruleSet := rules.NewSlice[int]().WithMaxLen(2)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -39,7 +39,7 @@ func TestMaxLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
 func TestMaxLenConflict(t *testing.T) {
-	ruleSet := arrays.New[int]().WithMaxLen(3).WithMinLen(1)
+	ruleSet := rules.NewSlice[int]().WithMaxLen(3).WithMinLen(1)
 
 	// Prepare an output variable for Apply
 	var output []int

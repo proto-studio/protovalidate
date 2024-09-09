@@ -1,4 +1,4 @@
-package arrays_test
+package rules_test
 
 import (
 	"context"
@@ -6,20 +6,7 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/arrays"
 )
-
-type MyTestInterface interface {
-	internal()
-}
-
-type MyTestImplInt int
-
-func (x MyTestImplInt) internal() {}
-
-type MyTestImplStr string
-
-func (x MyTestImplStr) internal() {}
 
 type InterfaceTest struct {
 	IntTest    MyTestInterface
@@ -45,7 +32,7 @@ func TestInterfaceStruct(t *testing.T) {
 			return nil, nil
 		})
 
-	ruleSet := arrays.New[MyTestInterface]().WithItemRuleSet(innerRuleSet)
+	ruleSet := rules.NewSlice[MyTestInterface]().WithItemRuleSet(innerRuleSet)
 
 	// Prepare an output variable for Apply
 	var output []MyTestInterface
