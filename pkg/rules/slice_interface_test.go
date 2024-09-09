@@ -16,7 +16,7 @@ type InterfaceTest struct {
 
 // Requirements:
 // - Can cast to interface.
-func TestInterfaceStruct(t *testing.T) {
+func TestInterfaceSlice(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
 		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 			if v == nil {

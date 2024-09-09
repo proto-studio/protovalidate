@@ -15,7 +15,7 @@ var constCacheMap map[any]any
 // ConstantRuleSet implements RuleSet that returns an error for
 // any value that does not match the constant.
 //
-// This is primary used for conditional rules. To test a constant of a specific
+// This is primary used for conditional  To test a constant of a specific
 // type it is usually best to use that type.
 type ConstantRuleSet[T comparable] struct {
 	required bool

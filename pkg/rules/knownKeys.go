@@ -1,4 +1,4 @@
-package objects
+package rules
 
 import (
 	"context"

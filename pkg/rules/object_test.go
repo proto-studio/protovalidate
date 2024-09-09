@@ -1,4 +1,4 @@
-package objects_test
+package rules_test
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
-	"proto.zip/studio/validate/pkg/rules/objects"
 	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -55,7 +54,7 @@ func TestObjectRuleSet(t *testing.T) {
 	var out *testStruct
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStruct]().
+	err := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Apply(context.TODO(), testMap(), &out)
@@ -66,7 +65,7 @@ func TestObjectRuleSet(t *testing.T) {
 	}
 
 	// Verify that the rule set interface is implemented correctly
-	ok := testhelpers.CheckRuleSetInterface[*testStruct](objects.New[*testStruct]())
+	ok := testhelpers.CheckRuleSetInterface[*testStruct](rules.NewStruct[*testStruct]())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
@@ -74,8 +73,8 @@ func TestObjectRuleSet(t *testing.T) {
 
 	// Test both pointer and non-pointer.
 	// These cases are tested in more detail in other tests.
-	testhelpers.MustApplyTypes[testStruct](t, objects.New[testStruct](), testStruct{})
-	testhelpers.MustApplyTypes[*testStruct](t, objects.New[*testStruct](), &testStruct{})
+	testhelpers.MustApplyTypes[testStruct](t, rules.NewStruct[testStruct](), testStruct{})
+	testhelpers.MustApplyTypes[*testStruct](t, rules.NewStruct[*testStruct](), &testStruct{})
 }
 
 func TestObjectOutput_Apply(t *testing.T) {
@@ -87,7 +86,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 		Age int
 	}
 
-	ruleSet := objects.New[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.NewStruct[outStruct]().WithJson().WithKey("Name", validate.String().Any())
 	ctx := context.Background()
 
 	input := `{"Name": "Test"}`
@@ -196,7 +195,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 		Age int
 	}
 
-	ruleSet := objects.New[*outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.NewStruct[*outStruct]().WithJson().WithKey("Name", validate.String().Any())
 	ctx := context.Background()
 
 	input := `{"Name": "Test"}`
@@ -270,7 +269,7 @@ func TestObjectFromMapToMap(t *testing.T) {
 	var out map[string]any
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
@@ -303,7 +302,7 @@ func TestObjectFromMapToStruct(t *testing.T) {
 	var out *testStruct
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStruct]().
+	err := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
@@ -338,7 +337,7 @@ func TestObjectFromStructToMap(t *testing.T) {
 	var out map[string]any
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
@@ -373,7 +372,7 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	var out *testStruct
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStruct]().
+	err := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
@@ -406,7 +405,7 @@ func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 		}
 	}()
 
-	objects.New[int]()
+	rules.NewStruct[int]()
 }
 
 func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
@@ -420,7 +419,7 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 		}
 	}()
 
-	objects.New[*testStruct]().WithKey("a", strings.New().Any())
+	rules.NewStruct[*testStruct]().WithKey("a", strings.New().Any())
 }
 
 // This function is deprecated and will be removed in v1.0.0.
@@ -430,7 +429,7 @@ func TestKeyFunction(t *testing.T) {
 	var out *testStructMapped
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStructMapped]().
+	err := rules.NewStruct[*testStructMapped]().
 		Key("A", numbers.NewInt().Any()).
 		Key("C", numbers.NewInt().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
@@ -466,7 +465,7 @@ func TestObjectMapping(t *testing.T) {
 	var out *testStructMapped
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStructMapped]().
+	err := rules.NewStruct[*testStructMapped]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("C", numbers.NewInt().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
@@ -502,7 +501,7 @@ func TestMissingField(t *testing.T) {
 	var out map[string]int
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[int]().
+	err := rules.NewStringMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt()).
 		Apply(context.TODO(), map[string]any{"A": 123}, &out)
@@ -539,7 +538,7 @@ func TestUnderlyingMapField(t *testing.T) {
 	var out map[string]int
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[int]().
+	err := rules.NewStringMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt()).
 		Apply(context.TODO(), input, &out)
@@ -571,7 +570,7 @@ func TestMissingRequiredField(t *testing.T) {
 	var out map[string]int
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[int]().
+	err := rules.NewStringMap[int]().
 		WithKey("A", numbers.NewInt()).
 		WithKey("B", numbers.NewInt().WithRequired()).
 		Apply(context.TODO(), map[string]any{"A": 123}, &out)
@@ -581,8 +580,8 @@ func TestMissingRequiredField(t *testing.T) {
 	}
 }
 
-func TestWithRequired(t *testing.T) {
-	ruleSet := objects.NewObjectMap[int]()
+func TestObjectWithRequired(t *testing.T) {
+	ruleSet := rules.NewStringMap[int]()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -596,7 +595,7 @@ func TestWithRequired(t *testing.T) {
 }
 
 func TestUnknownFields(t *testing.T) {
-	ruleSet := objects.NewObjectMap[int]().WithKey("A", numbers.NewInt())
+	ruleSet := rules.NewStringMap[int]().WithKey("A", numbers.NewInt())
 	value := map[string]any{"A": 123, "C": 456}
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), value, errors.CodeUnexpected)
@@ -609,7 +608,7 @@ func TestInputNotObjectLike(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStruct
 
-	err := objects.New[*testStruct]().
+	err := rules.NewStruct[*testStruct]().
 		Apply(context.TODO(), 123, &out)
 
 	if err == nil {
@@ -622,7 +621,7 @@ func TestReturnsAllErrors(t *testing.T) {
 	var out map[string]any
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
@@ -635,14 +634,14 @@ func TestReturnsAllErrors(t *testing.T) {
 	}
 }
 
-func TestReturnsCorrectPaths(t *testing.T) {
+func TestObjectReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
 	// Prepare the output variable for Apply
 	var out map[string]any
 
 	// Use Apply instead of ValidateWithContext
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().WithStrict().Any()).
@@ -679,7 +678,7 @@ func TestMixedMap(t *testing.T) {
 	var out map[string]any
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("B", numbers.NewInt().Any()).
 		WithKey("C", strings.New().Any()).
@@ -691,14 +690,14 @@ func TestMixedMap(t *testing.T) {
 	}
 }
 
-func TestCustom(t *testing.T) {
+func TestObjectCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[*testStruct](1)
 
 	// Prepare the output variable for Apply
 	var out *testStruct
 
 	// Use Apply instead of Validate
-	err := objects.New[*testStruct]().
+	err := rules.NewStruct[*testStruct]().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
 		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": "789"}, &out)
@@ -715,7 +714,7 @@ func TestCustom(t *testing.T) {
 	}
 }
 
-func TestAny(t *testing.T) {
+func TestObjectAny(t *testing.T) {
 	ruleSet := numbers.NewFloat64().Any()
 
 	if ruleSet == nil {
@@ -725,7 +724,7 @@ func TestAny(t *testing.T) {
 
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
-	ruleSet := objects.New[*testStruct]().WithKey("W", numbers.NewInt().Any())
+	ruleSet := rules.NewStruct[*testStruct]().WithKey("W", numbers.NewInt().Any())
 
 	// Prepare the output variable for Apply
 	var obj *testStruct
@@ -750,7 +749,7 @@ type testStructMappedBug struct {
 //
 // See: https://github.com/proto-studio/protovalidate/issues/1
 func TestBug001(t *testing.T) {
-	ruleSet := objects.New[testStructMappedBug]().
+	ruleSet := rules.NewStruct[testStructMappedBug]().
 		WithKey("email", strings.New().Any())
 
 	expected := "hello@example.com"
@@ -772,10 +771,10 @@ func TestBug001(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestRequiredString(t *testing.T) {
-	ruleSet := objects.New[*testStruct]().WithRequired()
+func TestObjectRequiredString(t *testing.T) {
+	ruleSet := rules.NewStruct[*testStruct]().WithRequired()
 
-	expected := "ObjectRuleSet[*objects_test.testStruct].WithRequired()"
+	expected := "ObjectRuleSet[*rules_test.testStruct].WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -784,9 +783,9 @@ func TestRequiredString(t *testing.T) {
 // Requirements:
 // - Serializes to WithUnknown()
 func TestAllowUnknownString(t *testing.T) {
-	ruleSet := objects.New[*testStruct]().WithUnknown()
+	ruleSet := rules.NewStruct[*testStruct]().WithUnknown()
 
-	expected := "ObjectRuleSet[*objects_test.testStruct].WithUnknown()"
+	expected := "ObjectRuleSet[*rules_test.testStruct].WithUnknown()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -794,12 +793,12 @@ func TestAllowUnknownString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithItemRuleSet()
-func TestWithItemRuleSetString(t *testing.T) {
-	ruleSet := objects.New[*testStruct]().
+func TestObjectWithItemRuleSetString(t *testing.T) {
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any())
 
-	expected := "ObjectRuleSet[*objects_test.testStruct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
+	expected := "ObjectRuleSet[*rules_test.testStruct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -808,10 +807,10 @@ func TestWithItemRuleSetString(t *testing.T) {
 // Requirements:
 // - Serializes to WithRule()
 func TestWithRuleString(t *testing.T) {
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithRuleFunc(testhelpers.NewMockRule[*testStruct]().Function())
 
-	expected := "ObjectRuleSet[*objects_test.testStruct].WithRuleFunc(...)"
+	expected := "ObjectRuleSet[*rules_test.testStruct].WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -819,10 +818,10 @@ func TestWithRuleString(t *testing.T) {
 
 // Requirements:
 // - Evaluate behaves like ValidateWithContext
-func TestEvaluate(t *testing.T) {
+func TestObjectEvaluate(t *testing.T) {
 	ctx := context.Background()
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("Y", numbers.NewInt().Any())
 
@@ -847,7 +846,7 @@ func TestEvaluate(t *testing.T) {
 // Requirements:
 // - Multiple rules on the same key all evaluate
 func TestMultipleRules(t *testing.T) {
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(2).Any()).
 		WithKey("X", numbers.NewInt().WithMax(4).Any()).
 		Any()
@@ -871,7 +870,7 @@ func TestTimeoutInObjectRule(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(2).Any()).
 		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 			// Simulate a delay that exceeds the timeout
@@ -903,7 +902,7 @@ func TestTimeoutInKeyRule(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().
 			WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
 				// Simulate a delay that exceeds the timeout
@@ -947,7 +946,7 @@ func TestCancelled(t *testing.T) {
 		return nil
 	}
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
 		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
 		WithRuleFunc(structRule).
@@ -992,7 +991,7 @@ func TestCancelledObjectRules(t *testing.T) {
 		return nil
 	}
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithRuleFunc(structRule).
 		WithRuleFunc(structRule)
 
@@ -1039,10 +1038,10 @@ func TestConditionalKey(t *testing.T) {
 
 	// Only run the conditional rule if X is greater than 4. Which it should only be if the intRule
 	// function ran.
-	condKeyRuleSet := objects.New[*testStruct]().
+	condKeyRuleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(4).Any())
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
 		WithKey("Y", numbers.NewInt().Any()).
 		WithConditionalKey("Y", condKeyRuleSet, numbers.NewInt().WithRuleFunc(condValueRule).Any())
@@ -1086,10 +1085,10 @@ func TestConditionalKey(t *testing.T) {
 // - Only returns each key once
 func TestKeyRules(t *testing.T) {
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().Any()).
 		WithKey("X", numbers.NewInt().Any()).
-		WithConditionalKey("Y", objects.New[*testStruct](), numbers.NewInt().Any())
+		WithConditionalKey("Y", rules.NewStruct[*testStruct](), numbers.NewInt().Any())
 
 	keys := ruleSet.KeyRules()
 
@@ -1118,13 +1117,13 @@ func TestKeyRules(t *testing.T) {
 // Requirement:
 // - The code panics is a cycle is made directly with conditional keys
 func TestConditionalKeyCycle(t *testing.T) {
-	condX := objects.New[*testStruct]().
+	condX := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(4).Any())
 
-	condY := objects.New[*testStruct]().
+	condY := rules.NewStruct[*testStruct]().
 		WithKey("Y", numbers.NewInt().WithMin(4).Any())
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithConditionalKey("X", condY, numbers.NewInt().Any())
 
 	defer func() {
@@ -1139,16 +1138,16 @@ func TestConditionalKeyCycle(t *testing.T) {
 // Requirement:
 // - The code panics is a cycle is made indirectly with conditional keys
 func TestConditionalKeyIndirectCycle(t *testing.T) {
-	condX := objects.New[*testStruct]().
+	condX := rules.NewStruct[*testStruct]().
 		WithKey("X", numbers.NewInt().WithMin(4).Any())
 
-	condY := objects.New[*testStruct]().
+	condY := rules.NewStruct[*testStruct]().
 		WithKey("Y", numbers.NewInt().WithMin(4).Any())
 
-	condW := objects.New[*testStruct]().
+	condW := rules.NewStruct[*testStruct]().
 		WithKey("W", numbers.NewInt().WithMin(4).Any())
 
-	ruleSet := objects.New[*testStruct]().
+	ruleSet := rules.NewStruct[*testStruct]().
 		WithConditionalKey("X", condY, numbers.NewInt().Any()).
 		WithConditionalKey("Y", condW, numbers.NewInt().Any())
 
@@ -1170,16 +1169,16 @@ func TestConditionalKeyVisited(t *testing.T) {
 	 * A -> C -> D
 	 */
 
-	condB := objects.NewObjectMap[int]().
+	condB := rules.NewStringMap[int]().
 		WithKey("B", numbers.NewInt().WithMin(4))
 
-	condC := objects.NewObjectMap[int]().
+	condC := rules.NewStringMap[int]().
 		WithKey("C", numbers.NewInt().WithMin(4))
 
-	condD := objects.NewObjectMap[int]().
+	condD := rules.NewStringMap[int]().
 		WithKey("D", numbers.NewInt().WithMin(4))
 
-	objects.NewObjectMap[int]().
+	rules.NewStringMap[int]().
 		WithConditionalKey("B", condD, numbers.NewInt()).
 		WithConditionalKey("C", condD, numbers.NewInt()).
 		WithConditionalKey("A", condB, numbers.NewInt()).
@@ -1195,7 +1194,7 @@ func TestConditionalKeyVisited(t *testing.T) {
 // C is mapped to B on input so a rule on C should act on B.
 // The actual value of C should be ignored.
 func TestStructRightType(t *testing.T) {
-	ruleSet := objects.New[*testStructMapped]().
+	ruleSet := rules.NewStruct[*testStructMapped]().
 		WithKey("A", numbers.NewInt().WithMin(4).Any()).
 		WithKey("C", numbers.NewInt().WithMin(100).Any())
 
@@ -1235,15 +1234,15 @@ func TestStructRightType(t *testing.T) {
 // - Will assign nested pointer structs to pointers
 //
 // Fixes issue:
-// **objects_test.testStructMapped is not assignable to type *objects_test.testStruct
+// **rules_test.testStructMapped is not assignable to type *rules_test.testStruct
 func TestNestedPointer(t *testing.T) {
 
 	type target struct {
 		Test *testStruct
 	}
 
-	ruleSet := objects.New[*target]().
-		WithKey("Test", objects.New[*testStruct]().WithUnknown().Any())
+	ruleSet := rules.NewStruct[*target]().
+		WithKey("Test", rules.NewStruct[*testStruct]().WithUnknown().Any())
 
 	in := map[string]any{
 		"Test": &testStruct{},
@@ -1261,7 +1260,7 @@ func TestObjectFromMapToMapUnknown(t *testing.T) {
 	var out map[string]any
 
 	// Use Apply instead of Validate
-	err := objects.NewObjectMap[any]().
+	err := rules.NewStringMap[any]().
 		WithUnknown().
 		WithKey("X", numbers.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
@@ -1302,12 +1301,12 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 		Y    string `validate:"y"`
 	}
 
-	ruleSet := objects.New[*conditionalBugTest]().
+	ruleSet := rules.NewStruct[*conditionalBugTest]().
 		WithKey("type", strings.New().WithRequired().WithAllowedValues("X", "Y", "Z").Any()).
 		WithUnknown().
 		WithConditionalKey(
 			"y",
-			objects.New[*conditionalBugTest]().WithKey("type", strings.New().WithRequired().WithAllowedValues("Y").Any()),
+			rules.NewStruct[*conditionalBugTest]().WithKey("type", strings.New().WithRequired().WithAllowedValues("Y").Any()),
 			strings.New().WithRequired().Any(),
 		)
 
@@ -1339,7 +1338,7 @@ func TestWithKeyStringify(t *testing.T) {
 	strRule := strings.New().WithMinLen(4).Any()
 	strRuleStr := strRule.String()
 
-	ruleSet := objects.New[*testStruct]().WithKey("X", strRule)
+	ruleSet := rules.NewStruct[*testStruct]().WithKey("X", strRule)
 	ruleSetStr := ruleSet.String()
 
 	if stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
@@ -1352,10 +1351,10 @@ func TestWithKeyStringify(t *testing.T) {
 		t.Errorf("Expected string to contain the nested rule")
 	}
 
-	condRuleSet := objects.New[*testStruct]().WithUnknown()
+	condRuleSet := rules.NewStruct[*testStruct]().WithUnknown()
 	condRuleSetStr := condRuleSet.String()
 
-	ruleSet = objects.New[*testStruct]().WithConditionalKey("Y", condRuleSet, strRule)
+	ruleSet = rules.NewStruct[*testStruct]().WithConditionalKey("Y", condRuleSet, strRule)
 	ruleSetStr = ruleSet.String()
 
 	if !stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
@@ -1375,7 +1374,7 @@ func TestWithKeyStringifyInt(t *testing.T) {
 	strRule := strings.New().WithMinLen(4)
 	strRuleStr := strRule.String()
 
-	ruleSet := objects.NewMap[int, string]().WithKey(1, strRule)
+	ruleSet := rules.NewMap[int, string]().WithKey(1, strRule)
 	ruleSetStr := ruleSet.String()
 
 	if !stringsHelper.Contains(ruleSetStr, `WithKey(1,`) {
@@ -1395,7 +1394,7 @@ func TestUnexpectedKeyPath(t *testing.T) {
 	var out map[string]int
 
 	// Use Apply instead of ValidateWithContext
-	err := objects.NewObjectMap[int]().Apply(ctx, map[string]any{"x": 20}, &out)
+	err := rules.NewStringMap[int]().Apply(ctx, map[string]any{"x": 20}, &out)
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
@@ -1421,7 +1420,7 @@ func TestUnexpectedKeyPath(t *testing.T) {
 // - Must also work for pointers to strings
 // - Non Json strings cannot be coerced
 func TestJsonString(t *testing.T) {
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithKey("X", numbers.NewInt().Any())
 
 	j := `{"X": 123}`
@@ -1442,7 +1441,7 @@ func TestJsonString(t *testing.T) {
 // - Does not parse Json []byte by default
 // - Can validate Json []byte
 func TestJsonBytes(t *testing.T) {
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithKey("X", numbers.NewInt().Any())
 
 	j := []byte(`{"X": 123}`)
@@ -1459,7 +1458,7 @@ func TestJsonBytes(t *testing.T) {
 // - Can validate json.RawMessage
 // - Must also work with pointers to json.RawMessage
 func TestJsonRawMessage(t *testing.T) {
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithKey("X", numbers.NewInt().Any())
 
 	j := json.RawMessage([]byte(`{"X": 123}`))
@@ -1476,7 +1475,7 @@ func TestJsonRawMessage(t *testing.T) {
 // Requirements:
 // - WithRequired is idempotent.
 func TestWithRequiredIdempotent(t *testing.T) {
-	a := objects.NewObjectMap[any]()
+	a := rules.NewStringMap[any]()
 	b := a.WithRequired()
 	c := b.WithRequired()
 
@@ -1501,7 +1500,7 @@ func TestWithRequiredIdempotent(t *testing.T) {
 // Requirements:
 // - WithJson is idempotent.
 func TestWithJsonIdempotent(t *testing.T) {
-	a := objects.NewObjectMap[any]()
+	a := rules.NewStringMap[any]()
 	b := a.WithJson()
 	c := b.WithJson()
 
@@ -1516,7 +1515,7 @@ func TestWithJsonIdempotent(t *testing.T) {
 // Requirements:
 // - WithUnknown is idempotent.
 func TestWithUnknownIdempotent(t *testing.T) {
-	a := objects.NewObjectMap[any]()
+	a := rules.NewStringMap[any]()
 	b := a.WithUnknown()
 	c := b.WithUnknown()
 
@@ -1533,7 +1532,7 @@ func TestWithUnknownIdempotent(t *testing.T) {
 // - Rule is run for each matching key
 // - Errors are passed through
 func TestWithDynamicKeyToMap(t *testing.T) {
-	ruleSet := objects.NewObjectMap[float64]().WithJson()
+	ruleSet := rules.NewStringMap[float64]().WithJson()
 
 	validJson := `{"__abc": 123, "__xyz": 789}`
 
@@ -1552,7 +1551,7 @@ func TestWithDynamicKeyToMap(t *testing.T) {
 // - Value is copied into all matching buckets
 // - If no fields match, bucket is not present
 func TestWithDynamicBucketToMap(t *testing.T) {
-	ruleSet := objects.NewObjectMap[any]().WithJson()
+	ruleSet := rules.NewStringMap[any]().WithJson()
 
 	validJson := `{"__abc": "abc", "__123": 123}`
 
@@ -1622,7 +1621,7 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 		NoMatch map[string]any
 	}
 
-	ruleSet := objects.New[outputType]().WithJson()
+	ruleSet := rules.NewStruct[outputType]().WithJson()
 
 	validJson := `{"__abc": "abc", "__123": 123}`
 
@@ -1684,9 +1683,9 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 // - Dynamic buckets are not created unless condition is met
 // - Values are not put in the bucket unless condition is met
 func TestWithConditionalDynamicBucket(t *testing.T) {
-	ruleSet := objects.NewObjectMap[any]().WithJson()
+	ruleSet := rules.NewStringMap[any]().WithJson()
 
-	rootCondition := objects.NewObjectMap[any]().WithUnknown()
+	rootCondition := rules.NewStringMap[any]().WithUnknown()
 
 	trueRule := rules.Constant(true).WithRequired().Any()
 
@@ -1765,7 +1764,7 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 func TestDynamicKeyWithBucket(t *testing.T) {
 	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
 
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithJson().
 		WithDynamicKey(keyRule, validate.Int().Any()).
 		WithDynamicBucket(keyRule, "numbers")
@@ -1810,7 +1809,7 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 func TestStaticKeyWithBucket(t *testing.T) {
 	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
 
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithJson().
 		WithKey("__xyz", rules.Any()).
 		WithDynamicBucket(keyRule, "letters")
@@ -1878,11 +1877,11 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 
 	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
 
-	ruleSet := objects.NewObjectMap[any]().
+	ruleSet := rules.NewStringMap[any]().
 		WithJson().
 		WithKey("__abc", valueRule).
 		WithDynamicKey(keyRule, valueRule).
-		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithKey("__abc", rules.Any()), finalValueRule)
+		WithConditionalKey("__xyz", rules.NewStringMap[any]().WithUnknown().WithKey("__abc", rules.Any()), finalValueRule)
 
 	testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
 }
@@ -1899,8 +1898,8 @@ func TestDynamicKeyAsDependentConditional(t *testing.T) {
 
 	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
 
-	objects.NewObjectMap[any]().
-		WithConditionalKey("__xyz", objects.NewObjectMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())
+	rules.NewStringMap[any]().
+		WithConditionalKey("__xyz", rules.NewStringMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())
 }
 
 // Bug: Passing a non-string into a Rule Set that supports Json deserialization results in empty output.
@@ -1912,7 +1911,7 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 		Name string
 	}
 
-	ruleSet := objects.New[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.NewStruct[outStruct]().WithJson().WithKey("Name", validate.String().Any())
 	ctx := context.Background()
 
 	expected := "Abc"
@@ -1952,7 +1951,7 @@ func TestQueryStringInput(t *testing.T) {
 
 	itemRuleSet := validate.Array[int]().WithItemRuleSet(validate.Int()).WithMaxLen(1)
 
-	ruleSet := objects.NewObjectMap[[]int]().
+	ruleSet := rules.NewStringMap[[]int]().
 		WithKey("abc", itemRuleSet).
 		WithKey("xyz", itemRuleSet)
 

@@ -1,7 +1,4 @@
-// Package objects provides a RuleSet implementation that can be used to validate object and map values.
-//
-// It implements standard rules and allows the developer to set a rule set to validate individual keys.
-package objects
+package rules
 
 import (
 	"context"
@@ -12,18 +9,17 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 const annotation = "validate"
 
 // Implementation of RuleSet for objects and maps.
 type ObjectRuleSet[T any, TK comparable, TV any] struct {
-	rules.NoConflict[T]
+	NoConflict[T]
 	allowUnknown bool
-	key          rules.Rule[TK]
-	rule         rules.RuleSet[TV]
-	objRule      rules.Rule[T]
+	key          Rule[TK]
+	rule         RuleSet[TV]
+	objRule      Rule[T]
 	mapping      TK
 	outputType   reflect.Type
 	ptr          bool
@@ -36,13 +32,13 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	json         bool
 }
 
-// New returns a RuleSet that can be used to validate an object of an
+// NewStruct returns a RuleSet that can be used to validate an object of an
 // arbitrary data type.
 //
 // Using the "validate" annotation you can may input values to different
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
-func New[T any]() *ObjectRuleSet[T, string, any] {
+func NewStruct[T any]() *ObjectRuleSet[T, string, any] {
 	var empty [0]T
 
 	ruleSet := &ObjectRuleSet[T, string, any]{
@@ -96,7 +92,7 @@ func New[T any]() *ObjectRuleSet[T, string, any] {
 
 		ruleSet = &ObjectRuleSet[T, string, any]{
 			parent:     ruleSet,
-			key:        rules.Constant[string](key),
+			key:        Constant[string](key),
 			mapping:    field.Name,
 			outputType: ruleSet.outputType,
 			ptr:        ruleSet.ptr,
@@ -108,9 +104,9 @@ func New[T any]() *ObjectRuleSet[T, string, any] {
 	return ruleSet
 }
 
-// NewObjectMap returns a new RuleSet that can be used to validate maps with strings as the
+// NewStringMap returns a new RuleSet that can be used to validate maps with strings as the
 // keys and the specified data type (which can be "any") as the values.
-func NewObjectMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
+func NewStringMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
 	var empty map[string]T
 
 	return &ObjectRuleSet[map[string]T, string, T]{
@@ -164,7 +160,7 @@ func (v *ObjectRuleSet[T, TK, TV]) fullMapping() map[TK]TK {
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.key != nil && currentRuleSet.mapping != *empty {
-			mapping[currentRuleSet.key.(*rules.ConstantRuleSet[TK]).Value()] = currentRuleSet.mapping
+			mapping[currentRuleSet.key.(*ConstantRuleSet[TK]).Value()] = currentRuleSet.mapping
 		}
 	}
 	return mapping
@@ -189,13 +185,13 @@ func (v *ObjectRuleSet[T, TK, TV]) mappingFor(ctx context.Context, key TK) (TK, 
 //
 // Multiple rule sets may run in parallel but only one will run a time for each key since rule sets
 // can return a mutated value.
-func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithConditionalKey(key, nil, ruleSet)
 }
 
 // WithDynamicKey returns a new RuleSet with a validation rule for any key that matches the key rule.
 // Dynamic rules are run even if they match a key that has an already defined rule. Mappings are not applied
-// to dynamic rules.
+// to dynamic
 //
 // If more than one call is made with the same key or overlapping dynamic rules, than all will be evaluated.
 // However, the order in which they are run is not guaranteed.
@@ -208,7 +204,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet rules.RuleSet[TV]) *O
 //
 // With maps, the dynamic keys are directly set on the output map. For structs you must set a dynamic key
 // bucket using WithDynamicBucket.
-func (v *ObjectRuleSet[T, TK, TV]) WithDynamicKey(keyRule rules.Rule[TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) WithDynamicKey(keyRule Rule[TK], ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	var empty TK
 
 	return v.withKeyHelper(
@@ -245,7 +241,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithDynamicKey(keyRule rules.Rule[TK], ruleSe
 //	Running the rule set will panic if the value type is not "any" since any other type of value will not allow the bucket
 //	map to be created.
 //	The value of the bucket key in the map will not exist unless at least one key matches.
-func (v *ObjectRuleSet[T, TK, TV]) WithDynamicBucket(keyRule rules.Rule[TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) WithDynamicBucket(keyRule Rule[TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
 	return v.WithConditionalDynamicBucket(keyRule, nil, bucket)
 }
 
@@ -253,7 +249,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithDynamicBucket(keyRule rules.Rule[TK], buc
 // condition is met.
 //
 // If the only dynamic rules are conditional, the key will be considered unknown if no conditions match.
-func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicBucket(keyRule rules.Rule[TK], condition Conditional[T, TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicBucket(keyRule Rule[TK], condition Conditional[T, TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 
 	newRuleSet.key = keyRule
@@ -271,10 +267,10 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicBucket(keyRule rules.Ru
 // inside WithKey.
 //
 // The results are not sorted. You should not depend on the order of the results.
-func (v *ObjectRuleSet[T, TK, TV]) KeyRules() []rules.Rule[TK] {
+func (v *ObjectRuleSet[T, TK, TV]) KeyRules() []Rule[TK] {
 	// Don't return identical keys more than once
-	mapping := make(map[rules.Rule[TK]]bool)
-	keys := make([]rules.Rule[TK], 0)
+	mapping := make(map[Rule[TK]]bool)
+	keys := make([]Rule[TK], 0)
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.key != nil && currentRuleSet.rule != nil {
@@ -298,17 +294,17 @@ func (v *ObjectRuleSet[T, TK, TV]) KeyRules() []rules.Rule[TK] {
 //
 // Conditional rules will be run any time after all fields they depend on are evaluated. For example if the conditional
 // rule set looks for keys X and Y then the conditional will not be evaluated until all the rules for both X and Y have
-// also been evaluated. This includes conditional rules. So if X is also dependent on Z then Z will also need to be complete.
+// also been evaluated. This includes conditional  So if X is also dependent on Z then Z will also need to be complete.
 //
 // If one or more of the fields has an error then the conditional rule will not be run.
 //
 // WithRule and WithRuleFunc are both evaluated after any keys or conditional keys. Because of this, it is not possible to
-// have a conditional key that is dependent on data that is modified in those rules.
+// have a conditional key that is dependent on data that is modified in those
 //
 // If nil is passed in as the conditional then this method behaves identical to WithKey.
 //
 // This method will panic immediately if a circular dependency is detected.
-func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditional[T, TK], ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	var destKey TK
 
 	// Only check mapping if output type is a struct (not a map)
@@ -336,7 +332,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 	}
 
 	return v.withKeyHelper(
-		rules.Constant[TK](key),
+		Constant[TK](key),
 		destKey,
 		condition,
 		ruleSet,
@@ -344,7 +340,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 }
 
 // withKeyHelper returns a new rule set with the appropriate keys, conditions, and mappings set.
-func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key rules.Rule[TK], destKey TK, condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key Rule[TK], destKey TK, condition Conditional[T, TK], ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 
 	newRuleSet.mapping = destKey
@@ -370,7 +366,7 @@ func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key rules.Rule[TK], destKey TK,
 }
 
 // Deprecated: Key is deprecated and will be removed in v1.0.0. Use WithKey instead.
-func (v *ObjectRuleSet[T, TK, TV]) Key(key TK, ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
+func (v *ObjectRuleSet[T, TK, TV]) Key(key TK, ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithKey(key, ruleSet)
 }
 
@@ -536,7 +532,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	counters := newCounterSet[TK]()
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.key != nil && currentRuleSet.rule != nil {
-			if c, ok := currentRuleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+			if c, ok := currentRuleSet.key.(*ConstantRuleSet[TK]); ok {
 				counters.Increment(c.Value())
 			} else if fromMap {
 				// Dynamic keys only make sense if the source is a map.
@@ -574,7 +570,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 			continue
 		}
 
-		if c, ok := currentRuleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+		if c, ok := currentRuleSet.key.(*ConstantRuleSet[TK]); ok {
 			key := c.Value()
 			inFieldValue := v.keyValue(key, currentRuleSet, inValue, fromMap, fromSame)
 			knownKeys.Add(key)
@@ -632,7 +628,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	return append(allErrors, ruleErrors...)
 }
 
-// evaluateObjectRules evaluates the object rules.
+// evaluateObjectRules evaluates the object
 func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out *T) errors.ValidationErrorCollection {
 	var wg sync.WaitGroup
 	var outValueMutex sync.Mutex
@@ -646,7 +642,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out 
 			}
 
 			wg.Add(1)
-			go func(objRule rules.Rule[T]) {
+			go func(objRule Rule[T]) {
 				outValueMutex.Lock()
 				defer outValueMutex.Unlock()
 				defer wg.Done()
@@ -866,8 +862,8 @@ func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given object type.
 //
-// Use this when implementing custom rules.
-func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule rules.Rule[T]) *ObjectRuleSet[T, TK, TV] {
+// Use this when implementing custom
+func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule Rule[T]) *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 	newRuleSet.objRule = rule
 	return newRuleSet
@@ -877,15 +873,15 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule rules.Rule[T]) *ObjectRuleSet[T
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // for the given object type.
 //
-// Use this when implementing custom rules.
-func (v *ObjectRuleSet[T, TK, TV]) WithRuleFunc(rule rules.RuleFunc[T]) *ObjectRuleSet[T, TK, TV] {
+// Use this when implementing custom
+func (v *ObjectRuleSet[T, TK, TV]) WithRuleFunc(rule RuleFunc[T]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithRule(rule)
 }
 
 // Any returns a new RuleSet that wraps the object RuleSet in any Any rule set
 // which can then be used in nested validation.
-func (v *ObjectRuleSet[T, TK, TV]) Any() rules.RuleSet[any] {
-	return rules.WrapAny[T](v)
+func (v *ObjectRuleSet[T, TK, TV]) Any() RuleSet[any] {
+	return WrapAny[T](v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.
@@ -905,7 +901,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) String() string {
 				label = fmt.Sprintf("WithConditionalKey(\"%s\", %s, %s)", toPath(ruleSet.key), ruleSet.condition, ruleSet.rule)
 			} else {
 				path := "<dynamic>"
-				if c, ok := ruleSet.key.(*rules.ConstantRuleSet[TK]); ok {
+				if c, ok := ruleSet.key.(*ConstantRuleSet[TK]); ok {
 					path = toQuotedPath(c.Value())
 				}
 

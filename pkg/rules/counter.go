@@ -1,11 +1,9 @@
-package objects
+package rules
 
 import (
 	"context"
 	"fmt"
 	"sync"
-
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // counter is used for evaluating rules and keeps track of how many rules
@@ -106,7 +104,7 @@ func (cs *counterSet[TK]) Unlock(key TK) {
 
 // Wait waits for the counters associated with the provided key rules to reach 0.
 // If a rule doesn't have an associated counter, it simply moves on to the next rule.
-func (cs *counterSet[TK]) Wait(keyRules ...rules.Rule[TK]) {
+func (cs *counterSet[TK]) Wait(keyRules ...Rule[TK]) {
 	ctx := context.Background()
 
 	cs.mu.RLock()

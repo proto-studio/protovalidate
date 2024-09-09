@@ -1,9 +1,7 @@
-package objects
+package rules
 
 import (
 	"errors"
-
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // refTracker[T] represents a structure to track references and their dependencies.
@@ -20,11 +18,11 @@ func newRefTracker[T comparable]() *refTracker[T] {
 
 // Add adds a new dependency between key and dependsOnKey.
 // It returns an error if adding this dependency results in a circular reference.
-func (rt *refTracker[T]) Add(keyRule, dependsOnKeyRule rules.Rule[T]) error {
+func (rt *refTracker[T]) Add(keyRule, dependsOnKeyRule Rule[T]) error {
 
 	// For now both key and depends on must be constants
-	constKeyRule, keyIsConstant := keyRule.(*rules.ConstantRuleSet[T])
-	constDependsOnKeyRule, dependsOnKeyIsConstant := dependsOnKeyRule.(*rules.ConstantRuleSet[T])
+	constKeyRule, keyIsConstant := keyRule.(*ConstantRuleSet[T])
+	constDependsOnKeyRule, dependsOnKeyIsConstant := dependsOnKeyRule.(*ConstantRuleSet[T])
 
 	if !keyIsConstant || !dependsOnKeyIsConstant {
 		return errors.New("conditional rules do not support dynamic keys at this time")

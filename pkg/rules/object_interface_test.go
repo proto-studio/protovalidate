@@ -1,4 +1,4 @@
-package objects_test
+package rules_test
 
 import (
 	"context"
@@ -6,25 +6,7 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/objects"
 )
-
-type MyTestInterface interface {
-	internal()
-}
-
-type MyTestImplInt int
-
-func (x MyTestImplInt) internal() {}
-
-type MyTestImplStr string
-
-func (x MyTestImplStr) internal() {}
-
-type InterfaceTest struct {
-	IntTest    MyTestInterface
-	StringTest MyTestInterface
-}
 
 func InitInterfaceRuleSet() rules.RuleSet[MyTestInterface] {
 	return rules.Interface[MyTestInterface]().
@@ -48,7 +30,7 @@ func InitInterfaceRuleSet() rules.RuleSet[MyTestInterface] {
 func TestInterfaceStruct(t *testing.T) {
 	innerRuleSet := InitInterfaceRuleSet()
 
-	ruleSet := objects.New[InterfaceTest]().
+	ruleSet := rules.NewStruct[InterfaceTest]().
 		WithKey("IntTest", innerRuleSet.Any()).
 		WithKey("StringTest", innerRuleSet.Any()).
 		WithJson()

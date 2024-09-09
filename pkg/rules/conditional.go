@@ -1,6 +1,4 @@
-package objects
-
-import "proto.zip/studio/validate/pkg/rules"
+package rules
 
 // Conditional interface must be implemented for rules that are passed into WithConditionalKey.
 // They must implement all of the standard rule methods as well as a method Keys which should return
@@ -8,6 +6,6 @@ import "proto.zip/studio/validate/pkg/rules"
 //
 // ObjectRuleSet[T] implements this interface out of the box.
 type Conditional[T any, TK comparable] interface {
-	rules.Rule[T]
-	KeyRules() []rules.Rule[TK] // Return all key rules that the rule depends on
+	Rule[T]
+	KeyRules() []Rule[TK] // Return all key rules that the rule depends on
 }
