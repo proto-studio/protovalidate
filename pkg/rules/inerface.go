@@ -93,10 +93,10 @@ func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output
 	for curRuleSet := ruleSet; curRuleSet != nil; curRuleSet = curRuleSet.parent {
 		if curRuleSet.cast != nil {
 			if v, errs := curRuleSet.cast(ctx, input); any(v) != nil || errs != nil {
-				outputVal.Elem().Set(reflect.ValueOf(v))
 				if errs != nil {
 					return errs
 				}
+				outputVal.Elem().Set(reflect.ValueOf(v))
 				return ruleSet.Evaluate(ctx, v)
 			}
 		}

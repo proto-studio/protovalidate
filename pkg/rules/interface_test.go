@@ -138,13 +138,25 @@ func TestInterfaceWithCast(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
 	testhelpers.MustNotApply(t, ruleSet.Any(), "abc", errors.CodeType)
 
-	ruleSet = ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
+	ruleSetWithString := ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if strval, ok := v.(string); ok {
 			return MyTestImplStr(strval), nil
 		}
 		return nil, nil
 	})
 
-	testhelpers.MustApplyMutation(t, ruleSet.Any(), 123, MyTestImplInt(123))
-	testhelpers.MustApplyMutation(t, ruleSet.Any(), "abc", MyTestImplStr("abc"))
+	testhelpers.MustApplyMutation(t, ruleSetWithString.Any(), 123, MyTestImplInt(123))
+	testhelpers.MustApplyMutation(t, ruleSetWithString.Any(), "abc", MyTestImplStr("abc"))
+
+	// If a cast returns an error that error is returned
+	ruleSetWithError := ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
+		if _, ok := v.(string); ok {
+			return nil, errors.Collection(
+				errors.Errorf(errors.CodeUnexpected, ctx, "test"),
+			)
+		}
+		return nil, nil
+	})
+	testhelpers.MustApplyMutation(t, ruleSetWithError.Any(), 123, MyTestImplInt(123))
+	testhelpers.MustNotApply(t, ruleSetWithError.Any(), "abc", errors.CodeUnexpected)
 }

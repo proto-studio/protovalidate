@@ -81,6 +81,10 @@ func TestObjectRuleSet(t *testing.T) {
 func TestObjectOutput_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
+		// Age is not in the validator and should not be modified from its existing value
+		// A modified Age means that Apply created a brand new outStruct instead of using
+		// the existing one.
+		Age int
 	}
 
 	ruleSet := objects.New[outStruct]().WithJson().WithKey("Name", validate.String().Any())
@@ -88,14 +92,15 @@ func TestObjectOutput_Apply(t *testing.T) {
 
 	input := `{"Name": "Test"}`
 	expected := "Test"
-
 	// Correct type
-	var out1 outStruct
+	out1 := outStruct{Age: 1}
 	err := ruleSet.Apply(ctx, input, &out1)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out1.Age != 1 {
+		t.Errorf("Expected out1.Age to be 1, got: %d", out1.Age)
 	} else if out1.Name != expected {
-		t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out1.Name)
+		t.Errorf(`Expected out1.Name to be "%s", got: "%s"`, expected, out1.Name)
 	}
 
 	// Non pointer
@@ -115,7 +120,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 			t.Errorf(`Expected output to be outStruct, got %T`, out3)
 
 		} else if out3struct.Name != expected {
-			t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out3struct.Name)
+			t.Errorf(`Expected out3struct.Name to be "%s", got: "%s"`, expected, out3struct.Name)
 		}
 	}
 
@@ -125,11 +130,70 @@ func TestObjectOutput_Apply(t *testing.T) {
 	if err == nil || err.First().Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
 	}
+
+	// Nil pointer to correct type
+	var out5 *outStruct
+	err = ruleSet.Apply(ctx, input, &out5)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out5 == nil {
+		t.Error("Expected out5 to not be nil")
+	} else if out5.Name != expected {
+		t.Errorf(`Expected out5.Name to be "%s", got: "%s"`, expected, out5.Name)
+	}
+
+	// Non-nil pointer to correct type
+	out5 = &outStruct{Age: 1}
+	err = ruleSet.Apply(ctx, input, &out5)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out5 == nil {
+		t.Error("Expected out5 to not be nil")
+	} else if out5.Age != 1 {
+		t.Errorf("Expected out5.Age to be 1, got: %d", out5.Age)
+	} else if out5.Name != expected {
+		t.Errorf(`Expected out5.Name to be "%s", got: "%s"`, expected, out5.Name)
+	}
+
+	// Non-empty interface with assignable type
+	// Currently in this case Age will be lost because we cannot assign to
+	var out6 any = outStruct{Age: 1}
+	err = ruleSet.Apply(ctx, input, &out6)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out6 == nil {
+		t.Error("Expected out6 to not be nil")
+	} else {
+		out6struct, ok := out6.(outStruct)
+
+		if !ok {
+			t.Errorf(`Expected output to be outStruct, got %T`, out3)
+		} else if out6struct.Name != expected {
+			t.Errorf(`Expected out6struct.Name to be "%s", got: "%s"`, expected, out6struct.Name)
+		} else if out6struct.Age != 0 {
+			t.Errorf("Expected out6struct.Age to be 0, got: %d", out6struct.Age)
+		}
+	}
+
+	// Incompatible interface
+	var out7 MyTestInterface
+	err = ruleSet.Apply(ctx, input, &out7)
+	if err == nil {
+		t.Errorf("Expected error to not be nil")
+	} else if out7 != nil {
+		t.Error("Expected out7 to be nil")
+	} else if c := err.First().Code(); c != errors.CodeInternal {
+		t.Errorf("Expected error to be %s (errors.CodeInternal), got: %s", errors.CodeInternal, c)
+	}
 }
 
 func TestObjectOutputPointer_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
+		// Age is not in the validator and should not be modified from its existing value
+		// A modified Age means that Apply created a brand new outStruct instead of using
+		// the existing one.
+		Age int
 	}
 
 	ruleSet := objects.New[*outStruct]().WithJson().WithKey("Name", validate.String().Any())
@@ -138,19 +202,43 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 	input := `{"Name": "Test"}`
 	expected := "Test"
 
-	// Correct type
-	var out1 outStruct
+	// Correct type, interface to non-pointer
+	out1 := outStruct{Age: 1}
 	err := ruleSet.Apply(ctx, input, &out1)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out1.Age != 1 {
+		t.Errorf("Expected out1.Age to be 1, got: %d", out1.Age)
 	} else if out1.Name != expected {
-		t.Errorf(`Expected name to be "%s", got: "%s"`, expected, out1.Name)
+		t.Errorf(`Expected out1.Name to be "%s", got: "%s"`, expected, out1.Name)
 	}
 
 	// Non pointer
 	err = ruleSet.Apply(ctx, input, out1)
 	if err == nil || err.First().Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
+	}
+
+	// Double pointer to correct type, nil
+	var out2 *outStruct
+	err = ruleSet.Apply(ctx, input, &out2)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out2.Age != 0 {
+		t.Errorf("Expected out2.Age to be 0, got: %d", out2.Age)
+	} else if out2.Name != expected {
+		t.Errorf(`Expected out2.Name to be "%s", got: "%s"`, expected, out2.Name)
+	}
+
+	// Pointer to correct type, non-nil
+	out2 = &outStruct{Age: 1}
+	err = ruleSet.Apply(ctx, input, &out2)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %v", err)
+	} else if out2.Age != 1 {
+		t.Errorf("Expected out2.Age to be 1, got: %d", out2.Age)
+	} else if out2.Name != expected {
+		t.Errorf(`Expected out2.Name to be "%s", got: "%s"`, expected, out2.Name)
 	}
 
 	// Any
@@ -1246,27 +1334,28 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 // - WithKey should be in sets using that
 // - The conditional RuleSet should serialized for WithConditionalKey
 // - The key RuleSet should serialized for both
+// - Key should be quoted
 func TestWithKeyStringify(t *testing.T) {
-	intRule := strings.New().WithMinLen(4).Any()
-	intRuleStr := intRule.String()
+	strRule := strings.New().WithMinLen(4).Any()
+	strRuleStr := strRule.String()
 
-	ruleSet := objects.New[*testStruct]().WithKey("X", intRule)
+	ruleSet := objects.New[*testStruct]().WithKey("X", strRule)
 	ruleSetStr := ruleSet.String()
 
 	if stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
 		t.Errorf("Expected string to not contain WithConditionalKey")
 	}
-	if !stringsHelper.Contains(ruleSetStr, "WithKey") {
+	if !stringsHelper.Contains(ruleSetStr, `WithKey("X",`) {
 		t.Errorf("Expected string to contain WithKey")
 	}
-	if !stringsHelper.Contains(ruleSetStr, intRuleStr) {
+	if !stringsHelper.Contains(ruleSetStr, strRuleStr) {
 		t.Errorf("Expected string to contain the nested rule")
 	}
 
 	condRuleSet := objects.New[*testStruct]().WithUnknown()
 	condRuleSetStr := condRuleSet.String()
 
-	ruleSet = objects.New[*testStruct]().WithConditionalKey("Y", condRuleSet, intRule)
+	ruleSet = objects.New[*testStruct]().WithConditionalKey("Y", condRuleSet, strRule)
 	ruleSetStr = ruleSet.String()
 
 	if !stringsHelper.Contains(ruleSetStr, "WithConditionalKey") {
@@ -1275,10 +1364,26 @@ func TestWithKeyStringify(t *testing.T) {
 	if !stringsHelper.Contains(ruleSetStr, condRuleSetStr) {
 		t.Errorf("Expected string to contain the conditional rule")
 	}
-	if !stringsHelper.Contains(ruleSetStr, intRuleStr) {
+	if !stringsHelper.Contains(ruleSetStr, strRuleStr) {
 		t.Errorf("Expected string to contain the nested rule")
 	}
+}
 
+// Requirements:
+// - Maps with non-string keys should not be quoted in String() output.
+func TestWithKeyStringifyInt(t *testing.T) {
+	strRule := strings.New().WithMinLen(4)
+	strRuleStr := strRule.String()
+
+	ruleSet := objects.NewMap[int, string]().WithKey(1, strRule)
+	ruleSetStr := ruleSet.String()
+
+	if !stringsHelper.Contains(ruleSetStr, `WithKey(1,`) {
+		t.Errorf("Expected string to contain WithKey")
+	}
+	if !stringsHelper.Contains(ruleSetStr, strRuleStr) {
+		t.Errorf("Expected string to contain the nested rule")
+	}
 }
 
 // Requirements:

@@ -118,6 +118,16 @@ func NewObjectMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
 	}
 }
 
+// NewObjectMap returns a new RuleSet that can be used to validate maps with strings as the
+// keys and the specified data type (which can be "any") as the values.
+func NewMap[TK comparable, TV any]() *ObjectRuleSet[map[TK]TV, TK, TV] {
+	var empty map[TK]TV
+
+	return &ObjectRuleSet[map[TK]TV, TK, TV]{
+		outputType: reflect.TypeOf(empty),
+	}
+}
+
 // withParent is a helper function to assist in cloning object RuleSets.
 func (v *ObjectRuleSet[T, TK, TV]) withParent() *ObjectRuleSet[T, TK, TV] {
 	return &ObjectRuleSet[T, TK, TV]{
@@ -328,20 +338,6 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 	return v.withKeyHelper(
 		rules.Constant[TK](key),
 		destKey,
-		condition,
-		ruleSet,
-	)
-}
-
-// WithConditionalDynamicKey behaves like WithDynamicKet except that it will only run if the condition is met.
-//
-// If all the dynamic keys are conditional and no condition is met then the key is considered to be unknown.
-func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicKey(keyRule rules.Rule[TK], condition Conditional[T, TK], ruleSet rules.RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
-	var empty TK
-
-	return v.withKeyHelper(
-		keyRule,
-		empty,
 		condition,
 		ruleSet,
 	)
@@ -708,11 +704,8 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 
 	if elem.Type() == v.outputType {
 		// The output directly points to the type.
-
-		if rv.IsNil() {
-			out = new(T)
-			elem.Set(reflect.ValueOf(out))
-		} else if v.outputType.Kind() == reflect.Map && elem.IsNil() {
+		// At this point we already know output is non-nil since we check earlier.
+		if v.outputType.Kind() == reflect.Map && elem.IsNil() {
 			elem.Set(reflect.MakeMap(v.outputType))
 			out = output.(*T)
 		} else if v.ptr {
@@ -722,22 +715,31 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 			out = output.(*T)
 		}
 
-	} else if v.ptr && elem.Type() == reflect.PointerTo(v.outputType) {
-		// Double pointer.
-		// The type is a pointer and the output points to the pointer to the same type.
-		// This can happen when using generics and the caller is not aware that the type if a pointer already.
+	} else if elem.Type() == reflect.PointerTo(v.outputType) {
+		// Output is a pointer to the correct type (more specifically a double pointer).
+		// This can happen a lot with generics because you are often taking a reference to &T and
+		// T is already a pointer.
+		// However, this can happen when T is not already a pointer as well by doing a double reference
+		// on output so we need to handle both.
 
-		if rv.IsNil() {
+		if elem.IsNil() {
 			out = new(T)
-		} else {
+		} else if v.ptr {
 			out = output.(*T)
+		} else {
+			tmp := *output.(**T)
+			out = tmp
 		}
 
-		indirectOutValue := reflect.Indirect(reflect.ValueOf(out))
-		if indirectOutValue.IsNil() {
-			// The pointer points to a pointer with a nil value so we need to initialize that too.
-			indirectOutValue.Set(reflect.New(v.outputType))
-			elem.Set(reflect.ValueOf(*out))
+		if v.ptr {
+			indirectOutValue := reflect.Indirect(reflect.ValueOf(out))
+			if indirectOutValue.IsNil() {
+				// The pointer points to a pointer with a nil value so we need to initialize that too.
+				indirectOutValue.Set(reflect.New(v.outputType))
+				elem.Set(reflect.ValueOf(*out))
+			}
+		} else {
+			elem.Set(reflect.ValueOf(out))
 		}
 
 	} else if elem.Kind() == reflect.Interface {
@@ -748,13 +750,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		}
 
 		assignLater = true
-
-		if elem.IsNil() {
-			out = new(T)
-			elem.Set(reflect.ValueOf(out))
-		} else if reflect.ValueOf(elem).Type().AssignableTo(reflect.ValueOf(out).Type()) {
-			reflect.ValueOf(out).Set(elem)
-		}
+		out = new(T)
 
 		outElem := reflect.ValueOf(out).Elem()
 		if (outElem.Kind() == reflect.Pointer || outElem.Kind() == reflect.Map) && outElem.IsNil() {
