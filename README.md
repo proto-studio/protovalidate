@@ -10,7 +10,7 @@
 [![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
 [![Discord Chat](https://img.shields.io/badge/Discord-chat-blue?logo=Discord&logoColor=white)](https://proto.studio/social/discord)
 
-ProtoValidate is a fluent data validation and normalization library for Go.
+ProtoValidate is a fluent data validation library for Go.
 
 Project goals:
 
@@ -23,12 +23,11 @@ Features:
 - Type checking at compile time.
 - Declarative rule syntax.
 - Works on deeply nested objects and slices/arrays.
-- Supports automatic correction and normalization of data.
 - Easy to extend with custom validation rules.
 - Easy to support additional data types.
 - Structured error responses make it easy to format, display, and correct errors.
 - Support for Internationalization (i18n) for error messages.
-- Able to convert unstructured data (such as Json) to structured typed data.
+- Able to take unstructured input (such as Json) and output structured data.
 
 Common use cases:
 
@@ -38,6 +37,7 @@ Common use cases:
 - File validating.
 
 Supported data types out of the box:
+- `interface`
 - `string`
 - `int` / `int8` / `int16` / `int32` / `int64`
 - `uint` / `uint8` / `uint16` / `uint32` / `uint64`
@@ -47,13 +47,17 @@ Supported data types out of the box:
 - Email addresses
 - Domains
 
-Easily customize to make support your own date types.
+Easily customize to support your own data types.
 
 ## Versioning
 
 This package follows conventional Go versioning. Any version up to version 1.0.0 is considered "unstable" and the API may change.
 
-We put a lot of thought into the design of this library and don't expect there to be many breaking changes. You are free to use this library in a production setting. However, keep an eye on the release notes as it will be rapidly changing.
+When possible, any backwards incompatible changes in the unstable releases will follow the procedure:
+
+1. Mark old methods as deprecated.
+2. Update deprecated methods to call newer methods.
+3. Document the changes in the release notes.
 
 ## Getting Started
 ### Quick Start
