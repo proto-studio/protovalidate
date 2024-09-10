@@ -1,4 +1,4 @@
-package numbers
+package rules
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 type integer interface {
@@ -15,10 +14,10 @@ type integer interface {
 
 // Implementation of RuleSet for integers.
 type IntRuleSet[T integer] struct {
-	rules.NoConflict[T]
+	NoConflict[T]
 	strict   bool
 	base     int
-	rule     rules.Rule[T]
+	rule     Rule[T]
 	required bool
 	parent   *IntRuleSet[T]
 	rounding Rounding
@@ -232,7 +231,7 @@ func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Validation
 
 // withoutConflicts returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *IntRuleSet[T]) withoutConflicts(rule rules.Rule[T]) *IntRuleSet[T] {
+func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
 	if ruleSet.rule != nil {
 
 		// Conflicting rules, skip this and return the parent
@@ -268,7 +267,7 @@ func (ruleSet *IntRuleSet[T]) withoutConflicts(rule rules.Rule[T]) *IntRuleSet[T
 // for the given number type.
 //
 // Use this when implementing custom rules.
-func (ruleSet *IntRuleSet[T]) WithRule(rule rules.Rule[T]) *IntRuleSet[T] {
+func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   ruleSet.strict,
 		rule:     rule,
@@ -284,14 +283,14 @@ func (ruleSet *IntRuleSet[T]) WithRule(rule rules.Rule[T]) *IntRuleSet[T] {
 // for the given number type.
 //
 // Use this when implementing custom rules.
-func (v *IntRuleSet[T]) WithRuleFunc(rule rules.RuleFunc[T]) *IntRuleSet[T] {
+func (v *IntRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *IntRuleSet[T] {
 	return v.WithRule(rule)
 }
 
 // Any returns a new RuleSet that wraps the number RuleSet in any Any rule set
 // which can then be used in nested validation.
-func (v *IntRuleSet[T]) Any() rules.RuleSet[any] {
-	return rules.WrapAny[T](v)
+func (v *IntRuleSet[T]) Any() RuleSet[any] {
+	return WrapAny[T](v)
 }
 
 // typeName returns the name for the target integer type.

@@ -1,16 +1,16 @@
-package numbers_test
+package rules_test
 
 import (
 	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/numbers"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
 func TestWithMinInt(t *testing.T) {
-	ruleSet := numbers.NewInt().WithMin(10).Any()
+	ruleSet := rules.NewInt().WithMin(10).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMin)
 	testhelpers.MustApply(t, ruleSet, 10)
@@ -18,7 +18,7 @@ func TestWithMinInt(t *testing.T) {
 }
 
 func TestWithMinFloat(t *testing.T) {
-	ruleSet := numbers.NewFloat64().WithMin(10.0).Any()
+	ruleSet := rules.NewFloat64().WithMin(10.0).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMin)
 	testhelpers.MustApply(t, ruleSet, 10.0)
@@ -31,7 +31,7 @@ func TestWithMinFloat(t *testing.T) {
 // - Most recent minimum is used.
 // - Rule is serialized properly.
 func TestIntMinConflict(t *testing.T) {
-	ruleSet := numbers.NewInt().WithMin(3).WithMax(10)
+	ruleSet := rules.NewInt().WithMin(3).WithMax(10)
 
 	var output int
 
@@ -75,7 +75,7 @@ func TestIntMinConflict(t *testing.T) {
 // - Most recent minimum is used.
 // - Rule is serialized properly.
 func TestFloatMinConflict(t *testing.T) {
-	ruleSet := numbers.NewFloat64().WithMin(3.0).WithMax(10.0)
+	ruleSet := rules.NewFloat64().WithMin(3.0).WithMax(10.0)
 
 	var output float64
 

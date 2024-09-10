@@ -6,7 +6,6 @@ import (
 
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -184,7 +183,7 @@ func TestRequiredSlice(t *testing.T) {
 // Requirements:
 // - Serializes to WithItemRuleSet()
 func TestWithItemRuleSetString(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithItemRuleSet(numbers.NewInt().WithMin(2))
+	ruleSet := rules.NewSlice[int]().WithItemRuleSet(rules.NewInt().WithMin(2))
 
 	expected := "ArrayRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
 	if s := ruleSet.String(); s != expected {
@@ -198,7 +197,7 @@ func TestEvaluate(t *testing.T) {
 	v := []int{123, 456}
 	ctx := context.Background()
 
-	ruleSet := rules.NewSlice[int]().WithItemRuleSet(numbers.NewInt().WithMin(2))
+	ruleSet := rules.NewSlice[int]().WithItemRuleSet(rules.NewInt().WithMin(2))
 
 	// Evaluate the array directly using Evaluate
 	err1 := ruleSet.Evaluate(ctx, v)

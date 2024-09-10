@@ -1,4 +1,4 @@
-package numbers
+package rules
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for an allowed list of values.
@@ -57,7 +56,7 @@ func (rule *valuesRule[T]) Evaluate(ctx context.Context, value T) errors.Validat
 }
 
 // Conflict returns two for allow rules and always returns false for deny rules.
-func (rule *valuesRule[T]) Conflict(x rules.Rule[T]) bool {
+func (rule *valuesRule[T]) Conflict(x Rule[T]) bool {
 	if !rule.allow {
 		return false
 	}

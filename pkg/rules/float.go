@@ -1,4 +1,4 @@
-package numbers
+package rules
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 type floating interface {
@@ -15,9 +14,9 @@ type floating interface {
 
 // Implementation of RuleSet for floats.
 type FloatRuleSet[T floating] struct {
-	rules.NoConflict[T]
+	NoConflict[T]
 	strict    bool
-	rule      rules.Rule[T]
+	rule      Rule[T]
 	required  bool
 	parent    *FloatRuleSet[T]
 	rounding  Rounding
@@ -156,7 +155,7 @@ func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Validati
 
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *FloatRuleSet[T]) noConflict(rule rules.Rule[T]) *FloatRuleSet[T] {
+func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 	if ruleSet.rule != nil {
 
 		// Conflicting rules, skip this and return the parent
@@ -192,7 +191,7 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule rules.Rule[T]) *FloatRuleSet[T] 
 // for the given number type.
 //
 // Use this when implementing custom rules.
-func (ruleSet *FloatRuleSet[T]) WithRule(rule rules.Rule[T]) *FloatRuleSet[T] {
+func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    ruleSet.strict,
 		parent:    ruleSet.noConflict(rule),
@@ -208,14 +207,14 @@ func (ruleSet *FloatRuleSet[T]) WithRule(rule rules.Rule[T]) *FloatRuleSet[T] {
 // for the given number type.
 //
 // Use this when implementing custom rules.
-func (v *FloatRuleSet[T]) WithRuleFunc(rule rules.RuleFunc[T]) *FloatRuleSet[T] {
+func (v *FloatRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *FloatRuleSet[T] {
 	return v.WithRule(rule)
 }
 
 // Any returns a new RuleSet that wraps the number RuleSet in any Any rule set
 // which can then be used in nested validation.
-func (v *FloatRuleSet[T]) Any() rules.RuleSet[any] {
-	return rules.WrapAny[T](v)
+func (v *FloatRuleSet[T]) Any() RuleSet[any] {
+	return WrapAny[T](v)
 }
 
 // typeName returns the name for the target integer type.

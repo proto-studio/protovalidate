@@ -1,18 +1,18 @@
-package numbers_test
+package rules_test
 
 import (
 	"fmt"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/numbers"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
 // Requirements:
 // - Allowed values are cumulative.
-func TestWithAllowedValues(t *testing.T) {
-	ruleSet := numbers.NewInt().WithAllowedValues(1, 5).WithMax(100)
+func TestNumber_WithAllowedValues(t *testing.T) {
+	ruleSet := rules.NewInt().WithAllowedValues(1, 5).WithMax(100)
 
 	testhelpers.MustApply(t, ruleSet.Any(), 1)
 	testhelpers.MustApply(t, ruleSet.Any(), 5)
@@ -37,7 +37,7 @@ func TestWithAllowedValues(t *testing.T) {
 // - Only the first 3 values are displayed.
 // - Values are separated by commas.
 // - Values are not quoted.
-func TestWithAllowedValuesMore(t *testing.T) {
+func TestNumber_WithAllowedValuesMore(t *testing.T) {
 	values := []int{
 		1,
 		2,
@@ -46,7 +46,7 @@ func TestWithAllowedValuesMore(t *testing.T) {
 		5,
 	}
 
-	ruleSet := numbers.NewInt().WithAllowedValues(values[0], values[1])
+	ruleSet := rules.NewInt().WithAllowedValues(values[0], values[1])
 	expected := fmt.Sprintf("IntRuleSet[int].WithAllowedValues(%d, %d)", values[0], values[1])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -68,8 +68,8 @@ func TestWithAllowedValuesMore(t *testing.T) {
 // Requirements:
 // - Rejected values are cumulative.
 // - Rejected values causes a validation error.
-func TestWithRejectedValues(t *testing.T) {
-	ruleSet := numbers.NewInt().WithRejectedValues(1, 5)
+func TestNumber_WithRejectedValues(t *testing.T) {
+	ruleSet := rules.NewInt().WithRejectedValues(1, 5)
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), 1, errors.CodeForbidden)
 	testhelpers.MustNotApply(t, ruleSet.Any(), 5, errors.CodeForbidden)

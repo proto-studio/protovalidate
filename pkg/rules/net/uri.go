@@ -10,7 +10,6 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/numbers"
 )
 
 // Base rule set for all normal string portions of the URI.
@@ -49,7 +48,7 @@ var defaultFragmentRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultHostRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultUserRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultPasswordRuleSet *rules.StringRuleSet = baseUriPartRuleSet
-var defaultPortRuleSet *numbers.IntRuleSet[int] = numbers.NewInt().WithMin(0).WithMax(65535)
+var defaultPortRuleSet *rules.IntRuleSet[int] = rules.NewInt().WithMin(0).WithMax(65535)
 
 // backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
 var backgroundURIRuleSet URIRuleSet = URIRuleSet{
@@ -84,7 +83,7 @@ type URIRuleSet struct {
 	userinfoRuleSet  *rules.StringRuleSet
 	userRuleSet      *rules.StringRuleSet
 	passwordRuleSet  *rules.StringRuleSet
-	portRuleSet      *numbers.IntRuleSet[int]
+	portRuleSet      *rules.IntRuleSet[int]
 
 	rule  rules.Rule[string]
 	label string

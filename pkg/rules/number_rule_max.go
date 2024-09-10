@@ -1,11 +1,10 @@
-package numbers
+package rules
 
 import (
 	"context"
 	"fmt"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for maximum
@@ -26,7 +25,7 @@ func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.Validation
 }
 
 // Conflict returns true for any maximum rule.
-func (rule *maxRule[T]) Conflict(x rules.Rule[T]) bool {
+func (rule *maxRule[T]) Conflict(x Rule[T]) bool {
 	_, ok := x.(*maxRule[T])
 	return ok
 }

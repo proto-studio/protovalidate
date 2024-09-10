@@ -15,7 +15,6 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/numbers"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -54,8 +53,8 @@ func TestObjectRuleSet(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any()).
 		Apply(context.TODO(), testMap(), &out)
 
 	if err != nil {
@@ -269,8 +268,8 @@ func TestObjectFromMapToMap(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[any]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
 
 	if err != nil {
@@ -302,8 +301,8 @@ func TestObjectFromMapToStruct(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
 
 	if err != nil {
@@ -337,8 +336,8 @@ func TestObjectFromStructToMap(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[any]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
 
 	if err != nil {
@@ -372,8 +371,8 @@ func TestObjectFromStructToStruct(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
 
 	if err != nil {
@@ -429,8 +428,8 @@ func TestKeyFunction(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStruct[*testStructMapped]().
-		Key("A", numbers.NewInt().Any()).
-		Key("C", numbers.NewInt().Any()).
+		Key("A", rules.NewInt().Any()).
+		Key("C", rules.NewInt().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
 
 	if err != nil {
@@ -465,8 +464,8 @@ func TestObjectMapping(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStruct[*testStructMapped]().
-		WithKey("A", numbers.NewInt().Any()).
-		WithKey("C", numbers.NewInt().Any()).
+		WithKey("A", rules.NewInt().Any()).
+		WithKey("C", rules.NewInt().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
 
 	if err != nil {
@@ -501,8 +500,8 @@ func TestMissingField(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[int]().
-		WithKey("A", numbers.NewInt()).
-		WithKey("B", numbers.NewInt()).
+		WithKey("A", rules.NewInt()).
+		WithKey("B", rules.NewInt()).
 		Apply(context.TODO(), map[string]any{"A": 123}, &out)
 
 	if err != nil {
@@ -538,8 +537,8 @@ func TestUnderlyingMapField(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[int]().
-		WithKey("A", numbers.NewInt()).
-		WithKey("B", numbers.NewInt()).
+		WithKey("A", rules.NewInt()).
+		WithKey("B", rules.NewInt()).
 		Apply(context.TODO(), input, &out)
 
 	if err != nil {
@@ -570,8 +569,8 @@ func TestMissingRequiredField(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[int]().
-		WithKey("A", numbers.NewInt()).
-		WithKey("B", numbers.NewInt().WithRequired()).
+		WithKey("A", rules.NewInt()).
+		WithKey("B", rules.NewInt().WithRequired()).
 		Apply(context.TODO(), map[string]any{"A": 123}, &out)
 
 	if len(err) == 0 {
@@ -594,7 +593,7 @@ func TestObjectWithRequired(t *testing.T) {
 }
 
 func TestUnknownFields(t *testing.T) {
-	ruleSet := rules.NewStringMap[int]().WithKey("A", numbers.NewInt())
+	ruleSet := rules.NewStringMap[int]().WithKey("A", rules.NewInt())
 	value := map[string]any{"A": 123, "C": 456}
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), value, errors.CodeUnexpected)
@@ -621,8 +620,8 @@ func TestReturnsAllErrors(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[any]().
-		WithKey("A", numbers.NewInt().WithMax(2).Any()).
-		WithKey("B", numbers.NewInt().Any()).
+		WithKey("A", rules.NewInt().WithMax(2).Any()).
+		WithKey("B", rules.NewInt().Any()).
 		WithKey("C", rules.NewString().WithStrict().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
@@ -641,8 +640,8 @@ func TestObjectReturnsCorrectPaths(t *testing.T) {
 
 	// Use Apply instead of ValidateWithContext
 	err := rules.NewStringMap[any]().
-		WithKey("A", numbers.NewInt().WithMax(2).Any()).
-		WithKey("B", numbers.NewInt().Any()).
+		WithKey("A", rules.NewInt().WithMax(2).Any()).
+		WithKey("B", rules.NewInt().Any()).
 		WithKey("C", rules.NewString().WithStrict().Any()).
 		Apply(ctx, map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
@@ -678,8 +677,8 @@ func TestMixedMap(t *testing.T) {
 
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[any]().
-		WithKey("A", numbers.NewInt().Any()).
-		WithKey("B", numbers.NewInt().Any()).
+		WithKey("A", rules.NewInt().Any()).
+		WithKey("B", rules.NewInt().Any()).
 		WithKey("C", rules.NewString().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": "789"}, &out)
 
@@ -714,7 +713,7 @@ func TestObjectCustom(t *testing.T) {
 }
 
 func TestObjectAny(t *testing.T) {
-	ruleSet := numbers.NewFloat64().Any()
+	ruleSet := rules.NewFloat64().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -723,7 +722,7 @@ func TestObjectAny(t *testing.T) {
 
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
-	ruleSet := rules.NewStruct[*testStruct]().WithKey("W", numbers.NewInt().Any())
+	ruleSet := rules.NewStruct[*testStruct]().WithKey("W", rules.NewInt().Any())
 
 	// Prepare the output variable for Apply
 	var obj *testStruct
@@ -794,8 +793,8 @@ func TestAllowUnknownString(t *testing.T) {
 // - Serializes to WithItemRuleSet()
 func TestObjectWithItemRuleSetString(t *testing.T) {
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any())
 
 	expected := "ObjectRuleSet[*rules_test.testStruct].WithKey(\"X\", IntRuleSet[int].Any()).WithKey(\"Y\", IntRuleSet[int].Any())"
 	if s := ruleSet.String(); s != expected {
@@ -821,8 +820,8 @@ func TestObjectEvaluate(t *testing.T) {
 	ctx := context.Background()
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("Y", numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("Y", rules.NewInt().Any())
 
 	input := testStructInit()
 	input.X = 12
@@ -846,8 +845,8 @@ func TestObjectEvaluate(t *testing.T) {
 // - Multiple rules on the same key all evaluate
 func TestMultipleRules(t *testing.T) {
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithMin(2).Any()).
-		WithKey("X", numbers.NewInt().WithMax(4).Any()).
+		WithKey("X", rules.NewInt().WithMin(2).Any()).
+		WithKey("X", rules.NewInt().WithMax(4).Any()).
 		Any()
 
 	testhelpers.MustApplyFunc(t, ruleSet, &testStruct{X: 3}, &testStruct{X: 3}, func(a, b any) error {
@@ -870,7 +869,7 @@ func TestTimeoutInObjectRule(t *testing.T) {
 	defer cancel()
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithMin(2).Any()).
+		WithKey("X", rules.NewInt().WithMin(2).Any()).
 		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
 			// Simulate a delay that exceeds the timeout
 			time.Sleep(1 * time.Second)
@@ -902,7 +901,7 @@ func TestTimeoutInKeyRule(t *testing.T) {
 	defer cancel()
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().
+		WithKey("X", rules.NewInt().
 			WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
 				// Simulate a delay that exceeds the timeout
 				time.Sleep(1 * time.Second)
@@ -946,8 +945,8 @@ func TestCancelled(t *testing.T) {
 	}
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
-		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
+		WithKey("X", rules.NewInt().WithRuleFunc(intRule).Any()).
+		WithKey("X", rules.NewInt().WithRuleFunc(intRule).Any()).
 		WithRuleFunc(structRule).
 		WithRuleFunc(structRule)
 
@@ -1038,12 +1037,12 @@ func TestConditionalKey(t *testing.T) {
 	// Only run the conditional rule if X is greater than 4. Which it should only be if the intRule
 	// function ran.
 	condKeyRuleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithMin(4).Any())
+		WithKey("X", rules.NewInt().WithMin(4).Any())
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithRuleFunc(intRule).Any()).
-		WithKey("Y", numbers.NewInt().Any()).
-		WithConditionalKey("Y", condKeyRuleSet, numbers.NewInt().WithRuleFunc(condValueRule).Any())
+		WithKey("X", rules.NewInt().WithRuleFunc(intRule).Any()).
+		WithKey("Y", rules.NewInt().Any()).
+		WithConditionalKey("Y", condKeyRuleSet, rules.NewInt().WithRuleFunc(condValueRule).Any())
 
 	checkFn := func(a, b any) error {
 		if a.(*testStruct).Y != b.(*testStruct).Y {
@@ -1085,9 +1084,9 @@ func TestConditionalKey(t *testing.T) {
 func TestKeyRules(t *testing.T) {
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().Any()).
-		WithKey("X", numbers.NewInt().Any()).
-		WithConditionalKey("Y", rules.NewStruct[*testStruct](), numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
+		WithConditionalKey("Y", rules.NewStruct[*testStruct](), rules.NewInt().Any())
 
 	keys := ruleSet.KeyRules()
 
@@ -1117,13 +1116,13 @@ func TestKeyRules(t *testing.T) {
 // - The code panics is a cycle is made directly with conditional keys
 func TestConditionalKeyCycle(t *testing.T) {
 	condX := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithMin(4).Any())
+		WithKey("X", rules.NewInt().WithMin(4).Any())
 
 	condY := rules.NewStruct[*testStruct]().
-		WithKey("Y", numbers.NewInt().WithMin(4).Any())
+		WithKey("Y", rules.NewInt().WithMin(4).Any())
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithConditionalKey("X", condY, numbers.NewInt().Any())
+		WithConditionalKey("X", condY, rules.NewInt().Any())
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -1131,24 +1130,24 @@ func TestConditionalKeyCycle(t *testing.T) {
 		}
 	}()
 
-	ruleSet.WithConditionalKey("Y", condX, numbers.NewInt().Any())
+	ruleSet.WithConditionalKey("Y", condX, rules.NewInt().Any())
 }
 
 // Requirement:
 // - The code panics is a cycle is made indirectly with conditional keys
 func TestConditionalKeyIndirectCycle(t *testing.T) {
 	condX := rules.NewStruct[*testStruct]().
-		WithKey("X", numbers.NewInt().WithMin(4).Any())
+		WithKey("X", rules.NewInt().WithMin(4).Any())
 
 	condY := rules.NewStruct[*testStruct]().
-		WithKey("Y", numbers.NewInt().WithMin(4).Any())
+		WithKey("Y", rules.NewInt().WithMin(4).Any())
 
 	condW := rules.NewStruct[*testStruct]().
-		WithKey("W", numbers.NewInt().WithMin(4).Any())
+		WithKey("W", rules.NewInt().WithMin(4).Any())
 
 	ruleSet := rules.NewStruct[*testStruct]().
-		WithConditionalKey("X", condY, numbers.NewInt().Any()).
-		WithConditionalKey("Y", condW, numbers.NewInt().Any())
+		WithConditionalKey("X", condY, rules.NewInt().Any()).
+		WithConditionalKey("Y", condW, rules.NewInt().Any())
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -1156,7 +1155,7 @@ func TestConditionalKeyIndirectCycle(t *testing.T) {
 		}
 	}()
 
-	ruleSet.WithConditionalKey("W", condX, numbers.NewInt().Any())
+	ruleSet.WithConditionalKey("W", condX, rules.NewInt().Any())
 }
 
 // Requirements:
@@ -1169,19 +1168,19 @@ func TestConditionalKeyVisited(t *testing.T) {
 	 */
 
 	condB := rules.NewStringMap[int]().
-		WithKey("B", numbers.NewInt().WithMin(4))
+		WithKey("B", rules.NewInt().WithMin(4))
 
 	condC := rules.NewStringMap[int]().
-		WithKey("C", numbers.NewInt().WithMin(4))
+		WithKey("C", rules.NewInt().WithMin(4))
 
 	condD := rules.NewStringMap[int]().
-		WithKey("D", numbers.NewInt().WithMin(4))
+		WithKey("D", rules.NewInt().WithMin(4))
 
 	rules.NewStringMap[int]().
-		WithConditionalKey("B", condD, numbers.NewInt()).
-		WithConditionalKey("C", condD, numbers.NewInt()).
-		WithConditionalKey("A", condB, numbers.NewInt()).
-		WithConditionalKey("A", condC, numbers.NewInt())
+		WithConditionalKey("B", condD, rules.NewInt()).
+		WithConditionalKey("C", condD, rules.NewInt()).
+		WithConditionalKey("A", condB, rules.NewInt()).
+		WithConditionalKey("A", condC, rules.NewInt())
 }
 
 // Requirements:
@@ -1194,8 +1193,8 @@ func TestConditionalKeyVisited(t *testing.T) {
 // The actual value of C should be ignored.
 func TestStructRightType(t *testing.T) {
 	ruleSet := rules.NewStruct[*testStructMapped]().
-		WithKey("A", numbers.NewInt().WithMin(4).Any()).
-		WithKey("C", numbers.NewInt().WithMin(100).Any())
+		WithKey("A", rules.NewInt().WithMin(4).Any()).
+		WithKey("C", rules.NewInt().WithMin(100).Any())
 
 	in := &testStructMapped{
 		A: 10,
@@ -1261,7 +1260,7 @@ func TestObjectFromMapToMapUnknown(t *testing.T) {
 	// Use Apply instead of Validate
 	err := rules.NewStringMap[any]().
 		WithUnknown().
-		WithKey("X", numbers.NewInt().Any()).
+		WithKey("X", rules.NewInt().Any()).
 		Apply(context.TODO(), in, &out)
 
 	if err != nil {
@@ -1420,7 +1419,7 @@ func TestUnexpectedKeyPath(t *testing.T) {
 // - Non Json strings cannot be coerced
 func TestJsonString(t *testing.T) {
 	ruleSet := rules.NewStringMap[any]().
-		WithKey("X", numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any())
 
 	j := `{"X": 123}`
 	invalid := "x"
@@ -1441,7 +1440,7 @@ func TestJsonString(t *testing.T) {
 // - Can validate Json []byte
 func TestJsonBytes(t *testing.T) {
 	ruleSet := rules.NewStringMap[any]().
-		WithKey("X", numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any())
 
 	j := []byte(`{"X": 123}`)
 
@@ -1458,7 +1457,7 @@ func TestJsonBytes(t *testing.T) {
 // - Must also work with pointers to json.RawMessage
 func TestJsonRawMessage(t *testing.T) {
 	ruleSet := rules.NewStringMap[any]().
-		WithKey("X", numbers.NewInt().Any())
+		WithKey("X", rules.NewInt().Any())
 
 	j := json.RawMessage([]byte(`{"X": 123}`))
 
@@ -1765,7 +1764,7 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 
 	ruleSet := rules.NewStringMap[any]().
 		WithJson().
-		WithDynamicKey(keyRule, validate.Int().Any()).
+		WithDynamicKey(keyRule, rules.NewInt().Any()).
 		WithDynamicBucket(keyRule, "numbers")
 
 	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__123": "123"}`)
