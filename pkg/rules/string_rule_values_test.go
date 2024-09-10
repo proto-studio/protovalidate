@@ -1,18 +1,18 @@
-package strings_test
+package rules_test
 
 import (
 	"fmt"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
 // Requirements:
 // - Allowed values are cumulative.
 func TestWithAllowedValues(t *testing.T) {
-	ruleSet := strings.New().WithAllowedValues("a", "b").WithMaxLen(1)
+	ruleSet := rules.NewString().WithAllowedValues("a", "b").WithMaxLen(1)
 
 	testhelpers.MustApply(t, ruleSet.Any(), "a")
 	testhelpers.MustApply(t, ruleSet.Any(), "b")
@@ -46,7 +46,7 @@ func TestWithAllowedValuesMore(t *testing.T) {
 		"e",
 	}
 
-	ruleSet := strings.New().WithAllowedValues(values[0], values[1])
+	ruleSet := rules.NewString().WithAllowedValues(values[0], values[1])
 	expected := fmt.Sprintf("StringRuleSet.WithAllowedValues(\"%s\", \"%s\")", values[0], values[1])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -69,7 +69,7 @@ func TestWithAllowedValuesMore(t *testing.T) {
 // - Rejected values are cumulative.
 // - Rejected values causes a validation error.
 func TestWithRejectedValues(t *testing.T) {
-	ruleSet := strings.New().WithRejectedValues("a", "b")
+	ruleSet := rules.NewString().WithRejectedValues("a", "b")
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), "a", errors.CodeForbidden)
 	testhelpers.MustNotApply(t, ruleSet.Any(), "b", errors.CodeForbidden)

@@ -1,4 +1,4 @@
-package strings
+package rules
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"regexp"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for regular expressions.
 type regexpRule struct {
-	rules.NoConflict[string]
+	NoConflict[string]
 	exp *regexp.Regexp
 	msg string
 }

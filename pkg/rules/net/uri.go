@@ -11,7 +11,6 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
-	"proto.zip/studio/validate/pkg/rules/strings"
 )
 
 // Base rule set for all normal string portions of the URI.
@@ -38,18 +37,18 @@ func percentEncodingRule(ctx context.Context, value string) errors.ValidationErr
 	return nil
 }
 
-var baseUriPartRuleSet *strings.StringRuleSet = strings.New().WithRuleFunc(percentEncodingRule)
+var baseUriPartRuleSet *rules.StringRuleSet = rules.NewString().WithRuleFunc(percentEncodingRule)
 
 // Scheme has special rules.
-var defaultSchemaRuleSet *strings.StringRuleSet = strings.New().WithRegexpString("^[A-Za-z][A-Za-z0-9+\\-.]*$", "Invalid schema.")
+var defaultSchemaRuleSet *rules.StringRuleSet = rules.NewString().WithRegexpString("^[A-Za-z][A-Za-z0-9+\\-.]*$", "Invalid schema.")
 
 // Terminal parts.
-var defaultPathRuleSet *strings.StringRuleSet = baseUriPartRuleSet
-var defaultQueryRuleSet *strings.StringRuleSet = baseUriPartRuleSet
-var defaultFragmentRuleSet *strings.StringRuleSet = baseUriPartRuleSet
-var defaultHostRuleSet *strings.StringRuleSet = baseUriPartRuleSet
-var defaultUserRuleSet *strings.StringRuleSet = baseUriPartRuleSet
-var defaultPasswordRuleSet *strings.StringRuleSet = baseUriPartRuleSet
+var defaultPathRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultQueryRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultFragmentRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultHostRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultUserRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultPasswordRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultPortRuleSet *numbers.IntRuleSet[int] = numbers.NewInt().WithMin(0).WithMax(65535)
 
 // backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
@@ -76,15 +75,15 @@ type URIRuleSet struct {
 	deepErrors       bool
 	relative         bool
 	parent           *URIRuleSet
-	schemeRuleSet    *strings.StringRuleSet
-	authorityRuleSet *strings.StringRuleSet
-	pathRuleSet      *strings.StringRuleSet
-	queryRuleSet     *strings.StringRuleSet
-	fragmentRuleSet  *strings.StringRuleSet
-	hostRuleSet      *strings.StringRuleSet
-	userinfoRuleSet  *strings.StringRuleSet
-	userRuleSet      *strings.StringRuleSet
-	passwordRuleSet  *strings.StringRuleSet
+	schemeRuleSet    *rules.StringRuleSet
+	authorityRuleSet *rules.StringRuleSet
+	pathRuleSet      *rules.StringRuleSet
+	queryRuleSet     *rules.StringRuleSet
+	fragmentRuleSet  *rules.StringRuleSet
+	hostRuleSet      *rules.StringRuleSet
+	userinfoRuleSet  *rules.StringRuleSet
+	userRuleSet      *rules.StringRuleSet
+	passwordRuleSet  *rules.StringRuleSet
 	portRuleSet      *numbers.IntRuleSet[int]
 
 	rule  rules.Rule[string]

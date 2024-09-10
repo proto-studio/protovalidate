@@ -16,7 +16,6 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
-	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -419,7 +418,7 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 		}
 	}()
 
-	rules.NewStruct[*testStruct]().WithKey("a", strings.New().Any())
+	rules.NewStruct[*testStruct]().WithKey("a", rules.NewString().Any())
 }
 
 // This function is deprecated and will be removed in v1.0.0.
@@ -624,7 +623,7 @@ func TestReturnsAllErrors(t *testing.T) {
 	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
-		WithKey("C", strings.New().WithStrict().Any()).
+		WithKey("C", rules.NewString().WithStrict().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
 	if err == nil {
@@ -644,7 +643,7 @@ func TestObjectReturnsCorrectPaths(t *testing.T) {
 	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().WithMax(2).Any()).
 		WithKey("B", numbers.NewInt().Any()).
-		WithKey("C", strings.New().WithStrict().Any()).
+		WithKey("C", rules.NewString().WithStrict().Any()).
 		Apply(ctx, map[string]any{"A": 123, "B": 456, "C": 789}, &out)
 
 	if err == nil {
@@ -681,7 +680,7 @@ func TestMixedMap(t *testing.T) {
 	err := rules.NewStringMap[any]().
 		WithKey("A", numbers.NewInt().Any()).
 		WithKey("B", numbers.NewInt().Any()).
-		WithKey("C", strings.New().Any()).
+		WithKey("C", rules.NewString().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "B": 456, "C": "789"}, &out)
 
 	if err != nil {
@@ -750,7 +749,7 @@ type testStructMappedBug struct {
 // See: https://github.com/proto-studio/protovalidate/issues/1
 func TestBug001(t *testing.T) {
 	ruleSet := rules.NewStruct[testStructMappedBug]().
-		WithKey("email", strings.New().Any())
+		WithKey("email", rules.NewString().Any())
 
 	expected := "hello@example.com"
 
@@ -1302,12 +1301,12 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 	}
 
 	ruleSet := rules.NewStruct[*conditionalBugTest]().
-		WithKey("type", strings.New().WithRequired().WithAllowedValues("X", "Y", "Z").Any()).
+		WithKey("type", rules.NewString().WithRequired().WithAllowedValues("X", "Y", "Z").Any()).
 		WithUnknown().
 		WithConditionalKey(
 			"y",
-			rules.NewStruct[*conditionalBugTest]().WithKey("type", strings.New().WithRequired().WithAllowedValues("Y").Any()),
-			strings.New().WithRequired().Any(),
+			rules.NewStruct[*conditionalBugTest]().WithKey("type", rules.NewString().WithRequired().WithAllowedValues("Y").Any()),
+			rules.NewString().WithRequired().Any(),
 		)
 
 	checkFn := func(a, b any) error {
@@ -1335,7 +1334,7 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 // - The key RuleSet should serialized for both
 // - Key should be quoted
 func TestWithKeyStringify(t *testing.T) {
-	strRule := strings.New().WithMinLen(4).Any()
+	strRule := rules.NewString().WithMinLen(4).Any()
 	strRuleStr := strRule.String()
 
 	ruleSet := rules.NewStruct[*testStruct]().WithKey("X", strRule)
@@ -1371,7 +1370,7 @@ func TestWithKeyStringify(t *testing.T) {
 // Requirements:
 // - Maps with non-string keys should not be quoted in String() output.
 func TestWithKeyStringifyInt(t *testing.T) {
-	strRule := strings.New().WithMinLen(4)
+	strRule := rules.NewString().WithMinLen(4)
 	strRuleStr := strRule.String()
 
 	ruleSet := rules.NewMap[int, string]().WithKey(1, strRule)
@@ -1540,7 +1539,7 @@ func TestWithDynamicKeyToMap(t *testing.T) {
 
 	rule := testhelpers.NewMockRuleSet[float64]()
 
-	ruleSet = ruleSet.WithDynamicKey(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), rule)
+	ruleSet = ruleSet.WithDynamicKey(rules.NewString().WithRegexp(regexp.MustCompile("^__"), ""), rule)
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
 	testhelpers.MustApplyAny(t, ruleSet.Any(), validJson)
@@ -1557,10 +1556,10 @@ func TestWithDynamicBucketToMap(t *testing.T) {
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "numbers")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "letters")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "nomatch")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__"), ""), "all")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "numbers")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "letters")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^nomatch"), ""), "nomatch")
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": 123, "__xyz": 789}`, errors.CodeUnexpected)
 
@@ -1627,10 +1626,10 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), validJson, errors.CodeUnexpected)
 
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "All")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "Numbers")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "Letters")
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^nomatch"), ""), "NoMatch")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__"), ""), "All")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), "Numbers")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), "Letters")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^nomatch"), ""), "NoMatch")
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), `{"abc": "abc", "__xyz": "xyz"}`, errors.CodeUnexpected)
 
@@ -1690,14 +1689,14 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 	trueRule := rules.Constant(true).WithRequired().Any()
 
 	ruleSet = ruleSet.WithKey("allowLetters", rules.Any()).WithKey("allowNumbers", rules.Any())
-	ruleSet = ruleSet.WithConditionalDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), rootCondition.WithKey("allowNumbers", trueRule), "numbers")
-	ruleSet = ruleSet.WithConditionalDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), rootCondition.WithKey("allowLetters", trueRule), "letters")
+	ruleSet = ruleSet.WithConditionalDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[0-9]+"), ""), rootCondition.WithKey("allowNumbers", trueRule), "numbers")
+	ruleSet = ruleSet.WithConditionalDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__[a-z]+"), ""), rootCondition.WithKey("allowLetters", trueRule), "letters")
 
 	// Conditions not met so these properties should still be unknown
 	testhelpers.MustNotApply(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`, errors.CodeUnexpected)
 
 	// This will make it so the rule set always passes
-	ruleSet = ruleSet.WithDynamicBucket(strings.New().WithRegexp(regexp.MustCompile("^__"), ""), "all")
+	ruleSet = ruleSet.WithDynamicBucket(rules.NewString().WithRegexp(regexp.MustCompile("^__"), ""), "all")
 
 	o, err := testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__123": 123}`)
 	if err == nil {
@@ -1762,7 +1761,7 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 // - Keys are not added to output map.
 // - Keys have the correct data type.
 func TestDynamicKeyWithBucket(t *testing.T) {
-	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+	keyRule := rules.NewString().WithRegexp(regexp.MustCompile("^__"), "")
 
 	ruleSet := rules.NewStringMap[any]().
 		WithJson().
@@ -1807,7 +1806,7 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 // NOTE: This is UNDEFINED behavior. Rule writers should avoid having dynamic keys overlap with static keys.
 // The purpose of this test is just to let us know if this behavior unintentionally changes.
 func TestStaticKeyWithBucket(t *testing.T) {
-	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+	keyRule := rules.NewString().WithRegexp(regexp.MustCompile("^__"), "")
 
 	ruleSet := rules.NewStringMap[any]().
 		WithJson().
@@ -1875,7 +1874,7 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 		return nil
 	})
 
-	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+	keyRule := rules.NewString().WithRegexp(regexp.MustCompile("^__"), "")
 
 	ruleSet := rules.NewStringMap[any]().
 		WithJson().
@@ -1896,7 +1895,7 @@ func TestDynamicKeyAsDependentConditional(t *testing.T) {
 		}
 	}()
 
-	keyRule := strings.New().WithRegexp(regexp.MustCompile("^__"), "")
+	keyRule := rules.NewString().WithRegexp(regexp.MustCompile("^__"), "")
 
 	rules.NewStringMap[any]().
 		WithConditionalKey("__xyz", rules.NewStringMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())

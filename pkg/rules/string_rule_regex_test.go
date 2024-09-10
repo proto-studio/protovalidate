@@ -1,11 +1,11 @@
-package strings_test
+package rules_test
 
 import (
 	"regexp"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -14,7 +14,7 @@ import (
 // - Returns the user supplied error
 func TestRegexString(t *testing.T) {
 	errStr := "test error"
-	ruleSet := strings.New().WithRegexpString("^[a-z]+$", errStr).Any()
+	ruleSet := rules.NewString().WithRegexpString("^[a-z]+$", errStr).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
@@ -33,7 +33,7 @@ func TestInvalidRegex(t *testing.T) {
 		}
 	}()
 
-	strings.New().WithRegexpString("[[[", "")
+	rules.NewString().WithRegexpString("[[[", "")
 }
 
 // Requirements:
@@ -42,7 +42,7 @@ func TestInvalidRegex(t *testing.T) {
 func TestRegex(t *testing.T) {
 	errStr := "test error"
 	exp := regexp.MustCompile("^[a-z]+$")
-	ruleSet := strings.New().WithRegexp(exp, errStr).Any()
+	ruleSet := rules.NewString().WithRegexp(exp, errStr).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
@@ -55,7 +55,7 @@ func TestRegex(t *testing.T) {
 // Requirements:
 // - Serializes to WithRegex(...)
 func TestRegexStringSerialize(t *testing.T) {
-	ruleSet := strings.New().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
+	ruleSet := rules.NewString().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
 
 	expected := "StringRuleSet.WithRegexp([a-z]).WithRegexp([0-9])"
 	if s := ruleSet.String(); s != expected {

@@ -1,4 +1,4 @@
-package strings_test
+package rules_test
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
-	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -15,7 +14,7 @@ func TestStringRuleSet(t *testing.T) {
 	var str string
 
 	// Use Apply instead of Validate
-	err := strings.New().Apply(context.TODO(), "test", &str)
+	err := rules.NewString().Apply(context.TODO(), "test", &str)
 
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
@@ -25,19 +24,19 @@ func TestStringRuleSet(t *testing.T) {
 		t.Fatal("Expected test string to be returned")
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[string](strings.New())
+	ok := testhelpers.CheckRuleSetInterface[string](rules.NewString())
 	if !ok {
 		t.Fatal("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustApplyTypes[string](t, strings.New(), "abc")
+	testhelpers.MustApplyTypes[string](t, rules.NewString(), "abc")
 }
 
 // Requirements:
 // - Should be usable as a rule
 // - Must implement the Rule[string] interface
 func TestRuleImplementation(t *testing.T) {
-	ok := testhelpers.CheckRuleInterface[string](strings.New())
+	ok := testhelpers.CheckRuleInterface[string](rules.NewString())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
@@ -49,7 +48,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 	var str string
 
 	// Use Apply instead of Validate
-	err := strings.New().WithStrict().Apply(context.TODO(), 123, &str)
+	err := rules.NewString().WithStrict().Apply(context.TODO(), 123, &str)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -57,7 +56,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 }
 
 func tryStringCoercion(t testing.TB, val interface{}, expected string) {
-	ruleSet := strings.New()
+	ruleSet := rules.NewString()
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), val, expected)
 }
 
@@ -98,7 +97,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustNotApply(t, strings.New().Any(), &val, errors.CodeType)
+	testhelpers.MustNotApply(t, rules.NewString().Any(), &val, errors.CodeType)
 }
 
 // Requirements:
@@ -106,7 +105,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestStringRequired(t *testing.T) {
-	ruleSet := strings.New()
+	ruleSet := rules.NewString()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -124,7 +123,7 @@ func TestStringCustom(t *testing.T) {
 	var out string
 
 	// Test with a rule that is expected to produce an error
-	err := strings.New().
+	err := rules.NewString().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[string](1).Function()).
 		Apply(context.TODO(), "123", &out)
 
@@ -136,7 +135,7 @@ func TestStringCustom(t *testing.T) {
 	// Test with a rule that is not expected to produce an error
 	rule := testhelpers.NewMockRule[string]()
 
-	err = strings.New().
+	err = rules.NewString().
 		WithRuleFunc(rule.Function()).
 		Apply(context.TODO(), "123", &out)
 
@@ -152,8 +151,8 @@ func TestStringCustom(t *testing.T) {
 	}
 }
 
-func TestAny(t *testing.T) {
-	ruleSet := strings.New().Any()
+func TestString_Any(t *testing.T) {
+	ruleSet := rules.NewString().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -164,8 +163,8 @@ func TestAny(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestRequiredString(t *testing.T) {
-	ruleSet := strings.New().WithRequired()
+func TestString_WithRequired(t *testing.T) {
+	ruleSet := rules.NewString().WithRequired()
 
 	expected := "StringRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -175,8 +174,8 @@ func TestRequiredString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithStrict()
-func TestStrictString(t *testing.T) {
-	ruleSet := strings.New().WithStrict()
+func TestString_WithStrict(t *testing.T) {
+	ruleSet := rules.NewString().WithStrict()
 
 	expected := "StringRuleSet.WithStrict()"
 	if s := ruleSet.String(); s != expected {

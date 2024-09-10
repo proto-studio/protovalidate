@@ -1,5 +1,4 @@
-// Package string provides a RuleSet implementation that can be used to validate string values.
-package strings
+package rules
 
 import (
 	"context"
@@ -7,14 +6,13 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implementation of RuleSet for strings.
 type StringRuleSet struct {
-	rules.NoConflict[string]
+	NoConflict[string]
 	strict   bool
-	rule     rules.Rule[string]
+	rule     Rule[string]
 	required bool
 	parent   *StringRuleSet
 	label    string
@@ -26,8 +24,8 @@ var backgroundRuleSet StringRuleSet = StringRuleSet{
 	label: "StringRuleSet",
 }
 
-// New creates a new string RuleSet.
-func New() *StringRuleSet {
+// NewString creates a new string RuleSet.
+func NewString() *StringRuleSet {
 	return &backgroundRuleSet
 }
 
@@ -129,7 +127,7 @@ func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.Valid
 
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *StringRuleSet) noConflict(rule rules.Rule[string]) *StringRuleSet {
+func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
 	if ruleSet.rule != nil {
 
 		// Conflicting rules, skip this and return the parent
@@ -163,7 +161,7 @@ func (ruleSet *StringRuleSet) noConflict(rule rules.Rule[string]) *StringRuleSet
 // for the string type.
 //
 // Use this when implementing custom rules.
-func (ruleSet *StringRuleSet) WithRule(rule rules.Rule[string]) *StringRuleSet {
+func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 	return &StringRuleSet{
 		strict:   ruleSet.strict,
 		rule:     rule,
@@ -177,14 +175,14 @@ func (ruleSet *StringRuleSet) WithRule(rule rules.Rule[string]) *StringRuleSet {
 // for the string type.
 //
 // Use this when implementing custom rules.
-func (v *StringRuleSet) WithRuleFunc(rule rules.RuleFunc[string]) *StringRuleSet {
+func (v *StringRuleSet) WithRuleFunc(rule RuleFunc[string]) *StringRuleSet {
 	return v.WithRule(rule)
 }
 
 // Any returns a new RuleSet that wraps the string RuleSet in any Any rule set
 // which can then be used in nested validation.
-func (v *StringRuleSet) Any() rules.RuleSet[any] {
-	return rules.WrapAny[string](v)
+func (v *StringRuleSet) Any() RuleSet[any] {
+	return WrapAny[string](v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

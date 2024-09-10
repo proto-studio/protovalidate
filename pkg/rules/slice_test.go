@@ -7,7 +7,6 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/numbers"
-	"proto.zip/studio/validate/pkg/rules/strings"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
@@ -51,7 +50,7 @@ func TestArrayItemRuleSetSuccess(t *testing.T) {
 	var output []string
 
 	// Apply with a valid array and item rule set, expecting no error
-	err := rules.NewSlice[string]().WithItemRuleSet(strings.New()).Apply(context.TODO(), []string{"a", "b", "c"}, &output)
+	err := rules.NewSlice[string]().WithItemRuleSet(rules.NewString()).Apply(context.TODO(), []string{"a", "b", "c"}, &output)
 	if err != nil {
 		t.Errorf("Expected errors to be empty. Got: %v", err)
 		return
@@ -75,7 +74,7 @@ func TestArrayItemRuleSetError(t *testing.T) {
 	var output []string
 
 	// Apply with a valid array but with an item rule set that will fail, expecting 2 errors
-	err := rules.NewSlice[string]().WithItemRuleSet(strings.New().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
+	err := rules.NewSlice[string]().WithItemRuleSet(rules.NewString().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
 	if len(err) != 2 {
 		t.Errorf("Expected 2 errors and got %d.", len(err))
 		return
@@ -132,7 +131,7 @@ func TestReturnsCorrectPaths(t *testing.T) {
 
 	// Apply with an array and a context, expecting errors
 	err := rules.NewSlice[string]().
-		WithItemRuleSet(strings.New().WithMinLen(2)).
+		WithItemRuleSet(rules.NewString().WithMinLen(2)).
 		Apply(ctx, []string{"", "a", "ab", "abc"}, &output)
 
 	if err == nil {
@@ -173,7 +172,7 @@ func TestAny(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestRequiredString(t *testing.T) {
+func TestRequiredSlice(t *testing.T) {
 	ruleSet := rules.NewSlice[int]().WithRequired()
 
 	expected := "ArrayRuleSet[int].WithRequired()"

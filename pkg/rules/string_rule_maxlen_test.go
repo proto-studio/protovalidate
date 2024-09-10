@@ -1,16 +1,16 @@
-package strings_test
+package rules_test
 
 import (
 	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestMaxLen(t *testing.T) {
-	ruleSet := strings.New().WithMaxLen(2).Any()
+func TestString_WithMaxLen(t *testing.T) {
+	ruleSet := rules.NewString().WithMaxLen(2).Any()
 
 	testhelpers.MustApply(t, ruleSet, "a")
 	testhelpers.MustApply(t, ruleSet, "ab")
@@ -22,8 +22,8 @@ func TestMaxLen(t *testing.T) {
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
-func TestMaxLenConflict(t *testing.T) {
-	ruleSet := strings.New().WithMaxLen(2).WithMinLen(1)
+func TestString_WithMaxLen_Conflict(t *testing.T) {
+	ruleSet := rules.NewString().WithMaxLen(2).WithMinLen(1)
 
 	// Prepare the output variable for Apply
 	var out string

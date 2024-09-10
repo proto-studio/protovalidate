@@ -1,16 +1,16 @@
-package strings_test
+package rules_test
 
 import (
 	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules/strings"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestMinLen(t *testing.T) {
-	ruleSet := strings.New().WithMinLen(2).Any()
+func TestString_WithMinLen(t *testing.T) {
+	ruleSet := rules.NewString().WithMinLen(2).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	testhelpers.MustApply(t, ruleSet, "ab")
@@ -21,8 +21,8 @@ func TestMinLen(t *testing.T) {
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
-func TestMinLenConflict(t *testing.T) {
-	ruleSet := strings.New().WithMinLen(3).WithMaxLen(10)
+func TestString_WithMinLen_Conflict(t *testing.T) {
+	ruleSet := rules.NewString().WithMinLen(3).WithMaxLen(10)
 
 	// Prepare the output variable for Apply
 	var out string

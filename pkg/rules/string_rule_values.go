@@ -1,4 +1,4 @@
-package strings
+package rules
 
 import (
 	"context"
@@ -6,17 +6,16 @@ import (
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 )
 
 // Implements the Rule interface for an allowed list of values.
-type valuesRule struct {
+type stringValuesRule struct {
 	values []string
 	allow  bool
 }
 
 // exists returns true if the value exists in the rule
-func (rule *valuesRule) exists(value string) bool {
+func (rule *stringValuesRule) exists(value string) bool {
 	low, high := 0, len(rule.values)-1
 
 	for low <= high {
@@ -38,7 +37,7 @@ func (rule *valuesRule) exists(value string) bool {
 
 // Evaluate takes a context and string value and returns an error depending on whether the value is in a list
 // of allowed or denied values.
-func (rule *valuesRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+func (rule *stringValuesRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	exists := rule.exists(value)
 
 	if rule.allow {
@@ -57,12 +56,12 @@ func (rule *valuesRule) Evaluate(ctx context.Context, value string) errors.Valid
 }
 
 // Conflict returns two for allow rules and always returns false for deny rules.
-func (rule *valuesRule) Conflict(x rules.Rule[string]) bool {
+func (rule *stringValuesRule) Conflict(x Rule[string]) bool {
 	if !rule.allow {
 		return false
 	}
 
-	if other, ok := x.(*valuesRule); ok {
+	if other, ok := x.(*stringValuesRule); ok {
 		return other.allow
 	}
 	return false
@@ -70,7 +69,7 @@ func (rule *valuesRule) Conflict(x rules.Rule[string]) bool {
 
 // String returns the string representation of the values rule.
 // Example: WithAllowedValues("b", "b", "c")
-func (rule *valuesRule) String() string {
+func (rule *stringValuesRule) String() string {
 	if !rule.allow {
 		return util.StringsToRuleOutput("WithRejectedValues", rule.values)
 
@@ -80,13 +79,13 @@ func (rule *valuesRule) String() string {
 
 // getValuesRule returns the previous defined values rule for the rule set that has the expected value for "allow".
 // Returns nil if there is none.
-func (ruleSet *StringRuleSet) getValuesRule(allow bool) *valuesRule {
+func (ruleSet *StringRuleSet) getValuesRule(allow bool) *stringValuesRule {
 	for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule == nil {
 			continue
 		}
 
-		if valueRule, ok := currentRuleSet.rule.(*valuesRule); ok && valueRule.allow == allow {
+		if valueRule, ok := currentRuleSet.rule.(*stringValuesRule); ok && valueRule.allow == allow {
 			return valueRule
 		}
 	}
@@ -116,7 +115,7 @@ func (ruleSet *StringRuleSet) WithAllowedValues(value string, rest ...string) *S
 
 	slices.Sort(values)
 
-	return ruleSet.WithRule(&valuesRule{
+	return ruleSet.WithRule(&stringValuesRule{
 		values,
 		true,
 	})
@@ -133,7 +132,7 @@ func (ruleSet *StringRuleSet) WithRejectedValues(value string, rest ...string) *
 
 	slices.Sort(values)
 
-	return ruleSet.WithRule(&valuesRule{
+	return ruleSet.WithRule(&stringValuesRule{
 		values,
 		false,
 	})
