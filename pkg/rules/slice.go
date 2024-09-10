@@ -25,7 +25,7 @@ func NewSlice[T any]() *SliceRuleSet[T] {
 	var empty [0]T
 
 	return &SliceRuleSet[T]{
-		label: fmt.Sprintf("ArrayRuleSet[%s]", reflect.TypeOf(empty).Elem().Kind()),
+		label: fmt.Sprintf("SliceRuleSet[%s]", reflect.TypeOf(empty).Elem().Kind()),
 	}
 }
 

@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
+	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestMaxLen(t *testing.T) {
+func TestSlice_MaxLen(t *testing.T) {
 	ruleSet := rules.NewSlice[int]().WithMaxLen(2)
 
 	// Prepare an output variable for Apply
@@ -38,7 +40,7 @@ func TestMaxLen(t *testing.T) {
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
-func TestMaxLenConflict(t *testing.T) {
+func TestSlice_MaxLen_Conflict(t *testing.T) {
 	ruleSet := rules.NewSlice[int]().WithMaxLen(3).WithMinLen(1)
 
 	// Prepare an output variable for Apply
@@ -66,13 +68,58 @@ func TestMaxLenConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set's string representation is correct
-	expected := "ArrayRuleSet[int].WithMaxLen(3).WithMinLen(1)"
+	expected := "SliceRuleSet[int].WithMaxLen(3).WithMinLen(1)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set's string representation is correct
-	expected = "ArrayRuleSet[int].WithMinLen(1).WithMaxLen(4)"
+	expected = "SliceRuleSet[int].WithMinLen(1).WithMaxLen(4)"
+	if s := ruleSet2.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+func TestString_WithMaxLen(t *testing.T) {
+	ruleSet := rules.NewString().WithMaxLen(2).Any()
+
+	testhelpers.MustApply(t, ruleSet, "a")
+	testhelpers.MustApply(t, ruleSet, "ab")
+	testhelpers.MustNotApply(t, ruleSet, "abc", errors.CodeMax)
+
+}
+
+// Requirements:
+// - Only one max length can exist on a rule set.
+// - Original rule set is not mutated.
+// - Most recent maximum is used.
+func TestString_WithMaxLen_Conflict(t *testing.T) {
+	ruleSet := rules.NewString().WithMaxLen(2).WithMinLen(1)
+
+	// Prepare the output variable for Apply
+	var out string
+
+	// First validation with max length 2
+	if err := ruleSet.Apply(context.TODO(), "abc", &out); err == nil {
+		t.Errorf("Expected error to not be nil")
+	}
+	if err := ruleSet.Apply(context.TODO(), "ab", &out); err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	// Update the rule set with max length 3 and validate
+	ruleSet2 := ruleSet.WithMaxLen(3)
+	if err := ruleSet2.Apply(context.TODO(), "abc", &out); err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	}
+
+	// Check the string representation of the rule sets
+	expected := "StringRuleSet.WithMaxLen(2).WithMinLen(1)"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	expected = "StringRuleSet.WithMinLen(1).WithMaxLen(3)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

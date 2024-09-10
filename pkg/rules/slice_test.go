@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestArrayRuleSet(t *testing.T) {
+func TestSliceRuleSet(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -32,7 +32,7 @@ func TestArrayRuleSet(t *testing.T) {
 	testhelpers.MustApplyTypes[[]string](t, rules.NewSlice[string](), []string{"a", "b", "c"})
 }
 
-func TestArrayRuleSetTypeError(t *testing.T) {
+func TestSliceRuleSetTypeError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -44,7 +44,7 @@ func TestArrayRuleSetTypeError(t *testing.T) {
 	}
 }
 
-func TestArrayItemRuleSetSuccess(t *testing.T) {
+func TestSliceItemRuleSetSuccess(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -56,7 +56,7 @@ func TestArrayItemRuleSetSuccess(t *testing.T) {
 	}
 }
 
-func TestArrayItemCastError(t *testing.T) {
+func TestSliceItemCastError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -68,7 +68,7 @@ func TestArrayItemCastError(t *testing.T) {
 	}
 }
 
-func TestArrayItemRuleSetError(t *testing.T) {
+func TestSliceItemRuleSetError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -174,7 +174,7 @@ func TestAny(t *testing.T) {
 func TestRequiredSlice(t *testing.T) {
 	ruleSet := rules.NewSlice[int]().WithRequired()
 
-	expected := "ArrayRuleSet[int].WithRequired()"
+	expected := "SliceRuleSet[int].WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -185,7 +185,7 @@ func TestRequiredSlice(t *testing.T) {
 func TestWithItemRuleSetString(t *testing.T) {
 	ruleSet := rules.NewSlice[int]().WithItemRuleSet(rules.NewInt().WithMin(2))
 
-	expected := "ArrayRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
+	expected := "SliceRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
