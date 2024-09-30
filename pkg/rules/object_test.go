@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"proto.zip/studio/validate"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
@@ -84,7 +83,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 		Age int
 	}
 
-	ruleSet := rules.Struct[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.Struct[outStruct]().WithJson().WithKey("Name", rules.String().Any())
 	ctx := context.Background()
 
 	input := `{"Name": "Test"}`
@@ -193,7 +192,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 		Age int
 	}
 
-	ruleSet := rules.Struct[*outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.Struct[*outStruct]().WithJson().WithKey("Name", rules.String().Any())
 	ctx := context.Background()
 
 	input := `{"Name": "Test"}`
@@ -1909,7 +1908,7 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 		Name string
 	}
 
-	ruleSet := rules.Struct[outStruct]().WithJson().WithKey("Name", validate.String().Any())
+	ruleSet := rules.Struct[outStruct]().WithJson().WithKey("Name", rules.String().Any())
 	ctx := context.Background()
 
 	expected := "Abc"
@@ -1947,7 +1946,7 @@ func TestQueryStringInput(t *testing.T) {
 		t.Fatalf("Expected parse error to be nil, got: %s", err)
 	}
 
-	itemRuleSet := validate.Array[int]().WithItemRuleSet(validate.Int()).WithMaxLen(1)
+	itemRuleSet := rules.Slice[int]().WithItemRuleSet(rules.Int()).WithMaxLen(1)
 
 	ruleSet := rules.StringMap[[]int]().
 		WithKey("abc", itemRuleSet).
