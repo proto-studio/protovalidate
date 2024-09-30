@@ -12,8 +12,8 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-// backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
-var backgroundDomainRuleSet DomainRuleSet = DomainRuleSet{
+// baseDomainRuleSet is the base domain rule set. Since rule sets are immutable.
+var baseDomainRuleSet DomainRuleSet = DomainRuleSet{
 	label: "DomainRuleSet",
 }
 
@@ -29,9 +29,9 @@ type DomainRuleSet struct {
 	label    string
 }
 
-// NewDomain creates a new domain RuleSet
-func NewDomain() *DomainRuleSet {
-	return &backgroundDomainRuleSet
+// Domain returns the base domain RuleSet.
+func Domain() *DomainRuleSet {
+	return &baseDomainRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.

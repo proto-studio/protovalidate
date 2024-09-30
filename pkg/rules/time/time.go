@@ -22,14 +22,14 @@ type TimeRuleSet struct {
 	label        string
 }
 
-// backgroundTimeRuleSet is the base time rule set. Since rule sets are immutable.
-var backgroundTimeRuleSet TimeRuleSet = TimeRuleSet{
+// baseTimeRuleSet is the base time rule set. Since rule sets are immutable.
+var baseTimeRuleSet TimeRuleSet = TimeRuleSet{
 	label: "TimeRuleSet",
 }
 
-// NewTime creates a new time.Time RuleSet
-func NewTime() *TimeRuleSet {
-	return &backgroundTimeRuleSet
+// Time returns the base time.Time RuleSet.
+func Time() *TimeRuleSet {
+	return &baseTimeRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.

@@ -36,10 +36,10 @@ func percentEncodingRule(ctx context.Context, value string) errors.ValidationErr
 	return nil
 }
 
-var baseUriPartRuleSet *rules.StringRuleSet = rules.NewString().WithRuleFunc(percentEncodingRule)
+var baseUriPartRuleSet *rules.StringRuleSet = rules.String().WithRuleFunc(percentEncodingRule)
 
 // Scheme has special rules.
-var defaultSchemaRuleSet *rules.StringRuleSet = rules.NewString().WithRegexpString("^[A-Za-z][A-Za-z0-9+\\-.]*$", "Invalid schema.")
+var defaultSchemaRuleSet *rules.StringRuleSet = rules.String().WithRegexpString("^[A-Za-z][A-Za-z0-9+\\-.]*$", "Invalid schema.")
 
 // Terminal parts.
 var defaultPathRuleSet *rules.StringRuleSet = baseUriPartRuleSet
@@ -48,10 +48,10 @@ var defaultFragmentRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultHostRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultUserRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultPasswordRuleSet *rules.StringRuleSet = baseUriPartRuleSet
-var defaultPortRuleSet *rules.IntRuleSet[int] = rules.NewInt().WithMin(0).WithMax(65535)
+var defaultPortRuleSet *rules.IntRuleSet[int] = rules.Int().WithMin(0).WithMax(65535)
 
 // backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
-var backgroundURIRuleSet URIRuleSet = URIRuleSet{
+var baseURIRuleSet URIRuleSet = URIRuleSet{
 	label:           "URIRuleSet",
 	schemeRuleSet:   defaultSchemaRuleSet,
 	pathRuleSet:     defaultPathRuleSet,
@@ -89,9 +89,9 @@ type URIRuleSet struct {
 	label string
 }
 
-// NewDomain creates a new domain RuleSet
-func NewURI() *URIRuleSet {
-	return &backgroundURIRuleSet
+// URI returns the base URI RuleSet.
+func URI() *URIRuleSet {
+	return &baseURIRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.

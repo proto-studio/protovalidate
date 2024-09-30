@@ -32,7 +32,7 @@ func TestInterfaceSlice(t *testing.T) {
 			return nil, nil
 		})
 
-	ruleSet := rules.NewSlice[MyTestInterface]().WithItemRuleSet(innerRuleSet)
+	ruleSet := rules.Slice[MyTestInterface]().WithItemRuleSet(innerRuleSet)
 
 	// Prepare an output variable for Apply
 	var output []MyTestInterface

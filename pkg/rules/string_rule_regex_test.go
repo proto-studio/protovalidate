@@ -14,7 +14,7 @@ import (
 // - Returns the user supplied error
 func TestRegexString(t *testing.T) {
 	errStr := "test error"
-	ruleSet := rules.NewString().WithRegexpString("^[a-z]+$", errStr).Any()
+	ruleSet := rules.String().WithRegexpString("^[a-z]+$", errStr).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
@@ -33,7 +33,7 @@ func TestInvalidRegex(t *testing.T) {
 		}
 	}()
 
-	rules.NewString().WithRegexpString("[[[", "")
+	rules.String().WithRegexpString("[[[", "")
 }
 
 // Requirements:
@@ -42,7 +42,7 @@ func TestInvalidRegex(t *testing.T) {
 func TestRegex(t *testing.T) {
 	errStr := "test error"
 	exp := regexp.MustCompile("^[a-z]+$")
-	ruleSet := rules.NewString().WithRegexp(exp, errStr).Any()
+	ruleSet := rules.String().WithRegexp(exp, errStr).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	if err := testhelpers.MustNotApply(t, ruleSet, "123", errors.CodePattern); err != nil {
@@ -55,7 +55,7 @@ func TestRegex(t *testing.T) {
 // Requirements:
 // - Serializes to WithRegex(...)
 func TestRegexStringSerialize(t *testing.T) {
-	ruleSet := rules.NewString().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
+	ruleSet := rules.String().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
 
 	expected := "StringRuleSet.WithRegexp([a-z]).WithRegexp([0-9])"
 	if s := ruleSet.String(); s != expected {

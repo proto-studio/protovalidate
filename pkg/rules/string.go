@@ -18,15 +18,15 @@ type StringRuleSet struct {
 	label    string
 }
 
-// backgroundRuleSet is the main RuleSet.
+// baseStringRuleSet is the main RuleSet.
 // New returns this since rule sets are immutable and StringRuleSet does not contain generics.
-var backgroundRuleSet StringRuleSet = StringRuleSet{
+var baseStringRuleSet StringRuleSet = StringRuleSet{
 	label: "StringRuleSet",
 }
 
-// NewString creates a new string RuleSet.
-func NewString() *StringRuleSet {
-	return &backgroundRuleSet
+// String returns the base StringRuleSet.
+func String() *StringRuleSet {
+	return &baseStringRuleSet
 }
 
 // WithStrict returns a new child RuleSet with the strict flag applied.

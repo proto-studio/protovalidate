@@ -20,7 +20,7 @@ func TestEmailRuleSet(t *testing.T) {
 	example := "hello@example.com"
 
 	// Use Apply instead of Validate
-	err := net.NewEmail().Apply(context.TODO(), example, &output)
+	err := net.Email().Apply(context.TODO(), example, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -33,20 +33,20 @@ func TestEmailRuleSet(t *testing.T) {
 	}
 
 	// Check if the rule set implements the expected interface
-	ok := testhelpers.CheckRuleSetInterface[string](net.NewEmail())
+	ok := testhelpers.CheckRuleSetInterface[string](net.Email())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
 
-	testhelpers.MustApplyTypes[string](t, net.NewEmail(), example)
+	testhelpers.MustApplyTypes[string](t, net.Email(), example)
 }
 
 // Requirements:
 // - Default validator requires a TLD
 // - Unknown TLDs error
 func TestEmailDefaultDomain(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	testhelpers.MustApply(t, ruleSet, "hello@example.com")
 	testhelpers.MustNotApply(t, ruleSet, "hello@example.bogusbogus", errors.CodePattern)
@@ -56,7 +56,7 @@ func TestEmailDefaultDomain(t *testing.T) {
 // - Errors if there isn't any "@"
 // - Errors if there is more than one "@"
 func TestEmailSplit(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "example.com", errors.CodePattern)
 	testhelpers.MustNotApply(t, ruleSet, "hello@world@example.com", errors.CodePattern)
@@ -67,7 +67,7 @@ func TestEmailSplit(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestEmailRequired(t *testing.T) {
-	ruleSet := net.NewEmail()
+	ruleSet := net.Email()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -87,7 +87,7 @@ func TestEmailCustom(t *testing.T) {
 	var output string
 
 	// Apply with a mock rule that should trigger an error
-	err := net.NewEmail().
+	err := net.Email().
 		WithRuleFunc(mock.Function()).
 		Apply(context.TODO(), "name@example.com", &output)
 
@@ -102,7 +102,7 @@ func TestEmailCustom(t *testing.T) {
 	}
 
 	// Check the string representation of the rule set
-	str := net.NewEmail().WithRuleFunc(mock.Function()).String()
+	str := net.Email().WithRuleFunc(mock.Function()).String()
 	expected := "EmailRuleSet.WithRuleFunc(...)"
 	if str != expected {
 		t.Errorf("Expected %s, got %s", expected, str)
@@ -111,7 +111,7 @@ func TestEmailCustom(t *testing.T) {
 	rule := testhelpers.NewMockRule[string]()
 
 	// Apply with a mock rule that should pass without errors
-	err = net.NewEmail().
+	err = net.Email().
 		WithRuleFunc(rule.Function()).
 		Apply(context.TODO(), "name@example.com", &output)
 
@@ -129,8 +129,8 @@ func TestEmailCustom(t *testing.T) {
 // Requirements:
 // - Custom domain RuleSet overrides default set.
 func TestEmailWithDomain(t *testing.T) {
-	domainRuleSet := net.NewDomain().WithSuffix("edu")
-	ruleSet := net.NewEmail().WithDomain(domainRuleSet).Any()
+	domainRuleSet := net.Domain().WithSuffix("edu")
+	ruleSet := net.Email().WithDomain(domainRuleSet).Any()
 
 	testhelpers.MustApply(t, ruleSet, "hello@example.edu")
 	testhelpers.MustNotApply(t, ruleSet, "hello@example.com", errors.CodePattern)
@@ -140,7 +140,7 @@ func TestEmailWithDomain(t *testing.T) {
 // - Errors when input is not a string
 // - errors.CodeType is returned
 func TestEmailType(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
@@ -150,7 +150,7 @@ func TestEmailType(t *testing.T) {
 // - Can't start with a dot
 // - Can't end with a dot
 func TestEmailDots(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	testhelpers.MustApply(t, ruleSet, "hello.world@example.com")
 	testhelpers.MustNotApply(t, ruleSet, "hello..world@example.com", errors.CodePattern)
@@ -161,7 +161,7 @@ func TestEmailDots(t *testing.T) {
 // Requirements:
 // - Errors when the local part is empty
 func TestEmailEmptyLocal(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "@example.com", errors.CodePattern)
 }
@@ -169,7 +169,7 @@ func TestEmailEmptyLocal(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestEmailRequiredString(t *testing.T) {
-	ruleSet := net.NewEmail().WithRequired()
+	ruleSet := net.Email().WithRequired()
 
 	expected := "EmailRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -180,7 +180,7 @@ func TestEmailRequiredString(t *testing.T) {
 // Requirements:
 // - Context is passed to domain
 func TestEmailDomainContext(t *testing.T) {
-	ruleSet := net.NewEmail().Any()
+	ruleSet := net.Email().Any()
 
 	ctx := rulecontext.WithPathString(context.Background(), "tests")
 	ctx = rulecontext.WithPathString(ctx, "email")

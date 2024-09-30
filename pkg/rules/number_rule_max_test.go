@@ -10,7 +10,7 @@ import (
 )
 
 func TestWithMaxInt(t *testing.T) {
-	ruleSet := rules.NewInt().WithMax(10).Any()
+	ruleSet := rules.Int().WithMax(10).Any()
 
 	testhelpers.MustApply(t, ruleSet, 9)
 	testhelpers.MustApply(t, ruleSet, 10)
@@ -18,7 +18,7 @@ func TestWithMaxInt(t *testing.T) {
 }
 
 func TestWithMaxFloat(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithMax(10.0).Any()
+	ruleSet := rules.Float64().WithMax(10.0).Any()
 
 	testhelpers.MustApply(t, ruleSet, 9.9)
 	testhelpers.MustApply(t, ruleSet, 10.0)
@@ -31,7 +31,7 @@ func TestWithMaxFloat(t *testing.T) {
 // - Most recent maximum is used.
 // - Rule is serialized properly.
 func TestIntMaxConflict(t *testing.T) {
-	ruleSet := rules.NewInt().WithMax(10).WithMin(3)
+	ruleSet := rules.Int().WithMax(10).WithMin(3)
 
 	var output int
 
@@ -75,7 +75,7 @@ func TestIntMaxConflict(t *testing.T) {
 // - Most recent maximum is used.
 // - Rule is serialized properly.
 func TestFloatMaxConflict(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithMax(10.0).WithMin(3.0)
+	ruleSet := rules.Float64().WithMax(10.0).WithMin(3.0)
 
 	var output float64
 

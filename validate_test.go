@@ -22,6 +22,20 @@ func TestArrayAny(t *testing.T) {
 	}
 }
 
+func TestConstant(t *testing.T) {
+	ruleSet := validate.Constant[int](42)
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
+func TestInterface(t *testing.T) {
+	ruleSet := validate.Interface[any]()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
 func TestInt(t *testing.T) {
 	ruleSet := validate.Int()
 	if ruleSet == nil {
@@ -136,6 +150,13 @@ func TestString(t *testing.T) {
 
 func TestDomain(t *testing.T) {
 	ruleSet := validate.Domain()
+	if ruleSet == nil {
+		t.Error("Expected rule set to not be nil")
+	}
+}
+
+func TestURI(t *testing.T) {
+	ruleSet := validate.URI()
 	if ruleSet == nil {
 		t.Error("Expected rule set to not be nil")
 	}

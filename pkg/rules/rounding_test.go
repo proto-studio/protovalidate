@@ -12,7 +12,7 @@ import (
 
 func TestRoundingIntNone(t *testing.T) {
 	expected := 123
-	ruleSet := rules.NewInt().Any()
+	ruleSet := rules.Int().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, float32(123.12), errors.CodeType)
 
@@ -29,7 +29,7 @@ func TestRoundingIntNone(t *testing.T) {
 
 func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
-	ruleSet := rules.NewFloat64()
+	ruleSet := rules.Float64()
 
 	var output float64
 
@@ -46,7 +46,7 @@ func TestRoundingFloatNone(t *testing.T) {
 }
 
 func TestRoundingIntFloor(t *testing.T) {
-	ruleSet := rules.NewInt().WithRounding(rules.RoundingDown).Any()
+	ruleSet := rules.Int().WithRounding(rules.RoundingDown).Any()
 
 	// Positive numbers
 	expected := 123
@@ -68,7 +68,7 @@ func TestRoundingIntFloor(t *testing.T) {
 
 	// Out of range
 
-	int8RuleSet := rules.NewInt8().WithRounding(rules.RoundingDown).Any()
+	int8RuleSet := rules.Int8().WithRounding(rules.RoundingDown).Any()
 
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1024.6), errors.CodeRange)
 
@@ -76,7 +76,7 @@ func TestRoundingIntFloor(t *testing.T) {
 }
 
 func TestRoundingFloatFloor(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingDown, 0).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 0).Any()
 
 	// Positive numbers
 	expected := 123.0
@@ -98,7 +98,7 @@ func TestRoundingFloatFloor(t *testing.T) {
 }
 
 func TestRoundingFloatFloorPrecision2(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingDown, 2).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 2).Any()
 
 	// Positive numbers
 	expected := 123.12
@@ -120,7 +120,7 @@ func TestRoundingFloatFloorPrecision2(t *testing.T) {
 }
 
 func TestRoundingIntCeil(t *testing.T) {
-	ruleSet := rules.NewInt().WithRounding(rules.RoundingUp).Any()
+	ruleSet := rules.Int().WithRounding(rules.RoundingUp).Any()
 
 	// Positive numbers
 	expected := 124
@@ -142,7 +142,7 @@ func TestRoundingIntCeil(t *testing.T) {
 
 	// Out of range
 
-	int8RuleSet := rules.NewInt8().WithRounding(rules.RoundingUp).Any()
+	int8RuleSet := rules.Int8().WithRounding(rules.RoundingUp).Any()
 
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1024.6), errors.CodeRange)
 
@@ -150,7 +150,7 @@ func TestRoundingIntCeil(t *testing.T) {
 }
 
 func TestRoundingFloatCeil(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingUp, 0).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 0).Any()
 
 	// Positive numbers
 	expected := 124.0
@@ -172,7 +172,7 @@ func TestRoundingFloatCeil(t *testing.T) {
 }
 
 func TestRoundingFloatCeilPrecision2(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingUp, 2).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 2).Any()
 
 	// Positive numbers
 	expected := 123.13
@@ -194,7 +194,7 @@ func TestRoundingFloatCeilPrecision2(t *testing.T) {
 }
 
 func TestRoundingIntHalfUp(t *testing.T) {
-	ruleSet := rules.NewInt().WithRounding(rules.RoundingHalfUp).Any()
+	ruleSet := rules.Int().WithRounding(rules.RoundingHalfUp).Any()
 
 	// Positive numbers
 	expected := 124
@@ -222,7 +222,7 @@ func TestRoundingIntHalfUp(t *testing.T) {
 
 	// Out of range
 
-	int8RuleSet := rules.NewInt8().WithRounding(rules.RoundingHalfUp).Any()
+	int8RuleSet := rules.Int8().WithRounding(rules.RoundingHalfUp).Any()
 
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1024.6), errors.CodeRange)
 
@@ -230,7 +230,7 @@ func TestRoundingIntHalfUp(t *testing.T) {
 }
 
 func TestRoundingFloatHalfUp(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingHalfUp, 0).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfUp, 0).Any()
 
 	// Positive numbers
 	expected := 124.0
@@ -258,7 +258,7 @@ func TestRoundingFloatHalfUp(t *testing.T) {
 }
 
 func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingHalfUp, 2).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfUp, 2).Any()
 
 	// Positive numbers
 	expected := 124.12
@@ -286,7 +286,7 @@ func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
 }
 
 func TestRoundingIntHalfEven(t *testing.T) {
-	ruleSet := rules.NewInt().WithRounding(rules.RoundingHalfEven).Any()
+	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven).Any()
 
 	// Positive numbers
 	expected := 124
@@ -322,7 +322,7 @@ func TestRoundingIntHalfEven(t *testing.T) {
 
 	// Out of range
 
-	int8RuleSet := rules.NewInt8().WithRounding(rules.RoundingHalfEven).Any()
+	int8RuleSet := rules.Int8().WithRounding(rules.RoundingHalfEven).Any()
 
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1024.6), errors.CodeRange)
 
@@ -330,7 +330,7 @@ func TestRoundingIntHalfEven(t *testing.T) {
 }
 
 func TestRoundingFloatHalfEven(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingHalfEven, 0).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 0).Any()
 
 	// Positive numbers
 	expected := 124.0
@@ -367,7 +367,7 @@ func TestRoundingFloatHalfEven(t *testing.T) {
 }
 
 func TestRoundingFloatHalfEvenPrecision2(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingHalfEven, 2).Any()
+	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 2).Any()
 
 	// Positive numbers
 	expected := 124.12

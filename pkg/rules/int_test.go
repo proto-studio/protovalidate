@@ -11,7 +11,7 @@ import (
 
 func TestIntRuleSet(t *testing.T) {
 	var intval int
-	err := rules.NewInt().Apply(context.Background(), 123, &intval)
+	err := rules.Int().Apply(context.Background(), 123, &intval)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -23,18 +23,18 @@ func TestIntRuleSet(t *testing.T) {
 		return
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[int](rules.NewInt())
+	ok := testhelpers.CheckRuleSetInterface[int](rules.Int())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
 
-	testhelpers.MustApplyTypes[int](t, rules.NewInt(), 123)
+	testhelpers.MustApplyTypes[int](t, rules.Int(), 123)
 }
 
 func TestIntStrictError(t *testing.T) {
 	var out int
-	err := rules.NewInt().WithStrict().Apply(context.Background(), "123", &out)
+	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -44,7 +44,7 @@ func TestIntStrictError(t *testing.T) {
 
 func tryIntCoercion(t *testing.T, val interface{}, expected int) {
 	var actual int
-	err := rules.NewInt().Apply(context.Background(), val, &actual)
+	err := rules.Int().Apply(context.Background(), val, &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -71,7 +71,7 @@ func TestIntCoercionFromInt64(t *testing.T) {
 func TestIntCoercionFromHex(t *testing.T) {
 	expected := 0xBEEF
 	var actual int
-	err := rules.NewInt().WithBase(16).Apply(context.Background(), "BeEf", &actual)
+	err := rules.Int().WithBase(16).Apply(context.Background(), "BeEf", &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -83,7 +83,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 		return
 	}
 
-	err = rules.NewInt().WithBase(16).Apply(context.Background(), "XYZ", &actual)
+	err = rules.Int().WithBase(16).Apply(context.Background(), "XYZ", &actual)
 
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -93,7 +93,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 
 func TestIntCoercionFromFloatWithError(t *testing.T) {
 	var out int
-	err := rules.NewInt().Apply(context.Background(), 1.000001, &out)
+	err := rules.Int().Apply(context.Background(), 1.000001, &out)
 
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -102,7 +102,7 @@ func TestIntCoercionFromFloatWithError(t *testing.T) {
 }
 
 func TestIntRequired(t *testing.T) {
-	ruleSet := rules.NewInt()
+	ruleSet := rules.Int()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -117,7 +117,7 @@ func TestIntRequired(t *testing.T) {
 
 func TestIntCustom(t *testing.T) {
 	var out int
-	err := rules.NewInt().
+	err := rules.Int().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[int](1).Function()).
 		Apply(context.Background(), "123", &out)
 
@@ -127,7 +127,7 @@ func TestIntCustom(t *testing.T) {
 	}
 
 	rule := testhelpers.NewMockRule[int]()
-	err = rules.NewInt().
+	err = rules.Int().
 		WithRuleFunc(rule.Function()).
 		Apply(context.Background(), 123, &out)
 
@@ -143,7 +143,7 @@ func TestIntCustom(t *testing.T) {
 }
 
 func TestAnyInt(t *testing.T) {
-	ruleSet := rules.NewInt().Any()
+	ruleSet := rules.Int().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -155,7 +155,7 @@ func TestAnyInt(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestIntRequiredString(t *testing.T) {
-	ruleSet := rules.NewInt().WithRequired()
+	ruleSet := rules.Int().WithRequired()
 
 	expected := "IntRuleSet[int].WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -166,7 +166,7 @@ func TestIntRequiredString(t *testing.T) {
 // Requirements:
 // - Serializes to WithStrict()
 func TestIntStrictString(t *testing.T) {
-	ruleSet := rules.NewInt().WithStrict()
+	ruleSet := rules.Int().WithStrict()
 
 	expected := "IntRuleSet[int].WithStrict()"
 	if s := ruleSet.String(); s != expected {
@@ -177,7 +177,7 @@ func TestIntStrictString(t *testing.T) {
 // Requirements:
 // - Serializes to WithBase(16)
 func TestIntBaseString(t *testing.T) {
-	ruleSet := rules.NewInt().WithBase(16)
+	ruleSet := rules.Int().WithBase(16)
 
 	expected := "IntRuleSet[int].WithBase(16)"
 	if s := ruleSet.String(); s != expected {
@@ -188,7 +188,7 @@ func TestIntBaseString(t *testing.T) {
 // Requirements:
 // - Serializes to WithRounding(...)
 func TestIntRoundingString(t *testing.T) {
-	ruleSet := rules.NewInt().WithRounding(rules.RoundingHalfEven)
+	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven)
 
 	expected := "IntRuleSet[int].WithRounding(HalfEven)"
 	if s := ruleSet.String(); s != expected {
@@ -199,7 +199,7 @@ func TestIntRoundingString(t *testing.T) {
 // Requirements:
 // - Evaluate behaves like Apply.
 func TestInt_Evaluate(t *testing.T) {
-	ruleSet := rules.NewInt().WithMin(5)
+	ruleSet := rules.Int().WithMin(5)
 	testhelpers.MustEvaluate[int](t, ruleSet, 10)
 	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
 }

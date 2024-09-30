@@ -30,7 +30,7 @@ func InitInterfaceRuleSet() rules.RuleSet[MyTestInterface] {
 func TestInterfaceStruct(t *testing.T) {
 	innerRuleSet := InitInterfaceRuleSet()
 
-	ruleSet := rules.NewStruct[InterfaceTest]().
+	ruleSet := rules.Struct[InterfaceTest]().
 		WithKey("IntTest", innerRuleSet.Any()).
 		WithKey("StringTest", innerRuleSet.Any()).
 		WithJson()

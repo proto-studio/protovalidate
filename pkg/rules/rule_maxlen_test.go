@@ -10,7 +10,7 @@ import (
 )
 
 func TestSlice_MaxLen(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithMaxLen(2)
+	ruleSet := rules.Slice[int]().WithMaxLen(2)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -41,7 +41,7 @@ func TestSlice_MaxLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
 func TestSlice_MaxLen_Conflict(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithMaxLen(3).WithMinLen(1)
+	ruleSet := rules.Slice[int]().WithMaxLen(3).WithMinLen(1)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -81,7 +81,7 @@ func TestSlice_MaxLen_Conflict(t *testing.T) {
 }
 
 func TestString_WithMaxLen(t *testing.T) {
-	ruleSet := rules.NewString().WithMaxLen(2).Any()
+	ruleSet := rules.String().WithMaxLen(2).Any()
 
 	testhelpers.MustApply(t, ruleSet, "a")
 	testhelpers.MustApply(t, ruleSet, "ab")
@@ -94,7 +94,7 @@ func TestString_WithMaxLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
 func TestString_WithMaxLen_Conflict(t *testing.T) {
-	ruleSet := rules.NewString().WithMaxLen(2).WithMinLen(1)
+	ruleSet := rules.String().WithMaxLen(2).WithMinLen(1)
 
 	// Prepare the output variable for Apply
 	var out string

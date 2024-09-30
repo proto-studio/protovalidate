@@ -9,21 +9,21 @@ import (
 )
 
 func TestWithMinPort(t *testing.T) {
-	ruleSet := net.NewURI().WithMinPort(1000).Any()
+	ruleSet := net.URI().WithMinPort(1000).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "http://example.com:999", errors.CodeMin)
 	testhelpers.MustApply(t, ruleSet, "http://example.com:1000")
 }
 
 func TestWithMaxPort(t *testing.T) {
-	ruleSet := net.NewURI().WithMaxPort(10000).Any()
+	ruleSet := net.URI().WithMaxPort(10000).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "http://example.com:10001", errors.CodeMax)
 	testhelpers.MustApply(t, ruleSet, "http://example.com:9999")
 }
 
 func TestWithAllowedPorts(t *testing.T) {
-	ruleSet := net.NewURI().WithAllowedPorts(100, 200).Any()
+	ruleSet := net.URI().WithAllowedPorts(100, 200).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "http://example.com:150", errors.CodeNotAllowed)
 	testhelpers.MustApply(t, ruleSet, "http://example.com:100")

@@ -20,14 +20,14 @@ type EmailRuleSet struct {
 	label         string
 }
 
-// backgroundEmailRuleSet is the base email rule set. Since rule sets are immutable.
-var backgroundEmailRuleSet EmailRuleSet = EmailRuleSet{
+// baseEmailRuleSet is the base email rule set. Since rule sets are immutable.
+var baseEmailRuleSet EmailRuleSet = EmailRuleSet{
 	label: "EmailRuleSet",
 }
 
-// NewEmail creates a new domain RuleSet
-func NewEmail() *EmailRuleSet {
-	return &backgroundEmailRuleSet
+// Email returns the base email RuleSet.
+func Email() *EmailRuleSet {
+	return &baseEmailRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -107,7 +107,7 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 
 	domainRuleSet := ruleSet.domainRuleSet
 	if domainRuleSet == nil {
-		domainRuleSet = NewDomain().WithTLD()
+		domainRuleSet = Domain().WithTLD()
 	}
 
 	domainErrs := domainRuleSet.Evaluate(ctx, domain)

@@ -14,7 +14,7 @@ func TestSliceRuleSet(t *testing.T) {
 	var output []string
 
 	// Apply with a valid array, expecting no error
-	err := rules.NewSlice[string]().Apply(context.TODO(), []string{"a", "b", "c"}, &output)
+	err := rules.Slice[string]().Apply(context.TODO(), []string{"a", "b", "c"}, &output)
 	if err != nil {
 		t.Fatalf("Expected errors to be empty. Got: %v", err)
 	}
@@ -24,12 +24,12 @@ func TestSliceRuleSet(t *testing.T) {
 	}
 
 	// Check if the rule set implements the expected interface
-	ok := testhelpers.CheckRuleSetInterface[[]string](rules.NewSlice[string]())
+	ok := testhelpers.CheckRuleSetInterface[[]string](rules.Slice[string]())
 	if !ok {
 		t.Fatalf("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustApplyTypes[[]string](t, rules.NewSlice[string](), []string{"a", "b", "c"})
+	testhelpers.MustApplyTypes[[]string](t, rules.Slice[string](), []string{"a", "b", "c"})
 }
 
 func TestSliceRuleSetTypeError(t *testing.T) {
@@ -37,7 +37,7 @@ func TestSliceRuleSetTypeError(t *testing.T) {
 	var output []string
 
 	// Apply with an invalid input type, expecting an error
-	err := rules.NewSlice[string]().Apply(context.TODO(), 123, &output)
+	err := rules.Slice[string]().Apply(context.TODO(), 123, &output)
 	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
@@ -49,7 +49,7 @@ func TestSliceItemRuleSetSuccess(t *testing.T) {
 	var output []string
 
 	// Apply with a valid array and item rule set, expecting no error
-	err := rules.NewSlice[string]().WithItemRuleSet(rules.NewString()).Apply(context.TODO(), []string{"a", "b", "c"}, &output)
+	err := rules.Slice[string]().WithItemRuleSet(rules.String()).Apply(context.TODO(), []string{"a", "b", "c"}, &output)
 	if err != nil {
 		t.Errorf("Expected errors to be empty. Got: %v", err)
 		return
@@ -61,7 +61,7 @@ func TestSliceItemCastError(t *testing.T) {
 	var output []string
 
 	// Apply with an array of incorrect types, expecting an error
-	err := rules.NewSlice[string]().Apply(context.TODO(), []int{1, 2, 3}, &output)
+	err := rules.Slice[string]().Apply(context.TODO(), []int{1, 2, 3}, &output)
 	if len(err) == 0 {
 		t.Errorf("Expected errors to not be empty.")
 		return
@@ -73,7 +73,7 @@ func TestSliceItemRuleSetError(t *testing.T) {
 	var output []string
 
 	// Apply with a valid array but with an item rule set that will fail, expecting 2 errors
-	err := rules.NewSlice[string]().WithItemRuleSet(rules.NewString().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
+	err := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
 	if len(err) != 2 {
 		t.Errorf("Expected 2 errors and got %d.", len(err))
 		return
@@ -81,7 +81,7 @@ func TestSliceItemRuleSetError(t *testing.T) {
 }
 
 func TestWithRequired(t *testing.T) {
-	ruleSet := rules.NewSlice[string]()
+	ruleSet := rules.Slice[string]()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -101,7 +101,7 @@ func TestCustom(t *testing.T) {
 	var output []int
 
 	// Apply with the mock rules, expecting errors
-	err := rules.NewSlice[int]().
+	err := rules.Slice[int]().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
 		Apply(context.TODO(), []int{1, 2, 3}, &output)
@@ -129,8 +129,8 @@ func TestReturnsCorrectPaths(t *testing.T) {
 	var output []string
 
 	// Apply with an array and a context, expecting errors
-	err := rules.NewSlice[string]().
-		WithItemRuleSet(rules.NewString().WithMinLen(2)).
+	err := rules.Slice[string]().
+		WithItemRuleSet(rules.String().WithMinLen(2)).
 		Apply(ctx, []string{"", "a", "ab", "abc"}, &output)
 
 	if err == nil {
@@ -162,7 +162,7 @@ func TestReturnsCorrectPaths(t *testing.T) {
 }
 
 func TestAny(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().Any()
+	ruleSet := rules.Slice[int]().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -172,7 +172,7 @@ func TestAny(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestRequiredSlice(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithRequired()
+	ruleSet := rules.Slice[int]().WithRequired()
 
 	expected := "SliceRuleSet[int].WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -183,7 +183,7 @@ func TestRequiredSlice(t *testing.T) {
 // Requirements:
 // - Serializes to WithItemRuleSet()
 func TestWithItemRuleSetString(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithItemRuleSet(rules.NewInt().WithMin(2))
+	ruleSet := rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2))
 
 	expected := "SliceRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
 	if s := ruleSet.String(); s != expected {
@@ -197,7 +197,7 @@ func TestEvaluate(t *testing.T) {
 	v := []int{123, 456}
 	ctx := context.Background()
 
-	ruleSet := rules.NewSlice[int]().WithItemRuleSet(rules.NewInt().WithMin(2))
+	ruleSet := rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2))
 
 	// Evaluate the array directly using Evaluate
 	err1 := ruleSet.Evaluate(ctx, v)

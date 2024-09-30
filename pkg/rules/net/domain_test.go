@@ -20,7 +20,7 @@ func TestDomainRuleSet(t *testing.T) {
 	example := "example.com"
 
 	// Apply with a valid domain string
-	err := net.NewDomain().Apply(context.TODO(), example, &output)
+	err := net.Domain().Apply(context.TODO(), example, &output)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -33,20 +33,20 @@ func TestDomainRuleSet(t *testing.T) {
 	}
 
 	// Check if the rule set implements the expected interface
-	ok := testhelpers.CheckRuleSetInterface[string](net.NewDomain())
+	ok := testhelpers.CheckRuleSetInterface[string](net.Domain())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
 
-	testhelpers.MustApplyTypes[string](t, net.NewDomain(), example)
+	testhelpers.MustApplyTypes[string](t, net.Domain(), example)
 }
 
 // Requirements:
 // - Segments (labels) cannot exceed 63 characters
 // See: RFC 1035
 func TestDomainSegmentLength(t *testing.T) {
-	ruleSet := net.NewDomain().Any()
+	ruleSet := net.Domain().Any()
 
 	okLabel := strings.Repeat("a", 63)
 	badLabel := strings.Repeat("a", 64)
@@ -58,7 +58,7 @@ func TestDomainSegmentLength(t *testing.T) {
 // Requirements:
 // - Errors when string cannot be encoded as punycode
 func TestDomainPunycodeError(t *testing.T) {
-	ruleSet := net.NewDomain().Any()
+	ruleSet := net.Domain().Any()
 
 	// idna: invalid label "é"
 	str := "example.xn--é.com"
@@ -69,7 +69,7 @@ func TestDomainPunycodeError(t *testing.T) {
 // - Errors when domain is too long
 // - errors.CodeMax is returned
 func TestDomainLength(t *testing.T) {
-	ruleSet := net.NewDomain().Any()
+	ruleSet := net.Domain().Any()
 
 	str := strings.Repeat(strings.Repeat("a", 32), 9)
 	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodeMax)
@@ -79,7 +79,7 @@ func TestDomainLength(t *testing.T) {
 // - Errors when input is not a string
 // - errors.CodeType is returned
 func TestDomainType(t *testing.T) {
-	ruleSet := net.NewDomain().Any()
+	ruleSet := net.Domain().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
@@ -89,7 +89,7 @@ func TestDomainType(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestDomainRequired(t *testing.T) {
-	ruleSet := net.NewDomain()
+	ruleSet := net.Domain()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -109,7 +109,7 @@ func TestDomainCustom(t *testing.T) {
 	var output string
 
 	// Apply with a mock rule that should trigger an error
-	err := net.NewDomain().
+	err := net.Domain().
 		WithRuleFunc(mock.Function()).
 		Apply(context.TODO(), "example.com", &output)
 
@@ -126,7 +126,7 @@ func TestDomainCustom(t *testing.T) {
 	rule := testhelpers.NewMockRule[string]()
 
 	// Apply with a mock rule that should pass without errors
-	err = net.NewDomain().
+	err = net.Domain().
 		WithRuleFunc(rule.Function()).
 		Apply(context.TODO(), "example.com", &output)
 
@@ -144,7 +144,7 @@ func TestDomainCustom(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestDomainRequiredString(t *testing.T) {
-	ruleSet := net.NewDomain().WithRequired()
+	ruleSet := net.Domain().WithRequired()
 
 	expected := "DomainRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {

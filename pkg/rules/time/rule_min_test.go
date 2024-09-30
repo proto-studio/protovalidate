@@ -16,7 +16,7 @@ func TestWithMinTime(t *testing.T) {
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMin(now).Any()
+	ruleSet := time.Time().WithMin(now).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, before, errors.CodeMin)
 
@@ -34,7 +34,7 @@ func TestWithMinConflict(t *testing.T) {
 	after := tm.Add(1 * internalTime.Minute)
 
 	// Create an initial rule set with min and max values
-	ruleSet := time.NewTime().WithMin(tm).WithMax(after)
+	ruleSet := time.Time().WithMin(tm).WithMax(after)
 
 	// Prepare an output variable for Apply
 	var output internalTime.Time

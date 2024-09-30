@@ -24,6 +24,7 @@ type ConstantRuleSet[T comparable] struct {
 }
 
 // Constant creates a new Constant rule set for the specified value.
+// This function will return the same Rule Set when called multiple times with the same value.
 func Constant[T comparable](value T) *ConstantRuleSet[T] {
 	var empty T
 	var typedCache constCache[T]

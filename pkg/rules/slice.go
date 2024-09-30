@@ -21,7 +21,7 @@ type SliceRuleSet[T any] struct {
 }
 
 // NewInt creates a new array RuleSet.
-func NewSlice[T any]() *SliceRuleSet[T] {
+func Slice[T any]() *SliceRuleSet[T] {
 	var empty [0]T
 
 	return &SliceRuleSet[T]{

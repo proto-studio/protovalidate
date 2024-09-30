@@ -9,7 +9,7 @@ import (
 )
 
 func TestWithAllowedSchemes(t *testing.T) {
-	ruleSet := net.NewURI().WithAllowedSchemes("http", "https").Any()
+	ruleSet := net.URI().WithAllowedSchemes("http", "https").Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "ftp://example.com", errors.CodeNotAllowed)
 	testhelpers.MustApply(t, ruleSet, "http://example.com")

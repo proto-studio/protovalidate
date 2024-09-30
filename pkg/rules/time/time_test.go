@@ -22,7 +22,7 @@ func TestTimeRuleSet(t *testing.T) {
 	var output internalTime.Time
 
 	// Use Apply to validate the current time
-	err := time.NewTime().Apply(context.TODO(), now, &output)
+	err := time.Time().Apply(context.TODO(), now, &output)
 
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
@@ -33,12 +33,12 @@ func TestTimeRuleSet(t *testing.T) {
 	}
 
 	// Check if the rule set implements the expected interface
-	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.NewTime())
+	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.Time())
 	if !ok {
 		t.Fatal("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustApplyTypes[internalTime.Time](t, time.NewTime(), now)
+	testhelpers.MustApplyTypes[internalTime.Time](t, time.Time(), now)
 }
 
 // Requirements:
@@ -51,7 +51,7 @@ func TestTimeRFC3339(t *testing.T) {
 		t.Fatalf("Unable to parse test string: %s", err)
 	}
 
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339)
@@ -68,7 +68,7 @@ func TestTimeMultiLayout(t *testing.T) {
 		t.Fatalf("Unable to parse test string: %s", err)
 	}
 
-	ruleSet := time.NewTime().WithLayouts(internalTime.RFC3339)
+	ruleSet := time.Time().WithLayouts(internalTime.RFC3339)
 	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
@@ -83,7 +83,7 @@ func TestTimeMultiLayout(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestTimeRequired(t *testing.T) {
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -99,11 +99,11 @@ func TestTimeRequired(t *testing.T) {
 func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
-	ruleSet := time.NewTime().WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).Any()
+	ruleSet := time.Time().WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).Any()
 	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeUnknown)
 
 	rule := testhelpers.NewMockRule[internalTime.Time]()
-	ruleSet = time.NewTime().WithRuleFunc(rule.Function()).Any()
+	ruleSet = time.Time().WithRuleFunc(rule.Function()).Any()
 	testhelpers.MustApply(t, ruleSet, now)
 
 	if c := rule.EvaluateCallCount(); c != 1 {
@@ -113,7 +113,7 @@ func TestTimeCustom(t *testing.T) {
 }
 
 func TestTimeAny(t *testing.T) {
-	ruleSet := time.NewTime().Any()
+	ruleSet := time.Time().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -125,12 +125,12 @@ func TestTimeAny(t *testing.T) {
 func TestTimePointer(t *testing.T) {
 	now := internalTime.Now()
 
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), &now, now)
 }
 
 func TestBadType(t *testing.T) {
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 	type x struct{}
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), new(x), errors.CodeType)
@@ -150,19 +150,19 @@ func TestLayoutsSerialize(t *testing.T) {
 		internalTime.RFC1123,
 	}
 
-	ruleSet := time.NewTime().WithLayouts(layouts[0], layouts[1])
+	ruleSet := time.Time().WithLayouts(layouts[0], layouts[1])
 	expected := fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\")", layouts[0], layouts[1])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
-	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:3]...)
+	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:3]...)
 	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\")", layouts[0], layouts[1], layouts[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
-	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:]...)
+	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:]...)
 	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\" ... and 2 more)", layouts[0], layouts[1], layouts[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -172,7 +172,7 @@ func TestLayoutsSerialize(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestRequiredString(t *testing.T) {
-	ruleSet := time.NewTime().WithRequired()
+	ruleSet := time.Time().WithRequired()
 
 	expected := "TimeRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -192,7 +192,7 @@ func TestTime_Apply_String(t *testing.T) {
 	rfcTime := now.Format(internalTime.RFC3339)
 	dateOnly := now.Format(internalTime.DateOnly)
 
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 
 	var output string
 	errs := ruleSet.Apply(ctx, now, &output)

@@ -32,13 +32,13 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	json         bool
 }
 
-// NewStruct returns a RuleSet that can be used to validate an object of an
-// arbitrary data type.
+// Struct returns a RuleSet that can be used to validate an struct of an
+// arbitrary type.
 //
 // Using the "validate" annotation you can may input values to different
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
-func NewStruct[T any]() *ObjectRuleSet[T, string, any] {
+func Struct[T any]() *ObjectRuleSet[T, string, any] {
 	var empty [0]T
 
 	ruleSet := &ObjectRuleSet[T, string, any]{
@@ -104,9 +104,9 @@ func NewStruct[T any]() *ObjectRuleSet[T, string, any] {
 	return ruleSet
 }
 
-// NewStringMap returns a new RuleSet that can be used to validate maps with strings as the
+// StringMap returns a new RuleSet that can be used to validate maps with strings as the
 // keys and the specified data type (which can be "any") as the values.
-func NewStringMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
+func StringMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
 	var empty map[string]T
 
 	return &ObjectRuleSet[map[string]T, string, T]{
@@ -116,7 +116,7 @@ func NewStringMap[T any]() *ObjectRuleSet[map[string]T, string, T] {
 
 // NewObjectMap returns a new RuleSet that can be used to validate maps with strings as the
 // keys and the specified data type (which can be "any") as the values.
-func NewMap[TK comparable, TV any]() *ObjectRuleSet[map[TK]TV, TK, TV] {
+func Map[TK comparable, TV any]() *ObjectRuleSet[map[TK]TV, TK, TV] {
 	var empty map[TK]TV
 
 	return &ObjectRuleSet[map[TK]TV, TK, TV]{

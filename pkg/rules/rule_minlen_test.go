@@ -10,7 +10,7 @@ import (
 )
 
 func TestSlice_MinLen(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithMinLen(2)
+	ruleSet := rules.Slice[int]().WithMinLen(2)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -41,7 +41,7 @@ func TestSlice_MinLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 func TestSlice_MinLen_Conflict(t *testing.T) {
-	ruleSet := rules.NewSlice[int]().WithMinLen(3).WithMaxLen(10)
+	ruleSet := rules.Slice[int]().WithMinLen(3).WithMaxLen(10)
 
 	// Prepare an output variable for Apply
 	var output []int
@@ -81,7 +81,7 @@ func TestSlice_MinLen_Conflict(t *testing.T) {
 }
 
 func TestString_WithMinLen(t *testing.T) {
-	ruleSet := rules.NewString().WithMinLen(2).Any()
+	ruleSet := rules.String().WithMinLen(2).Any()
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	testhelpers.MustApply(t, ruleSet, "ab")
@@ -93,7 +93,7 @@ func TestString_WithMinLen(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 func TestString_WithMinLen_Conflict(t *testing.T) {
-	ruleSet := rules.NewString().WithMinLen(3).WithMaxLen(10)
+	ruleSet := rules.String().WithMinLen(3).WithMaxLen(10)
 
 	// Prepare the output variable for Apply
 	var out string

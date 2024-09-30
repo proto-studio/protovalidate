@@ -14,7 +14,7 @@ func TestStringRuleSet(t *testing.T) {
 	var str string
 
 	// Use Apply instead of Validate
-	err := rules.NewString().Apply(context.TODO(), "test", &str)
+	err := rules.String().Apply(context.TODO(), "test", &str)
 
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
@@ -24,19 +24,19 @@ func TestStringRuleSet(t *testing.T) {
 		t.Fatal("Expected test string to be returned")
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[string](rules.NewString())
+	ok := testhelpers.CheckRuleSetInterface[string](rules.String())
 	if !ok {
 		t.Fatal("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustApplyTypes[string](t, rules.NewString(), "abc")
+	testhelpers.MustApplyTypes[string](t, rules.String(), "abc")
 }
 
 // Requirements:
 // - Should be usable as a rule
 // - Must implement the Rule[string] interface
 func TestRuleImplementation(t *testing.T) {
-	ok := testhelpers.CheckRuleInterface[string](rules.NewString())
+	ok := testhelpers.CheckRuleInterface[string](rules.String())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
@@ -48,7 +48,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 	var str string
 
 	// Use Apply instead of Validate
-	err := rules.NewString().WithStrict().Apply(context.TODO(), 123, &str)
+	err := rules.String().WithStrict().Apply(context.TODO(), 123, &str)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -56,7 +56,7 @@ func TestStringRuleSetTypeError(t *testing.T) {
 }
 
 func tryStringCoercion(t testing.TB, val interface{}, expected string) {
-	ruleSet := rules.NewString()
+	ruleSet := rules.String()
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), val, expected)
 }
 
@@ -97,7 +97,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 		x int
 	})
 
-	testhelpers.MustNotApply(t, rules.NewString().Any(), &val, errors.CodeType)
+	testhelpers.MustNotApply(t, rules.String().Any(), &val, errors.CodeType)
 }
 
 // Requirements:
@@ -105,7 +105,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestStringRequired(t *testing.T) {
-	ruleSet := rules.NewString()
+	ruleSet := rules.String()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -123,7 +123,7 @@ func TestStringCustom(t *testing.T) {
 	var out string
 
 	// Test with a rule that is expected to produce an error
-	err := rules.NewString().
+	err := rules.String().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[string](1).Function()).
 		Apply(context.TODO(), "123", &out)
 
@@ -135,7 +135,7 @@ func TestStringCustom(t *testing.T) {
 	// Test with a rule that is not expected to produce an error
 	rule := testhelpers.NewMockRule[string]()
 
-	err = rules.NewString().
+	err = rules.String().
 		WithRuleFunc(rule.Function()).
 		Apply(context.TODO(), "123", &out)
 
@@ -152,7 +152,7 @@ func TestStringCustom(t *testing.T) {
 }
 
 func TestString_Any(t *testing.T) {
-	ruleSet := rules.NewString().Any()
+	ruleSet := rules.String().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -164,7 +164,7 @@ func TestString_Any(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestString_WithRequired(t *testing.T) {
-	ruleSet := rules.NewString().WithRequired()
+	ruleSet := rules.String().WithRequired()
 
 	expected := "StringRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -175,7 +175,7 @@ func TestString_WithRequired(t *testing.T) {
 // Requirements:
 // - Serializes to WithStrict()
 func TestString_WithStrict(t *testing.T) {
-	ruleSet := rules.NewString().WithStrict()
+	ruleSet := rules.String().WithStrict()
 
 	expected := "StringRuleSet.WithStrict()"
 	if s := ruleSet.String(); s != expected {

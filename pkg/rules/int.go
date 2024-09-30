@@ -8,6 +8,56 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
+var baseInt IntRuleSet[int] = IntRuleSet[int]{
+	base:  10,
+	label: "IntRuleSet[int]",
+}
+
+var baseUint IntRuleSet[uint] = IntRuleSet[uint]{
+	base:  10,
+	label: "IntRuleSet[uint]",
+}
+
+var baseInt8 IntRuleSet[int8] = IntRuleSet[int8]{
+	base:  10,
+	label: "IntRuleSet[int8]",
+}
+
+var baseUint8 IntRuleSet[uint8] = IntRuleSet[uint8]{
+	base:  10,
+	label: "IntRuleSet[uint8]",
+}
+
+var baseInt16 IntRuleSet[int16] = IntRuleSet[int16]{
+	base:  10,
+	label: "IntRuleSet[int16]",
+}
+
+var baseUint16 IntRuleSet[uint16] = IntRuleSet[uint16]{
+	base:  10,
+	label: "IntRuleSet[uint16]",
+}
+
+var baseInt32 IntRuleSet[int32] = IntRuleSet[int32]{
+	base:  10,
+	label: "IntRuleSet[int32]",
+}
+
+var baseUint32 IntRuleSet[uint32] = IntRuleSet[uint32]{
+	base:  10,
+	label: "IntRuleSet[uint32]",
+}
+
+var baseInt64 IntRuleSet[int64] = IntRuleSet[int64]{
+	base:  10,
+	label: "IntRuleSet[int64]",
+}
+
+var baseUint64 IntRuleSet[uint64] = IntRuleSet[uint64]{
+	base:  10,
+	label: "IntRuleSet[uint64]",
+}
+
 type integer interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~int | ~int8 | ~int16 | ~int32 | ~int64
 }
@@ -24,84 +74,54 @@ type IntRuleSet[T integer] struct {
 	label    string
 }
 
-// NewInt creates a new integer RuleSet.
-func NewInt() *IntRuleSet[int] {
-	return &IntRuleSet[int]{
-		base:  10,
-		label: "IntRuleSet[int]",
-	}
+// Int creates a new integer RuleSet.
+func Int() *IntRuleSet[int] {
+	return &baseInt
 }
 
-// NewUint creates a new unsigned integer RuleSet.
-func NewUint() *IntRuleSet[uint] {
-	return &IntRuleSet[uint]{
-		base:  10,
-		label: "IntRuleSet[uint]",
-	}
+// Uint creates a new unsigned integer RuleSet.
+func Uint() *IntRuleSet[uint] {
+	return &baseUint
 }
 
-// NewInt8 creates a new 8 bit integer RuleSet.
-func NewInt8() *IntRuleSet[int8] {
-	return &IntRuleSet[int8]{
-		base:  10,
-		label: "IntRuleSet[int8]",
-	}
+// Int8 creates a new 8 bit integer RuleSet.
+func Int8() *IntRuleSet[int8] {
+	return &baseInt8
 }
 
-// NewUint8 creates a new unsigned 8 bit integer RuleSet.
-func NewUint8() *IntRuleSet[uint8] {
-	return &IntRuleSet[uint8]{
-		base:  10,
-		label: "IntRuleSet[uint8]",
-	}
+// Uint8 creates a new unsigned 8 bit integer RuleSet.
+func Uint8() *IntRuleSet[uint8] {
+	return &baseUint8
 }
 
-// NewInt16 creates a new 16 bit integer RuleSet.
-func NewInt16() *IntRuleSet[int16] {
-	return &IntRuleSet[int16]{
-		base:  10,
-		label: "IntRuleSet[int16]",
-	}
+// Int16 creates a new 16 bit integer RuleSet.
+func Int16() *IntRuleSet[int16] {
+	return &baseInt16
 }
 
-// NewUint16 creates a new unsigned 16 bit integer RuleSet.
-func NewUint16() *IntRuleSet[uint16] {
-	return &IntRuleSet[uint16]{
-		base:  10,
-		label: "IntRuleSet[uint16]",
-	}
+// Uint16 creates a new unsigned 16 bit integer RuleSet.
+func Uint16() *IntRuleSet[uint16] {
+	return &baseUint16
 }
 
-// NewInt32 creates a new 32 bit integer RuleSet.
-func NewInt32() *IntRuleSet[int32] {
-	return &IntRuleSet[int32]{
-		base:  10,
-		label: "IntRuleSet[int32]",
-	}
+// Int32 creates a new 32 bit integer RuleSet.
+func Int32() *IntRuleSet[int32] {
+	return &baseInt32
 }
 
-// NewUint32 creates a new unsigned 32 bit integer RuleSet.
-func NewUint32() *IntRuleSet[uint32] {
-	return &IntRuleSet[uint32]{
-		base:  10,
-		label: "IntRuleSet[uint32]",
-	}
+// Uint32 creates a new unsigned 32 bit integer RuleSet.
+func Uint32() *IntRuleSet[uint32] {
+	return &baseUint32
 }
 
-// NewInt64 creates a new int64 RuleSet.
-func NewInt64() *IntRuleSet[int64] {
-	return &IntRuleSet[int64]{
-		base:  10,
-		label: "IntRuleSet[int64]",
-	}
+// Int64 creates a new int64 RuleSet.
+func Int64() *IntRuleSet[int64] {
+	return &baseInt64
 }
 
-// NewUint64 creates a new unsigned 64 bit integer RuleSet.
-func NewUint64() *IntRuleSet[uint64] {
-	return &IntRuleSet[uint64]{
-		base:  10,
-		label: "IntRuleSet[uint64]",
-	}
+// Uint64 creates a new unsigned 64 bit integer RuleSet.
+func Uint64() *IntRuleSet[uint64] {
+	return &baseUint64
 }
 
 // WithStrict returns a new child RuleSet with the strict flag applied.

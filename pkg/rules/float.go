@@ -8,6 +8,14 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
+var baseFloat32 FloatRuleSet[float32] = FloatRuleSet[float32]{
+	label: "FloatRuleSet[float32]",
+}
+
+var baseFloat64 FloatRuleSet[float64] = FloatRuleSet[float64]{
+	label: "FloatRuleSet[float64]",
+}
+
 type floating interface {
 	float64 | float32
 }
@@ -24,18 +32,14 @@ type FloatRuleSet[T floating] struct {
 	label     string
 }
 
-// NewFloat32 creates a new float32 RuleSet.
-func NewFloat32() *FloatRuleSet[float32] {
-	return &FloatRuleSet[float32]{
-		label: "FloatRuleSet[float32]",
-	}
+// Float32 creates a new float32 RuleSet.
+func Float32() *FloatRuleSet[float32] {
+	return &baseFloat32
 }
 
-// NewFloat64 creates a new float64 RuleSet.
-func NewFloat64() *FloatRuleSet[float64] {
-	return &FloatRuleSet[float64]{
-		label: "FloatRuleSet[float64]",
-	}
+// Float64 creates a new float64 RuleSet.
+func Float64() *FloatRuleSet[float64] {
+	return &baseFloat64
 }
 
 // WithStrict returns a new child RuleSet with the strict flag applied.

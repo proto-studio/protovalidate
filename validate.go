@@ -16,7 +16,7 @@ import (
 // Array returns a new rule set that can be used to validate arrays of a
 // specific type.
 func Array[T any]() *rules.SliceRuleSet[T] {
-	return rules.NewSlice[T]()
+	return rules.Slice[T]()
 }
 
 // ArrayAny returns a new rule set that can be used to validate arrays of
@@ -24,7 +24,7 @@ func Array[T any]() *rules.SliceRuleSet[T] {
 //
 // These are useful for array that come from untyped formats such as Json.
 func ArrayAny() *rules.SliceRuleSet[any] {
-	return rules.NewSlice[any]()
+	return rules.Slice[any]()
 }
 
 // Constant returns a new rule set that can be used to validate a constant value.
@@ -42,68 +42,68 @@ func Interface[T any]() *rules.InterfaceRuleSet[T] {
 
 // Int returns a new rule set that can be used to validate integers with type int.
 func Int() *rules.IntRuleSet[int] {
-	return rules.NewInt()
+	return rules.Int()
 }
 
 // Uint returns a new rule set that can be used to validate integers with type uint32.
 func Uint() *rules.IntRuleSet[uint] {
-	return rules.NewUint()
+	return rules.Uint()
 }
 
 // Int8 returns a new rule set that can be used to validate integers with type int8.
 func Int8() *rules.IntRuleSet[int8] {
-	return rules.NewInt8()
+	return rules.Int8()
 }
 
 // Uint8 returns a new rule set that can be used to validate integers with type uint32.
 func Uint8() *rules.IntRuleSet[uint8] {
-	return rules.NewUint8()
+	return rules.Uint8()
 }
 
 // Int16 returns a new rule set that can be used to validate integers with type int16.
 func Int16() *rules.IntRuleSet[int16] {
-	return rules.NewInt16()
+	return rules.Int16()
 }
 
 // Uint16 returns a new rule set that can be used to validate integers with type uint32.
 func Uint16() *rules.IntRuleSet[uint16] {
-	return rules.NewUint16()
+	return rules.Uint16()
 }
 
 // Int32 returns a new rule set that can be used to validate integers with type int32.
 func Int32() *rules.IntRuleSet[int32] {
-	return rules.NewInt32()
+	return rules.Int32()
 }
 
 // Uint32 returns a new rule set that can be used to validate integers with type uint32.
 func Uint32() *rules.IntRuleSet[uint32] {
-	return rules.NewUint32()
+	return rules.Uint32()
 }
 
 // Int64 returns a new rule set that can be used to validate integers with type int64.
 func Int64() *rules.IntRuleSet[int64] {
-	return rules.NewInt64()
+	return rules.Int64()
 }
 
 // Uint64 returns a new rule set that can be used to validate integers with type uint64.
 func Uint64() *rules.IntRuleSet[uint64] {
-	return rules.NewUint64()
+	return rules.Uint64()
 }
 
 // Float64 returns a new rule set that can be used to validate floating point numbers with type float64.
 func Float32() *rules.FloatRuleSet[float32] {
-	return rules.NewFloat32()
+	return rules.Float32()
 }
 
 // Float64 returns a new rule set that can be used to validate floating point numbers with type float64.
 func Float64() *rules.FloatRuleSet[float64] {
-	return rules.NewFloat64()
+	return rules.Float64()
 }
 
 // Map returns a new rule set that can be used to validate a map containing
 // a string as a key and a single data type as the value.
 func Map[T any]() *rules.ObjectRuleSet[map[string]T, string, T] {
-	return rules.NewStringMap[T]()
+	return rules.StringMap[T]()
 }
 
 // Map returns a new rule set that can be used to validate a map containing
@@ -111,7 +111,7 @@ func Map[T any]() *rules.ObjectRuleSet[map[string]T, string, T] {
 //
 // These are useful for maps that come from untyped formats such as Json.
 func MapAny() *rules.ObjectRuleSet[map[string]any, string, any] {
-	return rules.NewStringMap[any]()
+	return rules.StringMap[any]()
 }
 
 // Object returns a validator that can be used to validate an object of an
@@ -121,27 +121,27 @@ func MapAny() *rules.ObjectRuleSet[map[string]any, string, any] {
 // properties of the object. This is useful for converting unstructured maps
 // created from Json and converting to an object.
 func Object[T any]() *rules.ObjectRuleSet[T, string, any] {
-	return rules.NewStruct[T]()
+	return rules.Struct[T]()
 }
 
 // String returns a new rule set that can be used to validate strings.
 func String() *rules.StringRuleSet {
-	return rules.NewString()
+	return rules.String()
 }
 
 // Domain returns a new rule set that can be used to validate domain names.
 func Domain() *net.DomainRuleSet {
-	return net.NewDomain()
+	return net.Domain()
 }
 
 // URI returns a new rule set that can be used to validate URIs / URLs.
 func URI() *net.URIRuleSet {
-	return net.NewURI()
+	return net.URI()
 }
 
 // Email returns a new rule set that can be used to validate domain names.
 func Email() *net.EmailRuleSet {
-	return net.NewEmail()
+	return net.Email()
 }
 
 // Time returns a new rule set that can be used to validate time.Time objects.
@@ -150,5 +150,5 @@ func Email() *net.EmailRuleSet {
 // When accepting string as an input make sure to call WithLayouts to specify the
 // desired input formats.
 func Time() *time.TimeRuleSet {
-	return time.NewTime()
+	return time.Time()
 }

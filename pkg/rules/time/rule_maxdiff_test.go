@@ -16,7 +16,7 @@ func TestWithMaxDiff(t *testing.T) {
 	before14 := now.Add(-14 * internalTime.Minute)
 	before16 := now.Add(-16 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMaxDiff(-15 * internalTime.Minute).Any()
+	ruleSet := time.Time().WithMaxDiff(-15 * internalTime.Minute).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, before14, errors.CodeMax)
 	testhelpers.MustApply(t, ruleSet, before16)
@@ -31,7 +31,7 @@ func TestWithMaxDiffConflict(t *testing.T) {
 	after := now.Add(10 * internalTime.Minute)
 
 	// Create an initial rule set with max and min differences
-	ruleSet := time.NewTime().WithMaxDiff(10 * internalTime.Minute).WithMinDiff(0 * internalTime.Minute)
+	ruleSet := time.Time().WithMaxDiff(10 * internalTime.Minute).WithMinDiff(0 * internalTime.Minute)
 
 	// Prepare an output variable for Apply
 	var output internalTime.Time

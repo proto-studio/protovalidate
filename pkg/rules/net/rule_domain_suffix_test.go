@@ -15,7 +15,7 @@ import (
 // - Domains using partial suffixes fail.
 // - Domains with no "plus one" fail.
 func TestDomainWithSuffix(t *testing.T) {
-	ruleSet := net.NewDomain().WithSuffix("test", "dev.local").Any()
+	ruleSet := net.Domain().WithSuffix("test", "dev.local").Any()
 
 	testhelpers.MustApply(t, ruleSet, "example.test")
 	testhelpers.MustApply(t, ruleSet, "example.dev.local")
@@ -28,7 +28,7 @@ func TestDomainWithSuffix(t *testing.T) {
 // - Domains using a non-standard TLD do not pass.
 // - Domains with no "plus one" fail.
 func TestDomainWithTLD(t *testing.T) {
-	ruleSet := net.NewDomain().WithTLD().Any()
+	ruleSet := net.Domain().WithTLD().Any()
 
 	testhelpers.MustApply(t, ruleSet, "example.com")
 	testhelpers.MustNotApply(t, ruleSet, "example.bogusbogus", errors.CodePattern)
@@ -46,7 +46,7 @@ func TestSuffixPunycodeError(t *testing.T) {
 
 	// idna: invalid label "é"
 	str := "example.xn--é.com"
-	net.NewDomain().WithSuffix(str)
+	net.Domain().WithSuffix(str)
 }
 
 // Requirements:
@@ -65,7 +65,7 @@ func TestLayoutsSerialize(t *testing.T) {
 		"co.uk",
 	}
 
-	ruleSet := net.NewDomain().WithSuffix(values[0], values[1]).WithRequired()
+	ruleSet := net.Domain().WithSuffix(values[0], values[1]).WithRequired()
 	expected := fmt.Sprintf("DomainRuleSet.WithSuffix(\"STUDIO\", \"COM\").WithRequired()")
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

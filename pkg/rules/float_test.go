@@ -11,7 +11,7 @@ import (
 
 func TestFloatRuleSet(t *testing.T) {
 	var floatval float64
-	err := rules.NewFloat64().Apply(context.Background(), 123.0, &floatval)
+	err := rules.Float64().Apply(context.Background(), 123.0, &floatval)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -23,18 +23,18 @@ func TestFloatRuleSet(t *testing.T) {
 		return
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[float64](rules.NewFloat64())
+	ok := testhelpers.CheckRuleSetInterface[float64](rules.Float64())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
 		return
 	}
 
-	testhelpers.MustApplyTypes[float64](t, rules.NewFloat64(), 123.0)
+	testhelpers.MustApplyTypes[float64](t, rules.Float64(), 123.0)
 }
 
 func TestFloatStrictError(t *testing.T) {
 	var out float64
-	err := rules.NewFloat64().WithStrict().Apply(context.Background(), "123.0", &out)
+	err := rules.Float64().WithStrict().Apply(context.Background(), "123.0", &out)
 
 	if err == nil || len(err) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -44,7 +44,7 @@ func TestFloatStrictError(t *testing.T) {
 
 func tryFloatCoercion(t *testing.T, val interface{}, expected float64) {
 	var actual float64
-	err := rules.NewFloat64().Apply(context.Background(), val, &actual)
+	err := rules.Float64().Apply(context.Background(), val, &actual)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -69,7 +69,7 @@ func TestFloatCoercionFromFloat64(t *testing.T) {
 }
 
 func TestFloatRequired(t *testing.T) {
-	ruleSet := rules.NewFloat64()
+	ruleSet := rules.Float64()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -84,7 +84,7 @@ func TestFloatRequired(t *testing.T) {
 
 func TestFloatCustom(t *testing.T) {
 	var out float64
-	err := rules.NewFloat64().
+	err := rules.Float64().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
 		Apply(context.Background(), "123.0", &out)
 
@@ -95,7 +95,7 @@ func TestFloatCustom(t *testing.T) {
 
 	rule := testhelpers.NewMockRule[float64]()
 
-	err = rules.NewFloat64().
+	err = rules.Float64().
 		WithRuleFunc(rule.Function()).
 		Apply(context.Background(), 123.0, &out)
 
@@ -111,7 +111,7 @@ func TestFloatCustom(t *testing.T) {
 }
 
 func TestAnyFloat(t *testing.T) {
-	ruleSet := rules.NewFloat64().Any()
+	ruleSet := rules.Float64().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -123,7 +123,7 @@ func TestAnyFloat(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestFloatRequiredString(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRequired()
+	ruleSet := rules.Float64().WithRequired()
 
 	expected := "FloatRuleSet[float64].WithRequired()"
 	if s := ruleSet.String(); s != expected {
@@ -134,7 +134,7 @@ func TestFloatRequiredString(t *testing.T) {
 // Requirements:
 // - Serializes to WithStrict()
 func TestFloatStrictString(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithStrict()
+	ruleSet := rules.Float64().WithStrict()
 
 	expected := "FloatRuleSet[float64].WithStrict()"
 	if s := ruleSet.String(); s != expected {
@@ -145,7 +145,7 @@ func TestFloatStrictString(t *testing.T) {
 // Requirements:
 // - Serializes to WithRounding(...)
 func TestFloatRoundingString(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithRounding(rules.RoundingHalfEven, 5)
+	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 5)
 
 	expected := "FloatRuleSet[float64].WithRounding(HalfEven, 5)"
 	if s := ruleSet.String(); s != expected {
@@ -156,7 +156,7 @@ func TestFloatRoundingString(t *testing.T) {
 // Requirements:
 // - Evaluate behaves like Apply.
 func TestFloat_Evaluate(t *testing.T) {
-	ruleSet := rules.NewFloat64().WithMin(5)
+	ruleSet := rules.Float64().WithMin(5)
 	testhelpers.MustEvaluate[float64](t, ruleSet, 10)
 	testhelpers.MustNotEvaluate[float64](t, ruleSet, 1, errors.CodeMin)
 }
