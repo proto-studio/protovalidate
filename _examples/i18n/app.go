@@ -10,13 +10,12 @@ import (
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
-	"proto.zip/studio/validate"
-	_ "proto.zip/studio/validate/examples/i18n/translations"
+	_ "proto.zip/studio/validate/_examples/i18n/translations"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-var ruleSet rules.RuleSet[string] = validate.String().
+var ruleSet rules.RuleSet[string] = rules.String().
 	WithMinLen(3).
 	WithMaxLen(7)
 
