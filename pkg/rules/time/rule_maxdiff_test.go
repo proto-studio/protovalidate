@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -15,21 +16,10 @@ func TestWithMaxDiff(t *testing.T) {
 	before14 := now.Add(-14 * internalTime.Minute)
 	before16 := now.Add(-16 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMaxDiff(-15 * internalTime.Minute).Any()
+	ruleSet := time.Time().WithMaxDiff(-15 * internalTime.Minute).Any()
 
-	testhelpers.MustBeInvalid(t, ruleSet, before14, errors.CodeMax)
-	testhelpers.MustBeValid(t, ruleSet, before16, before16)
-}
-
-func TestStringWithMaxDiff(t *testing.T) {
-	now := internalTime.Now()
-	before14 := now.Add(-14 * internalTime.Minute)
-	before16 := now.Add(-16 * internalTime.Minute)
-
-	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMaxDiff(-15 * internalTime.Minute).Any()
-
-	testhelpers.MustBeInvalid(t, ruleSet, before14, errors.CodeMax)
-	testhelpers.MustBeValid(t, ruleSet, before16, before16.Format(internalTime.RFC3339))
+	testhelpers.MustNotApply(t, ruleSet, before14, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, before16)
 }
 
 // Requirements:
@@ -40,25 +30,40 @@ func TestWithMaxDiffConflict(t *testing.T) {
 	now := internalTime.Now().Add(1 * internalTime.Minute)
 	after := now.Add(10 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMaxDiff(10 * internalTime.Minute).WithMinDiff(0 * internalTime.Minute)
+	// Create an initial rule set with max and min differences
+	ruleSet := time.Time().WithMaxDiff(10 * internalTime.Minute).WithMinDiff(0 * internalTime.Minute)
 
-	if _, err := ruleSet.Validate(after); err == nil {
+	// Prepare an output variable for Apply
+	var output internalTime.Time
+
+	// Apply with a time after the max difference, expecting an error
+	err := ruleSet.Apply(context.TODO(), after, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(now); err != nil {
+
+	// Apply with a time exactly at the max difference, expecting no error
+	err = ruleSet.Apply(context.TODO(), now, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different max difference and validate
 	ruleSet2 := ruleSet.WithMaxDiff(20 * internalTime.Minute)
-	if _, err := ruleSet2.Validate(after); err != nil {
+
+	// Apply with a time within the new max difference, expecting no error
+	err = ruleSet2.Apply(context.TODO(), after, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set's string representation is correct
 	expected := fmt.Sprintf("TimeRuleSet.WithMaxDiff(%s).WithMinDiff(%s)", 10*internalTime.Minute, 0*internalTime.Minute)
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set's string representation is correct
 	expected = fmt.Sprintf("TimeRuleSet.WithMinDiff(%s).WithMaxDiff(%s)", 0*internalTime.Minute, 20*internalTime.Minute)
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

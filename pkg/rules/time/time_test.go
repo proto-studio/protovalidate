@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -17,23 +18,27 @@ import (
 func TestTimeRuleSet(t *testing.T) {
 	now := internalTime.Now()
 
-	tm, err := time.NewTime().Validate(now)
+	// Prepare an output variable for Apply
+	var output internalTime.Time
+
+	// Use Apply to validate the current time
+	err := time.Time().Apply(context.TODO(), now, &output)
 
 	if err != nil {
-		t.Error("Expected errors to be empty")
-		return
+		t.Fatal("Expected errors to be empty")
 	}
 
-	if tm != now {
-		t.Error("Expected test time to be returned")
-		return
+	if output != now {
+		t.Fatal("Expected test time to be returned")
 	}
 
-	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.NewTime())
+	// Check if the rule set implements the expected interface
+	ok := testhelpers.CheckRuleSetInterface[internalTime.Time](time.Time())
 	if !ok {
-		t.Error("Expected rule set to be implemented")
-		return
+		t.Fatal("Expected rule set to be implemented")
 	}
+
+	testhelpers.MustApplyTypes[internalTime.Time](t, time.Time(), now)
 }
 
 // Requirements:
@@ -46,11 +51,11 @@ func TestTimeRFC3339(t *testing.T) {
 		t.Fatalf("Unable to parse test string: %s", err)
 	}
 
-	ruleSet := time.NewTime()
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), s, errors.CodeType)
+	ruleSet := time.Time()
+	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339)
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
 // Requirements:
@@ -63,14 +68,14 @@ func TestTimeMultiLayout(t *testing.T) {
 		t.Fatalf("Unable to parse test string: %s", err)
 	}
 
-	ruleSet := time.NewTime().WithLayouts(internalTime.RFC3339)
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), s, errors.CodeType)
+	ruleSet := time.Time().WithLayouts(internalTime.RFC3339)
+	testhelpers.MustNotApply(t, ruleSet.Any(), s, errors.CodeType)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 
 	ruleSet = ruleSet.WithLayouts(internalTime.DateOnly, internalTime.RFC3339)
-	testhelpers.MustBeValid(t, ruleSet.Any(), s, tm)
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
 // Requirements:
@@ -78,7 +83,7 @@ func TestTimeMultiLayout(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestTimeRequired(t *testing.T) {
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 
 	if ruleSet.Required() {
 		t.Error("Expected rule set to not be required")
@@ -94,15 +99,21 @@ func TestTimeRequired(t *testing.T) {
 func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
-	ruleSet := time.NewTime().WithRuleFunc(testhelpers.MockCustomRule(now, 1)).Any()
-	testhelpers.MustBeInvalid(t, ruleSet, now, errors.CodeUnknown)
+	ruleSet := time.Time().WithRuleFunc(testhelpers.NewMockRuleWithErrors[internalTime.Time](1).Function()).Any()
+	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeUnknown)
 
-	ruleSet = time.NewTime().WithRuleFunc(testhelpers.MockCustomRule(now, 0)).Any()
-	testhelpers.MustBeValid(t, ruleSet, now, now)
+	rule := testhelpers.NewMockRule[internalTime.Time]()
+	ruleSet = time.Time().WithRuleFunc(rule.Function()).Any()
+	testhelpers.MustApply(t, ruleSet, now)
+
+	if c := rule.EvaluateCallCount(); c != 1 {
+		t.Errorf("Expected rule to be called once, got %d", c)
+		return
+	}
 }
 
 func TestTimeAny(t *testing.T) {
-	ruleSet := time.NewTime().Any()
+	ruleSet := time.Time().Any()
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
@@ -114,15 +125,15 @@ func TestTimeAny(t *testing.T) {
 func TestTimePointer(t *testing.T) {
 	now := internalTime.Now()
 
-	ruleSet := time.NewTime()
-	testhelpers.MustBeValid(t, ruleSet.Any(), &now, now)
+	ruleSet := time.Time()
+	testhelpers.MustApplyMutation(t, ruleSet.Any(), &now, now)
 }
 
 func TestBadType(t *testing.T) {
-	ruleSet := time.NewTime()
+	ruleSet := time.Time()
 	type x struct{}
 
-	testhelpers.MustBeInvalid(t, ruleSet.Any(), new(x), errors.CodeType)
+	testhelpers.MustNotApply(t, ruleSet.Any(), new(x), errors.CodeType)
 }
 
 // Requirements:
@@ -139,19 +150,19 @@ func TestLayoutsSerialize(t *testing.T) {
 		internalTime.RFC1123,
 	}
 
-	ruleSet := time.NewTime().WithLayouts(layouts[0], layouts[1])
+	ruleSet := time.Time().WithLayouts(layouts[0], layouts[1])
 	expected := fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\")", layouts[0], layouts[1])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
-	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:3]...)
+	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:3]...)
 	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\")", layouts[0], layouts[1], layouts[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
-	ruleSet = time.NewTime().WithLayouts(layouts[0], layouts[1:]...)
+	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:]...)
 	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\" ... and 2 more)", layouts[0], layouts[1], layouts[2])
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
@@ -161,10 +172,61 @@ func TestLayoutsSerialize(t *testing.T) {
 // Requirements:
 // - Serializes to WithRequired()
 func TestRequiredString(t *testing.T) {
-	ruleSet := time.NewTime().WithRequired()
+	ruleSet := time.Time().WithRequired()
 
 	expected := "TimeRuleSet.WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
+}
+
+// Requirements:
+// - Apply must convert to time.RFC3339 if output is a string.
+// - Apply must maintain input format if output and input are strings.
+// - Apply must allow the user to override the string output format.
+// - WithOutputLayout is idempotent.
+func TestTime_Apply_String(t *testing.T) {
+	now := internalTime.Now()
+	ctx := context.TODO()
+
+	rfcTime := now.Format(internalTime.RFC3339)
+	dateOnly := now.Format(internalTime.DateOnly)
+
+	ruleSet := time.Time()
+
+	var output string
+	errs := ruleSet.Apply(ctx, now, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != rfcTime {
+		t.Errorf(`Expected output to be "%s", got "%s"`, rfcTime, output)
+	}
+	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
+
+	errs = ruleSet.Apply(ctx, dateOnly, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != dateOnly {
+		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	}
+
+	ruleSetWithOuputLayout := ruleSet.WithOutputLayout(internalTime.DateOnly)
+
+	if ruleSet == ruleSetWithOuputLayout {
+		t.Errorf("Expected ruleSetWithOuputLayout to not equal ruleSet")
+	}
+
+	errs = ruleSetWithOuputLayout.Apply(ctx, rfcTime, &output)
+	if errs != nil {
+		t.Errorf("Expected errors to be nil, got: %s", errs)
+	} else if output != dateOnly {
+		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	}
+
+	ruleSet = ruleSetWithOuputLayout.WithOutputLayout(internalTime.DateOnly)
+
+	if ruleSet != ruleSetWithOuputLayout {
+		t.Errorf("Expected ruleSetWithOuputLayout to equal ruleSet")
+	}
+
 }

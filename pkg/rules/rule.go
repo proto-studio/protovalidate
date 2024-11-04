@@ -7,8 +7,8 @@ import (
 )
 
 type Rule[T any] interface {
-	// Evaluate takes in a context and value and returns the new value or a collection or errors.
-	Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection)
+	// Evaluate takes in a context and value and returns any validation errors.
+	Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection
 
 	// Conflict returns true if two rules should not co-exist.
 	// It may be used to remove duplicate rules when the new rule conflicts the existing rule.
@@ -27,10 +27,10 @@ type Rule[T any] interface {
 }
 
 // RuleFunc implements the Rule interface for functions.
-type RuleFunc[T any] func(ctx context.Context, value T) (T, errors.ValidationErrorCollection)
+type RuleFunc[T any] func(ctx context.Context, value T) errors.ValidationErrorCollection
 
 // Evaluate calls the rule function and returns the results.
-func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) (T, errors.ValidationErrorCollection) {
+func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	return rule(ctx, value)
 }
 

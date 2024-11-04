@@ -16,18 +16,18 @@ type EmailRuleSet struct {
 	required      bool
 	parent        *EmailRuleSet
 	rule          rules.Rule[string]
-	domainRuleSet rules.RuleSet[any]
+	domainRuleSet rules.RuleSet[string]
 	label         string
 }
 
-// backgroundEmailRuleSet is the base email rule set. Since rule sets are immutable.
-var backgroundEmailRuleSet EmailRuleSet = EmailRuleSet{
+// baseEmailRuleSet is the base email rule set. Since rule sets are immutable.
+var baseEmailRuleSet EmailRuleSet = EmailRuleSet{
 	label: "EmailRuleSet",
 }
 
-// NewEmail creates a new domain RuleSet
-func NewEmail() *EmailRuleSet {
-	return &backgroundEmailRuleSet
+// Email returns the base email RuleSet.
+func Email() *EmailRuleSet {
+	return &baseEmailRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -46,10 +46,44 @@ func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-func (ruleSet *EmailRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Attempt to cast the input to a string
+	valueStr, ok := input.(string)
+	if !ok {
+		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
+	}
+
+	// Perform the validation
+	if err := ruleSet.Evaluate(ctx, valueStr); err != nil {
+		return err
+	}
+
+	outputVal := reflect.ValueOf(output)
+
+	// Check if the output is a non-nil pointer
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
+
+	// Dereference the pointer to get the actual value that needs to be set
+	outputElem := outputVal.Elem()
+
+	switch outputElem.Kind() {
+	case reflect.String:
+		outputElem.SetString(valueStr)
+	case reflect.Interface:
+		outputElem.Set(reflect.ValueOf(valueStr))
+	default:
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+		))
+	}
+
+	return nil
 }
 
 // validateBasicEmail performs general domain validation that is valid for any and all domains.
@@ -73,10 +107,10 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 
 	domainRuleSet := ruleSet.domainRuleSet
 	if domainRuleSet == nil {
-		domainRuleSet = NewDomain().WithTLD().Any()
+		domainRuleSet = Domain().WithTLD()
 	}
 
-	_, domainErrs := domainRuleSet.ValidateWithContext(domain, ctx)
+	domainErrs := domainRuleSet.Evaluate(ctx, domain)
 
 	if len(domainErrs) > 0 {
 		allErrors = append(allErrors, domainErrs...)
@@ -102,29 +136,14 @@ func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value strin
 	return allErrors
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (ruleSet *EmailRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
-
-	valueStr, ok := value.(string)
-
-	if !ok {
-		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
-	}
-
-	return ruleSet.Evaluate(ctx, valueStr)
-}
-
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 
 	allErrors := ruleSet.validateBasicEmail(ctx, value)
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	}
 
 	currentRuleSet := ruleSet
@@ -132,11 +151,8 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newStr
 			}
 		}
 
@@ -144,9 +160,9 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string
 	}
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 
@@ -156,7 +172,7 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) (string
 // The default domain rule set for email validation is the equivalent of:
 //
 //	NewDomain().WithTLD()
-func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[any]) *EmailRuleSet {
+func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *EmailRuleSet {
 	return &EmailRuleSet{
 		parent:        ruleSet,
 		required:      ruleSet.required,

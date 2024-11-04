@@ -5,24 +5,34 @@ import (
 	"strings"
 )
 
-func StringsToRuleOutput(ruleName string, values []string) string {
+// StringsToRuleOutput formats a rule name and a slice of values into a string representation.
+// All values are converted to strings, with string values being quoted and any internal quotes escaped.
+// This generic version works with slices of any type.
+func StringsToRuleOutput[T any](ruleName string, values []T) string {
 	l := len(values)
 
 	var sb strings.Builder
 	sb.WriteString(ruleName)
 	sb.WriteRune('(')
 
-	// Append up to the first 3 strings or the total number of strings if less than 3
+	// Append up to the first 3 values or the total number of values if less than 3
 	for i := 0; i < 3 && i < l; i++ {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteRune('"')
-		sb.WriteString(values[i])
-		sb.WriteRune('"')
+		v := values[i]
+		str, ok := any(v).(string)
+		if ok {
+			// Escape any internal double quotes if v is a string
+			escapedValue := strings.ReplaceAll(str, "\"", "\\\"")
+			sb.WriteString(fmt.Sprintf("\"%s\"", escapedValue))
+		} else {
+			// Convert the value to a string and quote it if v is not a string
+			sb.WriteString(fmt.Sprintf("%v", v))
+		}
 	}
 
-	// If there are more than 3 strings, append the "... and X more" message
+	// If there are more than 3 values, append the "... and X more" message
 	if l > 3 {
 		sb.WriteString(fmt.Sprintf(" ... and %d more", l-3))
 	}

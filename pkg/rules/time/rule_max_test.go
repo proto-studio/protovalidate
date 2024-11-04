@@ -1,6 +1,7 @@
 package time_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	internalTime "time"
@@ -15,23 +16,11 @@ func TestWithMaxTime(t *testing.T) {
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMax(now).Any()
+	ruleSet := time.Time().WithMax(now).Any()
 
-	testhelpers.MustBeValid(t, ruleSet, before, before)
-	testhelpers.MustBeValid(t, ruleSet, now, now)
-	testhelpers.MustBeInvalid(t, ruleSet, after, errors.CodeMax)
-}
-
-func TestWithMaxTimeString(t *testing.T) {
-	now := internalTime.Now()
-	before := now.Add(-1 * internalTime.Minute)
-	after := now.Add(1 * internalTime.Minute)
-
-	ruleSet := time.NewTimeString(internalTime.RFC3339).WithMax(now).Any()
-
-	testhelpers.MustBeValid(t, ruleSet, before, before.Format(internalTime.RFC3339))
-	testhelpers.MustBeValid(t, ruleSet, now, now.Format(internalTime.RFC3339))
-	testhelpers.MustBeInvalid(t, ruleSet, after, errors.CodeMax)
+	testhelpers.MustApply(t, ruleSet, before)
+	testhelpers.MustApply(t, ruleSet, now)
+	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMax)
 }
 
 // Requirements:
@@ -43,25 +32,40 @@ func TestWithMaxConflict(t *testing.T) {
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)
 
-	ruleSet := time.NewTime().WithMax(tm).WithMin(before)
+	// Create an initial rule set with a max and min
+	ruleSet := time.Time().WithMax(tm).WithMin(before)
 
-	if _, err := ruleSet.Validate(after); err == nil {
+	// Prepare an output variable for Apply
+	var output internalTime.Time
+
+	// Apply with a time after the max, expecting an error
+	err := ruleSet.Apply(context.TODO(), after, &output)
+	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if _, err := ruleSet.Validate(tm); err != nil {
+
+	// Apply with a time exactly at the max, expecting no error
+	err = ruleSet.Apply(context.TODO(), tm, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
+	// Create a new rule set with a different max and validate
 	ruleSet2 := ruleSet.WithMax(after)
-	if _, err := ruleSet2.Validate(after); err != nil {
+
+	// Apply with a time exactly at the new max, expecting no error
+	err = ruleSet2.Apply(context.TODO(), after, &output)
+	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 
+	// Verify that the original rule set's string representation is correct
 	expected := fmt.Sprintf("TimeRuleSet.WithMax(%s).WithMin(%s)", tm, before)
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Verify that the new rule set's string representation is correct
 	expected = fmt.Sprintf("TimeRuleSet.WithMin(%s).WithMax(%s)", before, after)
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)

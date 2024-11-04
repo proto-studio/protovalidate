@@ -2,6 +2,7 @@ package rules
 
 import (
 	"context"
+	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
@@ -58,18 +59,38 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns the unaltered supplied value
+// Apply performs a validation of a RuleSet against a value and assigns the value to the output
 // or a ValidationErrorCollection.
-func (v *AnyRuleSet) Validate(value interface{}) (any, errors.ValidationErrorCollection) {
-	return v.ValidateWithContext(value, context.Background())
-}
+func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 
-// ValidateWithContext performs a validation of a RuleSet against a value and returns the unaltered supplied value
-// or a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context) (any, errors.ValidationErrorCollection) {
-	return v.Evaluate(ctx, value)
+	err := v.Evaluate(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	// Ensure output is a pointer
+	rv := reflect.ValueOf(output)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.Collection(
+			errors.Errorf(errors.CodeInternal, ctx, "Output must be a non-nil pointer"),
+		)
+	}
+
+	// Get the element the pointer points to
+	elem := rv.Elem()
+
+	// Convert input to reflect.Value
+	inputValue := reflect.ValueOf(input)
+
+	// Check if the input can be assigned to the output
+	if inputValue.Type().AssignableTo(elem.Type()) {
+		elem.Set(inputValue)
+		return nil
+	}
+
+	return errors.Collection(
+		errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output),
+	)
 }
 
 // Evaluate performs a validation of a RuleSet against a value and returns a value of the same type
@@ -77,24 +98,21 @@ func (v *AnyRuleSet) ValidateWithContext(value interface{}, ctx context.Context)
 // added directly to the WrapAnyRuleSet.
 //
 // For WrapAny, Evaluate is identical to ValidateWithContext except for the argument order.
-func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) (any, errors.ValidationErrorCollection) {
+func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
 	if v.forbidden {
-		return nil, errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
+		return errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
 	}
 
 	allErrors := errors.Collection()
-	retValue := value
 
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, err := currentRuleSet.rule.Evaluate(ctx, retValue)
+			err := currentRuleSet.rule.Evaluate(ctx, value)
 			if err != nil {
 				allErrors = append(allErrors, err...)
-			} else {
-				retValue = newStr
 			}
 		}
 
@@ -102,9 +120,9 @@ func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) (any, errors.Valid
 	}
 
 	if len(allErrors) != 0 {
-		return retValue, allErrors
+		return allErrors
 	} else {
-		return retValue, nil
+		return nil
 	}
 }
 

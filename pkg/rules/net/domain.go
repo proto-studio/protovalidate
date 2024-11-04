@@ -12,8 +12,8 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-// backgroundDomainRuleSet is the base domain rule set. Since rule sets are immutable.
-var backgroundDomainRuleSet DomainRuleSet = DomainRuleSet{
+// baseDomainRuleSet is the base domain rule set. Since rule sets are immutable.
+var baseDomainRuleSet DomainRuleSet = DomainRuleSet{
 	label: "DomainRuleSet",
 }
 
@@ -29,9 +29,9 @@ type DomainRuleSet struct {
 	label    string
 }
 
-// NewDomain creates a new domain RuleSet
-func NewDomain() *DomainRuleSet {
-	return &backgroundDomainRuleSet
+// Domain returns the base domain RuleSet.
+func Domain() *DomainRuleSet {
+	return &baseDomainRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -49,10 +49,44 @@ func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	}
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-func (ruleSet *DomainRuleSet) Validate(value any) (string, errors.ValidationErrorCollection) {
-	return ruleSet.ValidateWithContext(value, context.Background())
+// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
+// It returns a ValidationErrorCollection if any validation errors occur.
+func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Attempt to cast the input to a string
+	valueStr, ok := input.(string)
+	if !ok {
+		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
+	}
+
+	// Perform the validation
+	if err := ruleSet.Evaluate(ctx, valueStr); err != nil {
+		return err
+	}
+
+	outputVal := reflect.ValueOf(output)
+
+	// Check if the output is a non-nil pointer
+	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+		))
+	}
+
+	// Dereference the pointer to get the actual value that needs to be set
+	outputElem := outputVal.Elem()
+
+	switch outputElem.Kind() {
+	case reflect.String:
+		outputElem.SetString(valueStr)
+	case reflect.Interface:
+		outputElem.Set(reflect.ValueOf(valueStr))
+	default:
+		return errors.Collection(errors.Errorf(
+			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+		))
+	}
+
+	return nil
 }
 
 // validateBasicDomain performs general domain validation that is valid for any and all domains.
@@ -87,28 +121,13 @@ func validateBasicDomain(ctx context.Context, value string) errors.ValidationErr
 	return allErrors
 }
 
-// Validate performs a validation of a RuleSet against a value and returns a string value or
-// a ValidationErrorCollection.
-//
-// Also, takes a Context which can be used by rules and error formatting.
-func (ruleSet *DomainRuleSet) ValidateWithContext(value any, ctx context.Context) (string, errors.ValidationErrorCollection) {
-
-	valueStr, ok := value.(string)
-
-	if !ok {
-		return "", errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(value).Kind().String()))
-	}
-
-	return ruleSet.Evaluate(ctx, valueStr)
-}
-
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
 // same type or a ValidationErrorCollection.
-func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) (string, errors.ValidationErrorCollection) {
+func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	allErrors := validateBasicDomain(ctx, value)
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	}
 
 	currentRuleSet := ruleSet
@@ -116,11 +135,8 @@ func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) (strin
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			newStr, errs := currentRuleSet.rule.Evaluate(ctx, value)
-			if errs != nil {
+			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
 				allErrors = append(allErrors, errs...)
-			} else {
-				value = newStr
 			}
 		}
 
@@ -128,9 +144,9 @@ func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) (strin
 	}
 
 	if len(allErrors) > 0 {
-		return value, allErrors
+		return allErrors
 	} else {
-		return value, nil
+		return nil
 	}
 }
 

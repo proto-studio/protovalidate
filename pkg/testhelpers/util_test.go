@@ -2,6 +2,8 @@ package testhelpers_test
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -12,40 +14,35 @@ import (
 type MockT struct {
 	testing.T
 
-	errorCount int
+	errorCount  int
+	errorValues []any
 }
 
-func (t *MockT) Error(...any) {
+func (t *MockT) Error(err ...any) {
 	t.errorCount++
+	t.errorValues = append(t.errorValues, err...)
 }
 
-func (t *MockT) Errorf(string, ...any) {
+func (t *MockT) Errorf(msg string, params ...any) {
 	t.errorCount++
+	t.errorValues = append(t.errorValues, fmt.Sprintf(msg, params...))
 }
 
-func TestMustBeValid(t *testing.T) {
+func TestMustApply(t *testing.T) {
 	ruleSet := rules.Any()
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 10); err != nil {
+	if _, err := testhelpers.MustApply(mockT, ruleSet, 10); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
 		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
 	}
 
-	mockT = &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 5); err == nil {
-		t.Error("Expected error to not be nil")
-	}
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
-	}
-
-	ruleSet = ruleSet.WithRuleFunc(testhelpers.MockCustomRule[any](nil, 1))
+	ruleSet = ruleSet.WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT = &MockT{}
-	if err := testhelpers.MustBeValid(mockT, ruleSet, 10, 10); err == nil {
+	if _, err := testhelpers.MustApply(mockT, ruleSet, 10); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -53,7 +50,7 @@ func TestMustBeValid(t *testing.T) {
 	}
 }
 
-func TestMustBeValidFunc(t *testing.T) {
+func TestMustApplyFunc(t *testing.T) {
 	ruleSet := rules.Any()
 	callCount := 0
 
@@ -68,7 +65,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	}
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeValidFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
+	if _, err := testhelpers.MustApplyFunc(mockT, ruleSet, 10, 10, checkValid); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 0 {
@@ -81,7 +78,7 @@ func TestMustBeValidFunc(t *testing.T) {
 	callCount = 0
 	mockT = &MockT{}
 
-	if err := testhelpers.MustBeValidFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
+	if _, err := testhelpers.MustApplyFunc(mockT, ruleSet, 10, 10, checkInvalid); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -92,11 +89,11 @@ func TestMustBeValidFunc(t *testing.T) {
 	}
 }
 
-func TestMustBeInvalid(t *testing.T) {
-	ruleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any](nil, 1))
+func TestMustNotApply(t *testing.T) {
+	ruleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	mockT := &MockT{}
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeUnknown); err == nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 0 {
@@ -105,7 +102,7 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Wrong code
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeMin); err != nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeMin); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 	if mockT.errorCount != 1 {
@@ -116,7 +113,7 @@ func TestMustBeInvalid(t *testing.T) {
 
 	mockT = &MockT{}
 	// Is actually valid
-	if err := testhelpers.MustBeInvalid(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
+	if err := testhelpers.MustNotApply(mockT, ruleSet, 10, errors.CodeUnknown); err != nil {
 		t.Error("Expected error to not be nil")
 	}
 	if mockT.errorCount != 1 {
@@ -124,33 +121,213 @@ func TestMustBeInvalid(t *testing.T) {
 	}
 }
 
-func TestCustomRule(t *testing.T) {
-	ctx := context.Background()
+func TestMustApplyMutation(t *testing.T) {
+	out := 10
 
-	rule1 := testhelpers.MockCustomRule[int](123, 0)
+	mockRuleSet := &testhelpers.MockRuleSet[int]{
+		OutputValue: &out,
+	}
+	mockT := &MockT{}
 
-	ret, err := rule1(ctx, 456)
-	if err != nil {
+	if _, err := testhelpers.MustApplyMutation(mockT, mockRuleSet.Any(), 5, 10); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
-	} else if ret != 123 {
-		t.Errorf("Expected return value to be %d, got: %d", 123, ret)
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
 	}
 
-	rule2 := testhelpers.MockCustomRule[int](123, 1)
+	mockRuleSet.Reset()
 
-	_, err = rule2(ctx, 456)
-	if err == nil {
-		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 1 {
-		t.Errorf("Expected error collection size to be %d, got: %d", 1, s)
+	if _, err := testhelpers.MustApplyMutation(mockT, mockRuleSet.Any(), 5, 7); err == nil {
+		t.Errorf("Expected error to not be nil")
+	}
+}
+
+// MockNilOk is a mock rule set that incorrectly succeeds when applying nil
+type MockNilOk struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockNilOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	if output == nil {
+		return nil
+	}
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	return mockRuleSet.Apply(ctx, input, output)
+}
+
+// MockNilOk is a mock rule set that incorrectly succeeds when applying a pointer to nil
+type MockNilPtrOk struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockNilPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	if outputPtr, ok := output.(*int); ok && outputPtr == nil {
+		return nil
+	}
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	return mockRuleSet.Apply(ctx, input, output)
+}
+
+// MockNilOk is a mock rule set that incorrectly succeeds when applying a non-pointer that matches the type
+type MockNonPtrOk struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockNonPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	if _, ok := output.(int); ok {
+		return nil
+	}
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	return mockRuleSet.Apply(ctx, input, output)
+}
+
+// MockWrongTypeOk is a mock rule set that incorrectly succeeds when applying a pointer with the wrong type
+type MockWrongTypeOk struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockWrongTypeOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Always succeed on non-nil pointer regardless of type
+	outputVal := reflect.ValueOf(output)
+	if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
+		return nil
+	}
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	return mockRuleSet.Apply(ctx, input, output)
+}
+
+// MockWrongErrorCode is a mock rule set that fails with the incorrect error code
+// errors.CodeInternal should be used and is replaced with errors.CodeUknown
+type MockWrongErrorCode struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	errs := mockRuleSet.Apply(ctx, input, output)
+
+	if errs == nil {
+		return nil
 	}
 
-	rule3 := testhelpers.MockCustomRule[int](123, 2)
+	// Replace all CodeInternal errors
+	for idx := range errs {
+		if errs[idx].Code() == errors.CodeInternal {
+			errs[idx] = errors.Errorf(errors.CodeUnknown, ctx, "")
+		}
+	}
 
-	_, err = rule3(ctx, 456)
-	if err == nil {
+	return errs
+}
+
+// MockAlwaysError is a mock rule set that always fails
+type MockAlwaysError struct{ testhelpers.MockRuleSet[int] }
+
+func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	mockRuleSet := &testhelpers.MockRuleSet[int]{}
+	errs := mockRuleSet.Apply(ctx, input, output)
+
+	if errs != nil {
+		return errs
+	}
+
+	return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, ""))
+}
+
+func TestMustApplyTypes(t *testing.T) {
+
+	// MockRuleSet should pass all type tests by default
+	var mockRuleSet rules.RuleSet[int] = &testhelpers.MockRuleSet[int]{}
+	testhelpers.MustApplyTypes[int](t, mockRuleSet, 123)
+
+	// Incorrectly succeeds on nil output only
+	mockT := &MockT{}
+	mockRuleSet = &MockNilOk{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected 1 error on mock incorrectly succeeding on nil, got: %d", mockT.errorCount)
+	}
+
+	// Incorrectly succeeds on nil pointer output only
+	mockT = &MockT{}
+	mockRuleSet = &MockNilPtrOk{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected 1 error on mock incorrectly succeeding on nil pointer, got: %d", mockT.errorCount)
+	}
+
+	// Incorrectly succeeds on non-pointer with correct type output only
+	mockT = &MockT{}
+	mockRuleSet = &MockNonPtrOk{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected 1 error on mock incorrectly succeeding on non-pointer with correct type, got: %d", mockT.errorCount)
+	}
+
+	// Incorrectly succeeds on incorrect output type
+	mockT = &MockT{}
+	mockRuleSet = &MockWrongTypeOk{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected 1 error on mock incorrectly succeeding on pointer of incompatible type, got: %d", mockT.errorCount)
+	}
+
+	// Fails with incorrect error code
+	mockT = &MockT{}
+	mockRuleSet = &MockWrongErrorCode{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 4 {
+		t.Errorf("Expected 4 errors on mock incorrectly error code, got: %d", mockT.errorCount)
+	}
+
+	// Fail success cases
+	mockT = &MockT{}
+	mockRuleSet = &MockAlwaysError{}
+	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
+	if mockT.errorCount != 2 {
+		t.Errorf("Expected 2 errors on mock failed success cases, got: %d", mockT.errorCount)
+	}
+}
+
+func TestMustEvaluate(t *testing.T) {
+	rule := testhelpers.NewMockRuleWithErrors[any](1)
+
+	mockT := &MockT{}
+	if err := testhelpers.MustEvaluate[any](mockT, rule, 10); err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 2 {
-		t.Errorf("Expected error collection size to be %d, got: %d", 2, s)
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+
+	rule = testhelpers.NewMockRule[any]()
+	mockT = &MockT{}
+	if err := testhelpers.MustEvaluate[any](mockT, rule, 10); err != nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+}
+
+func TestMustNotEvaluate(t *testing.T) {
+	rule := testhelpers.NewMockRuleWithErrors[any](1)
+
+	mockT := &MockT{}
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeUnknown); err == nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 0 {
+		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+
+	mockT = &MockT{}
+	// Wrong code
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeMin); err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
+	}
+
+	rule = testhelpers.NewMockRule[any]()
+	mockT = &MockT{}
+	// Is actually valid
+	if err := testhelpers.MustNotEvaluate[any](mockT, rule, 10, errors.CodeUnknown); err != nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
 	}
 }

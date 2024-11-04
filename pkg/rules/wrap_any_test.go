@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -14,7 +15,12 @@ import (
 // - Implements the RuleSet interface.
 func TestWrapWrapAnyRuleSet(t *testing.T) {
 	innerRuleSet := rules.Any()
-	anyval, err := rules.WrapAny[any](innerRuleSet).Validate(123)
+
+	// Prepare the output variable for Apply
+	var anyval any
+
+	// Use Apply instead of Validate
+	err := rules.WrapAny[any](innerRuleSet).Apply(context.TODO(), 123, &anyval)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -62,11 +68,11 @@ func TestWrapAnyRequired(t *testing.T) {
 // - The inner rule set rules are called.
 // - Errors in inner the rule set are passed to the wrapper.
 func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
-	innerRuleSet := rules.Any().WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+	innerRuleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
 	ruleSet := rules.WrapAny[any](innerRuleSet)
 
-	testhelpers.MustBeInvalid(t, ruleSet, 123, errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeUnknown)
 }
 
 // Requirements:
@@ -77,16 +83,16 @@ func TestWrapAnyCustom(t *testing.T) {
 	innerRuleSet := rules.Any()
 
 	ruleSet := rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+		WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
-	testhelpers.MustBeInvalid(t, ruleSet, "123", errors.CodeUnknown)
+	testhelpers.MustNotApply(t, ruleSet, "123", errors.CodeUnknown)
 
-	expected := "abc"
+	var expected any = "abc"
 
 	ruleSet = rules.WrapAny[any](innerRuleSet).
-		WithRuleFunc(testhelpers.MockCustomRule[any](expected, 0))
+		WithRule(testhelpers.NewMockRule[any]())
 
-	testhelpers.MustBeValid(t, ruleSet, expected, expected)
+	testhelpers.MustApply(t, ruleSet, expected)
 }
 
 // Requirement:
@@ -118,10 +124,65 @@ func TestWrapAnyRequiredString(t *testing.T) {
 // - Serializes to WithRule(...)
 func TestWrapAnyRuleString(t *testing.T) {
 	innerRuleSet := rules.Any()
-	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.MockCustomRule[any]("123", 1))
+	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
 	expected := "AnyRuleSet.Any().WithRuleFunc(...)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+// Requirement:
+// - Evaluate calls Apply and not Evaluate on the wrapped RuleSets that do not implement Rule[any].
+// - Evaluate calls Evaluate on the wrapped RuleSets that do implement Rule[any].
+// - In both cases the custom rules gets called exactly once.
+//
+// This is the only exception to the policy that testhelper.MustEvaluate/MustNotEvaluate
+// cannot be used with WrapAnyRuleSet.
+func TestWrapAnyEvaluate(t *testing.T) {
+	v := 123
+
+	// Both these should call Evaluate on the underlying rule but not Apply
+
+	innerRuleSet := testhelpers.NewMockRuleSet[int]()
+	innerRuleSet.OutputValue = &v
+	ruleSet := rules.WrapAny[int](innerRuleSet)
+	testhelpers.MustEvaluate[any](t, ruleSet, 123)
+
+	if a := innerRuleSet.ApplyCallCount(); a != 0 {
+		t.Errorf("Expected ApplyCallCount to be 0, got: %d", a)
+	} else if e := innerRuleSet.EvaluateCallCount(); e != 1 {
+		t.Errorf("Expected EvaluateCallCount to be 1, got: %d", a)
+	}
+
+	innerRuleSetWithErrors := testhelpers.NewMockRuleSetWithErrors[int](1)
+	innerRuleSetWithErrors.OutputValue = &v
+	ruleSetWithErrors := rules.WrapAny[int](innerRuleSetWithErrors)
+	testhelpers.MustNotEvaluate[any](t, ruleSetWithErrors, 123, errors.CodeUnknown)
+
+	if a := innerRuleSetWithErrors.ApplyCallCount(); a != 0 {
+		t.Errorf("Expected ApplyCallCount to be 0, got: %d", a)
+	} else if e := innerRuleSetWithErrors.EvaluateCallCount(); e != 1 {
+		t.Errorf("Expected EvaluateCallCount to be 1, got: %d", a)
+	}
+
+	// Both of these should call Apply since the input type cannot be cast to int
+
+	innerRuleSet.Reset()
+	testhelpers.MustEvaluate[any](t, ruleSet, "123")
+
+	if e := innerRuleSet.EvaluateCallCount(); e != 0 {
+		t.Errorf("Expected EvaluateCallCount to be 0, got: %d", e)
+	} else if a := innerRuleSet.ApplyCallCount(); a != 1 {
+		t.Errorf("Expected ApplyCallCount to be 1, got: %d", a)
+	}
+
+	innerRuleSetWithErrors.Reset()
+	testhelpers.MustNotEvaluate[any](t, ruleSetWithErrors, "123", errors.CodeUnknown)
+
+	if e := innerRuleSetWithErrors.EvaluateCallCount(); e != 0 {
+		t.Errorf("Expected EvaluateCallCount to be 0, got: %d", e)
+	} else if a := innerRuleSetWithErrors.ApplyCallCount(); a != 1 {
+		t.Errorf("Expected ApplyCallCount to be 1, got: %d", a)
 	}
 }
