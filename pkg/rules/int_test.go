@@ -2,6 +2,7 @@ package rules_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -202,4 +203,46 @@ func TestInt_Evaluate(t *testing.T) {
 	ruleSet := rules.Int().WithMin(5)
 	testhelpers.MustEvaluate[int](t, ruleSet, 10)
 	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
+}
+
+func TestIntVariantTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  rules.RuleSet[any]
+		input    interface{}
+		expected interface{}
+	}{
+		{"Int", rules.Int().Any(), int(42), int(42)},
+		{"Uint", rules.Uint().Any(), uint(42), uint(42)},
+		{"Int8", rules.Int8().Any(), int8(42), int8(42)},
+		{"Uint8", rules.Uint8().Any(), uint8(42), uint8(42)},
+		{"Int16", rules.Int16().Any(), int16(42), int16(42)},
+		{"Uint16", rules.Uint16().Any(), uint16(42), uint16(42)},
+		{"Int32", rules.Int32().Any(), int32(42), int32(42)},
+		{"Uint32", rules.Uint32().Any(), uint32(42), uint32(42)},
+		{"Int64", rules.Int64().Any(), int64(42), int64(42)},
+		{"Uint64", rules.Uint64().Any(), uint64(42), uint64(42)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out any
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if reflect.TypeOf(out) != reflect.TypeOf(tt.expected) {
+				t.Errorf("Expected type %T, got %T", tt.expected, out)
+				return
+			}
+
+			if out != tt.expected {
+				t.Errorf("Expected value %v, got %v", tt.expected, out)
+				return
+			}
+		})
+	}
 }
