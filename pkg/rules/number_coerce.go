@@ -136,13 +136,34 @@ func tryCoerceFloatToFloat[From, To floating](value From, ctx context.Context) (
 	return floatval, nil
 }
 
-// tryCoerceFloatToFloat attempts to coerce a float from one type to another and checks that no data was lost in the process.
-func tryCoerceIntToFloat[From integer, To floating](value From, ctx context.Context) (To, errors.ValidationError) {
+// tryCoerceIntToFloat attempts to coerce an integer to a float type and checks that no data was lost.
+// float32 can represent integers exactly up to 2^24 = 16777216
+// float64 can represent integers exactly up to 2^53 = 9007199254740992
+func tryCoerceIntToFloat[From integer, To floating](ruleSet *FloatRuleSet[To], value From, ctx context.Context) (To, errors.ValidationError) {
 	floatval := To(value)
-	if From(floatval) != value {
-		target := reflect.ValueOf(*new(To)).Kind().String()
-		return 0, errors.NewRangeError(ctx, target)
+
+	// Determine the maximum exact integer value based on the target float type
+	var maxExactFloat float64
+	var zero To
+	switch any(zero).(type) {
+	case float32:
+		maxExactFloat = 1 << 24 // 2^24
+	case float64:
+		maxExactFloat = 1 << 53 // 2^53
 	}
+
+	// Check if the absolute value of the float exceeds the exact representation limit
+	absFloatVal := math.Abs(float64(floatval))
+	if absFloatVal > maxExactFloat {
+		return 0, errors.NewRangeError(ctx, ruleSet.typeName())
+	}
+
+	// Also verify the round-trip conversion works correctly
+	// This catches edge cases where the float is within range but still can't represent the exact integer
+	if From(floatval) != value {
+		return 0, errors.NewRangeError(ctx, ruleSet.typeName())
+	}
+
 	return floatval, nil
 }
 
@@ -178,25 +199,25 @@ func (v *FloatRuleSet[T]) coerceFloat(value any, ctx context.Context) (T, errors
 	case T:
 		return x, nil
 	case int:
-		return tryCoerceIntToFloat[int, T](x, ctx)
+		return tryCoerceIntToFloat[int, T](v, x, ctx)
 	case int8:
-		return tryCoerceIntToFloat[int8, T](x, ctx)
+		return tryCoerceIntToFloat[int8, T](v, x, ctx)
 	case int16:
-		return tryCoerceIntToFloat[int16, T](x, ctx)
+		return tryCoerceIntToFloat[int16, T](v, x, ctx)
 	case int32:
-		return tryCoerceIntToFloat[int32, T](x, ctx)
+		return tryCoerceIntToFloat[int32, T](v, x, ctx)
 	case int64:
-		return tryCoerceIntToFloat[int64, T](x, ctx)
+		return tryCoerceIntToFloat[int64, T](v, x, ctx)
 	case uint:
-		return tryCoerceIntToFloat[uint, T](x, ctx)
+		return tryCoerceIntToFloat[uint, T](v, x, ctx)
 	case uint8:
-		return tryCoerceIntToFloat[uint8, T](x, ctx)
+		return tryCoerceIntToFloat[uint8, T](v, x, ctx)
 	case uint16:
-		return tryCoerceIntToFloat[uint16, T](x, ctx)
+		return tryCoerceIntToFloat[uint16, T](v, x, ctx)
 	case uint32:
-		return tryCoerceIntToFloat[uint32, T](x, ctx)
+		return tryCoerceIntToFloat[uint32, T](v, x, ctx)
 	case uint64:
-		return tryCoerceIntToFloat[uint64, T](x, ctx)
+		return tryCoerceIntToFloat[uint64, T](v, x, ctx)
 	case float32:
 		return tryCoerceFloatToFloat[float32, T](x, ctx)
 	case float64:
