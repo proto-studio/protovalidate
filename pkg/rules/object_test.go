@@ -1960,3 +1960,57 @@ func TestQueryStringInput(t *testing.T) {
 func TestObjectWithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[*testStruct](t, rules.Struct[*testStruct]())
 }
+
+// Requirements:
+//   - When outputting to a map and WithNil is used on a key's rule set, nil values in the input map
+//     should result in nil values in the output map
+//   - When outputting to a map and WithNil is NOT used on a key's rule set, nil values in the input map
+//     should result in a CodeNull error
+func TestObjectMapWithNilKeyValue(t *testing.T) {
+	ctx := context.TODO()
+
+	// Test with WithNil - should succeed and have nil in output map
+	ruleSetWithNil := rules.StringMap[any]().
+		WithKey("key", rules.Any().WithNil())
+
+	var outputWithNil map[string]any
+	inputWithNil := map[string]any{"key": nil}
+
+	err := ruleSetWithNil.Apply(ctx, inputWithNil, &outputWithNil)
+	if err != nil {
+		t.Errorf("Expected no error when WithNil is used, got: %s", err)
+		return
+	}
+
+	if outputWithNil == nil {
+		t.Error("Expected output map to not be nil")
+		return
+	}
+
+	val, ok := outputWithNil["key"]
+	if !ok {
+		t.Error("Expected 'key' to be present in output map")
+		return
+	}
+
+	if val != nil {
+		t.Errorf("Expected 'key' value to be nil, got: %v", val)
+	}
+
+	// Test without WithNil - should error with CodeNull
+	ruleSetWithoutNil := rules.StringMap[any]().
+		WithKey("key", rules.Any())
+
+	var outputWithoutNil map[string]any
+	inputWithoutNil := map[string]any{"key": nil}
+
+	err = ruleSetWithoutNil.Apply(ctx, inputWithoutNil, &outputWithoutNil)
+	if err == nil {
+		t.Error("Expected error when WithNil is not used")
+		return
+	}
+
+	if err.First().Code() != errors.CodeNull {
+		t.Errorf("Expected error code to be CodeNull, got: %s", err.First().Code())
+	}
+}
