@@ -38,17 +38,7 @@ func TestAnyForbidden(t *testing.T) {
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
 func TestAnyRequired(t *testing.T) {
-	ruleSet := rules.Any()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[any](t, rules.Any())
 }
 
 // Requirements:
@@ -126,4 +116,11 @@ func TestAnyComposition(t *testing.T) {
 	ruleSet := rules.Any().WithRule(innerRuleSet)
 
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeUnknown)
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestAnyWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[any](t, rules.Any())
 }

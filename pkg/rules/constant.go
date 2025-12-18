@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 )
 
@@ -19,6 +20,7 @@ var constCacheMap map[any]any
 // type it is usually best to use that type.
 type ConstantRuleSet[T comparable] struct {
 	required bool
+	withNil  bool
 	value    T
 	empty    T // Leave this empty
 }
@@ -65,12 +67,29 @@ func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 	return &ConstantRuleSet[T]{
 		value:    ruleSet.value,
 		required: true,
+		withNil:  ruleSet.withNil,
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
+	return &ConstantRuleSet[T]{
+		value:    ruleSet.value,
+		required: ruleSet.required,
+		withNil:  true,
 	}
 }
 
 // Apply validates a RuleSet against an input value and assigns the validated value to output.
 // It returns a ValidationErrorCollection.
 func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Attempt to coerce input to type T.
 	v, ok := input.(T)
 	if !ok {

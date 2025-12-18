@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 )
 
@@ -69,6 +70,7 @@ type IntRuleSet[T integer] struct {
 	base     int
 	rule     Rule[T]
 	required bool
+	withNil  bool
 	parent   *IntRuleSet[T]
 	rounding Rounding
 	label    string
@@ -135,6 +137,7 @@ func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 		parent:   v,
 		base:     v.base,
 		required: v.required,
+		withNil:  v.withNil,
 		rounding: v.rounding,
 		label:    "WithStrict()",
 	}
@@ -151,6 +154,7 @@ func (v *IntRuleSet[T]) WithBase(base int) *IntRuleSet[T] {
 		parent:   v,
 		base:     base,
 		required: v.required,
+		withNil:  v.withNil,
 		rounding: v.rounding,
 		label:    fmt.Sprintf("WithBase(%d)", base),
 	}
@@ -169,14 +173,35 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 		parent:   v,
 		base:     v.base,
 		required: true,
+		withNil:  v.withNil,
 		rounding: v.rounding,
 		label:    "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
+	return &IntRuleSet[T]{
+		strict:   v.strict,
+		parent:   v,
+		base:     v.base,
+		required: v.required,
+		withNil:  true,
+		rounding: v.rounding,
+		label:    "WithNil()",
 	}
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
@@ -276,6 +301,7 @@ func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
 		base:     ruleSet.base,
 		rule:     ruleSet.rule,
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 		parent:   newParent,
 		rounding: ruleSet.rounding,
 		label:    ruleSet.label,
@@ -294,6 +320,7 @@ func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 		parent:   ruleSet.withoutConflicts(rule),
 		base:     ruleSet.base,
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 		rounding: ruleSet.rounding,
 	}
 }

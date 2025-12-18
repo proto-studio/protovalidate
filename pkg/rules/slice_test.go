@@ -81,17 +81,7 @@ func TestSliceItemRuleSetError(t *testing.T) {
 }
 
 func TestWithRequired(t *testing.T) {
-	ruleSet := rules.Slice[string]()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[[]string](t, rules.Slice[string]())
 }
 
 func TestCustom(t *testing.T) {
@@ -212,4 +202,11 @@ func TestEvaluate(t *testing.T) {
 	if err1 != nil || err2 != nil {
 		t.Errorf("Expected errors to both be nil, got %s and %s", err1, err2)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestSliceWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[[]string](t, rules.Slice[string]())
 }

@@ -48,20 +48,12 @@ func TestInterfaceRuleSet(t *testing.T) {
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
 func TestInterfaceRequired(t *testing.T) {
-	ruleSet := rules.Interface[MyTestInterface]()
+	testhelpers.MustImplementWithRequired[MyTestInterface](t, rules.Interface[MyTestInterface]())
 
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
+	// Test idempotency
+	ruleSet := rules.Interface[MyTestInterface]().WithRequired()
 	if ruleSet.WithRequired() != ruleSet {
 		t.Error("Expected WithRequired to be idempotent")
-	}
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
 	}
 }
 
@@ -159,4 +151,11 @@ func TestInterfaceWithCast(t *testing.T) {
 	})
 	testhelpers.MustApplyMutation(t, ruleSetWithError.Any(), 123, MyTestImplInt(123))
 	testhelpers.MustNotApply(t, ruleSetWithError.Any(), "abc", errors.CodeUnexpected)
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestInterfaceWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[MyTestInterface](t, rules.Interface[MyTestInterface]())
 }

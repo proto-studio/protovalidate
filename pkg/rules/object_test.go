@@ -578,17 +578,7 @@ func TestMissingRequiredField(t *testing.T) {
 }
 
 func TestObjectWithRequired(t *testing.T) {
-	ruleSet := rules.StringMap[int]()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[map[string]int](t, rules.StringMap[int]())
 }
 
 func TestUnknownFields(t *testing.T) {
@@ -1962,4 +1952,11 @@ func TestQueryStringInput(t *testing.T) {
 	} else if v, ok := out["abc"]; !ok || len(v) != 1 {
 		t.Errorf(`Expected "abc" to exist in output and have length 1`)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestObjectWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[*testStruct](t, rules.Struct[*testStruct]())
 }

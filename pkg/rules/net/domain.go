@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/idna"
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
@@ -24,6 +25,7 @@ var domainLabelPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,61}[a-zA-Z0
 type DomainRuleSet struct {
 	rules.NoConflict[string]
 	required bool
+	withNil  bool
 	parent   *DomainRuleSet
 	rule     rules.Rule[string]
 	label    string
@@ -44,14 +46,32 @@ func (ruleSet *DomainRuleSet) Required() bool {
 func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	return &DomainRuleSet{
 		required: true,
+		withNil:  ruleSet.withNil,
 		parent:   ruleSet,
 		label:    "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (ruleSet *DomainRuleSet) WithNil() *DomainRuleSet {
+	return &DomainRuleSet{
+		required: ruleSet.required,
+		withNil:  true,
+		parent:   ruleSet,
+		label:    "WithNil()",
 	}
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
@@ -176,6 +196,7 @@ func (ruleSet *DomainRuleSet) noConflict(rule rules.Rule[string]) *DomainRuleSet
 		rule:     ruleSet.rule,
 		parent:   newParent,
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 		label:    ruleSet.label,
 	}
 }
@@ -190,6 +211,7 @@ func (ruleSet *DomainRuleSet) WithRule(rule rules.Rule[string]) *DomainRuleSet {
 		rule:     rule,
 		parent:   ruleSet.noConflict(rule),
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 	}
 }
 

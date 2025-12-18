@@ -3,6 +3,7 @@ package rules
 import (
 	"context"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
@@ -15,6 +16,7 @@ import (
 type WrapAnyRuleSet[T any] struct {
 	NoConflict[any]
 	required bool
+	withNil  bool
 	inner    RuleSet[T]
 	rule     Rule[any]
 	parent   *WrapAnyRuleSet[T]
@@ -46,9 +48,23 @@ func (v *WrapAnyRuleSet[T]) Required() bool {
 func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 	return &WrapAnyRuleSet[T]{
 		required: true,
+		withNil:  v.withNil,
 		inner:    v.inner,
 		parent:   v,
 		label:    "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *WrapAnyRuleSet[T]) WithNil() *WrapAnyRuleSet[T] {
+	return &WrapAnyRuleSet[T]{
+		required: v.required,
+		withNil:  true,
+		inner:    v.inner,
+		parent:   v,
+		label:    "WithNil()",
 	}
 }
 
@@ -77,6 +93,11 @@ func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors
 // as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
 // added directly to the WrapAnyRuleSet.
 func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
+		return err
+	}
+
 	innerErrors := v.inner.Apply(ctx, input, output)
 	allErrors := v.evaluateRules(ctx, output)
 
@@ -125,6 +146,7 @@ func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) error
 func (v *WrapAnyRuleSet[T]) WithRule(rule Rule[any]) *WrapAnyRuleSet[T] {
 	return &WrapAnyRuleSet[T]{
 		required: v.required,
+		withNil:  v.withNil,
 		inner:    v.inner,
 		rule:     rule,
 		parent:   v,

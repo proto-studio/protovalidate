@@ -105,17 +105,7 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestStringRequired(t *testing.T) {
-	ruleSet := rules.String()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[string](t, rules.String())
 }
 
 func TestStringCustom(t *testing.T) {
@@ -181,4 +171,11 @@ func TestString_WithStrict(t *testing.T) {
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestStringWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[string](t, rules.String())
 }

@@ -83,17 +83,7 @@ func TestTimeMultiLayout(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestTimeRequired(t *testing.T) {
-	ruleSet := time.Time()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[internalTime.Time](t, time.Time())
 }
 
 func TestTimeCustom(t *testing.T) {
@@ -229,4 +219,11 @@ func TestTime_Apply_String(t *testing.T) {
 		t.Errorf("Expected ruleSetWithOuputLayout to equal ruleSet")
 	}
 
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestTimeWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[internalTime.Time](t, time.Time())
 }

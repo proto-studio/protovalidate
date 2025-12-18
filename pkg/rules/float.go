@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 )
 
@@ -26,6 +27,7 @@ type FloatRuleSet[T floating] struct {
 	strict    bool
 	rule      Rule[T]
 	required  bool
+	withNil   bool
 	parent    *FloatRuleSet[T]
 	rounding  Rounding
 	precision int
@@ -52,6 +54,7 @@ func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
 		strict:    true,
 		parent:    v,
 		required:  v.required,
+		withNil:   v.withNil,
 		rounding:  v.rounding,
 		precision: v.precision,
 		label:     "WithStrict()",
@@ -70,15 +73,36 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 		strict:    v.strict,
 		parent:    v,
 		required:  true,
+		withNil:   v.withNil,
 		rounding:  v.rounding,
 		precision: v.precision,
 		label:     "WithRequired()",
 	}
 }
 
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
+	return &FloatRuleSet[T]{
+		strict:    v.strict,
+		parent:    v,
+		required:  v.required,
+		withNil:   true,
+		rounding:  v.rounding,
+		precision: v.precision,
+		label:     "WithNil()",
+	}
+}
+
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
+		return err
+	}
+
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
@@ -183,6 +207,7 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 		strict:    ruleSet.strict,
 		rule:      ruleSet.rule,
 		required:  ruleSet.required,
+		withNil:   ruleSet.withNil,
 		parent:    newParent,
 		rounding:  ruleSet.rounding,
 		precision: ruleSet.precision,
@@ -200,7 +225,8 @@ func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
 		strict:    ruleSet.strict,
 		parent:    ruleSet.noConflict(rule),
 		rule:      rule,
-		required:  true,
+		required:  ruleSet.required,
+		withNil:   ruleSet.withNil,
 		rounding:  ruleSet.rounding,
 		precision: ruleSet.precision,
 	}

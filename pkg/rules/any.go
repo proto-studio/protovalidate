@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
@@ -16,6 +17,7 @@ type AnyRuleSet struct {
 	NoConflict[any]
 	required  bool
 	forbidden bool
+	withNil   bool
 	rule      Rule[any]
 	parent    *AnyRuleSet
 	label     string
@@ -43,6 +45,7 @@ func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  true,
 		forbidden: v.forbidden,
+		withNil:   v.withNil,
 		parent:    v,
 		label:     "WithRequired()",
 	}
@@ -54,14 +57,32 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
 		forbidden: true,
+		withNil:   v.withNil,
 		parent:    v,
 		label:     "WithForbidden()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *AnyRuleSet) WithNil() *AnyRuleSet {
+	return &AnyRuleSet{
+		required:  v.required,
+		forbidden: v.forbidden,
+		withNil:   true,
+		parent:    v,
+		label:     "WithNil()",
 	}
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the value to the output
 // or a ValidationErrorCollection.
 func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
+		return err
+	}
 
 	err := v.Evaluate(ctx, input)
 	if err != nil {
@@ -135,6 +156,7 @@ func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
 		forbidden: v.forbidden,
+		withNil:   v.withNil,
 		rule:      rule,
 		parent:    v,
 	}

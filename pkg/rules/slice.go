@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
@@ -16,6 +17,7 @@ type SliceRuleSet[T any] struct {
 	itemRules RuleSet[T]
 	rule      Rule[[]T]
 	required  bool
+	withNil   bool
 	parent    *SliceRuleSet[T]
 	label     string
 }
@@ -41,7 +43,20 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
 		parent:   v,
 		required: true,
+		withNil:  v.withNil,
 		label:    "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
+	return &SliceRuleSet[T]{
+		parent:   v,
+		required: v.required,
+		withNil:  true,
+		label:    "WithNil()",
 	}
 }
 
@@ -55,12 +70,18 @@ func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T]
 		itemRules: itemRules,
 		parent:    v,
 		required:  v.required,
+		withNil:   v.withNil,
 	}
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
+		return err
+	}
+
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
@@ -189,6 +210,7 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 		rule:      ruleSet.rule,
 		parent:    newParent,
 		required:  ruleSet.required,
+		withNil:   ruleSet.withNil,
 		itemRules: ruleSet.itemRules,
 		label:     ruleSet.label,
 	}
@@ -204,6 +226,7 @@ func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 		rule:     rule,
 		parent:   v.noConflict(rule),
 		required: v.required,
+		withNil:  v.withNil,
 	}
 }
 
