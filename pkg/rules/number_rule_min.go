@@ -24,10 +24,11 @@ func (rule *minRule[T]) Evaluate(ctx context.Context, value T) errors.Validation
 	return nil
 }
 
-// Conflict returns true for any minimum rule.
+// Conflict returns true for any minimum or exclusive minimum rule.
 func (rule *minRule[T]) Conflict(x Rule[T]) bool {
-	_, ok := x.(*minRule[T])
-	return ok
+	_, ok1 := x.(*minRule[T])
+	_, ok2 := x.(*moreRule[T])
+	return ok1 || ok2
 }
 
 // String returns the string representation of the minimum rule.
