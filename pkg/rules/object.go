@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
@@ -24,6 +25,7 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	outputType   reflect.Type
 	ptr          bool
 	required     bool
+	withNil      bool
 	parent       *ObjectRuleSet[T, TK, TV]
 	label        string
 	condition    Conditional[T, TK]
@@ -129,6 +131,7 @@ func (v *ObjectRuleSet[T, TK, TV]) withParent() *ObjectRuleSet[T, TK, TV] {
 	return &ObjectRuleSet[T, TK, TV]{
 		allowUnknown: v.allowUnknown,
 		required:     v.required,
+		withNil:      v.withNil,
 		outputType:   v.outputType,
 		ptr:          v.ptr,
 		parent:       v,
@@ -385,6 +388,16 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
+	return newRuleSet
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *ObjectRuleSet[T, TK, TV]) WithNil() *ObjectRuleSet[T, TK, TV] {
+	newRuleSet := v.withParent()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
@@ -679,6 +692,11 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and value is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
+		return err
+	}
+
 	// Ensure output is a non-nil pointer
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {

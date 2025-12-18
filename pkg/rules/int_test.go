@@ -103,17 +103,7 @@ func TestIntCoercionFromFloatWithError(t *testing.T) {
 }
 
 func TestIntRequired(t *testing.T) {
-	ruleSet := rules.Int()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[int](t, rules.Int())
 }
 
 func TestIntCustom(t *testing.T) {
@@ -245,4 +235,11 @@ func TestIntVariantTypes(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestIntWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[int](t, rules.Int())
 }

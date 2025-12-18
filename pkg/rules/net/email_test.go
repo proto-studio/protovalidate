@@ -67,17 +67,7 @@ func TestEmailSplit(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestEmailRequired(t *testing.T) {
-	ruleSet := net.Email()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[string](t, net.Email())
 }
 
 func TestEmailCustom(t *testing.T) {
@@ -198,4 +188,11 @@ func TestEmailDomainContext(t *testing.T) {
 	} else if s := err.First().Path(); s != expected {
 		t.Errorf("Expected path to be %s, got: %s", expected, s)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestEmailWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[string](t, net.Email())
 }

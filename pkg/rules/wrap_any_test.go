@@ -43,23 +43,13 @@ func TestWrapWrapAnyRuleSet(t *testing.T) {
 // - WithRequired sets the required flag.
 // - Require returns true only when the required flag is set.
 func TestWrapAnyRequired(t *testing.T) {
+	testhelpers.MustImplementWithRequired[any](t, rules.WrapAny[any](rules.Any()))
+
+	// Test that wrapping a required rule set preserves the required flag
 	innerRuleSet1 := rules.Any().WithRequired()
 	ruleSet1 := rules.WrapAny[any](innerRuleSet1)
 
 	if !ruleSet1.Required() {
-		t.Error("Expected rule set to be required")
-	}
-
-	innerRuleSet2 := rules.Any()
-	ruleSet2 := rules.WrapAny[any](innerRuleSet2)
-
-	if ruleSet2.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet2 = ruleSet2.WithRequired()
-
-	if !ruleSet2.Required() {
 		t.Error("Expected rule set to be required")
 	}
 }
@@ -185,4 +175,11 @@ func TestWrapAnyEvaluate(t *testing.T) {
 	} else if a := innerRuleSetWithErrors.ApplyCallCount(); a != 1 {
 		t.Errorf("Expected ApplyCallCount to be 1, got: %d", a)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestWrapAnyWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[any](t, rules.WrapAny[any](rules.Any()))
 }

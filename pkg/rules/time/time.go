@@ -15,6 +15,7 @@ import (
 type TimeRuleSet struct {
 	rules.NoConflict[time.Time]
 	required     bool
+	withNil      bool
 	layouts      []string
 	outputLayout string
 	parent       *TimeRuleSet
@@ -42,9 +43,23 @@ func (ruleSet *TimeRuleSet) Required() bool {
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	return &TimeRuleSet{
 		required:     true,
+		withNil:      ruleSet.withNil,
 		parent:       ruleSet,
 		outputLayout: ruleSet.outputLayout,
 		label:        "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
+	return &TimeRuleSet{
+		required:     ruleSet.required,
+		withNil:      true,
+		parent:       ruleSet,
+		outputLayout: ruleSet.outputLayout,
+		label:        "WithNil()",
 	}
 }
 
@@ -68,6 +83,7 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 
 	return &TimeRuleSet{
 		required:     ruleSet.required,
+		withNil:      ruleSet.withNil,
 		layouts:      layouts,
 		parent:       ruleSet,
 		outputLayout: ruleSet.outputLayout,
@@ -87,6 +103,7 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 
 	return &TimeRuleSet{
 		required:     ruleSet.required,
+		withNil:      ruleSet.withNil,
 		parent:       ruleSet,
 		outputLayout: layout,
 		label:        util.StringsToRuleOutput("WithOutputLayout", []string{layout}),
@@ -96,6 +113,11 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
@@ -224,6 +246,7 @@ func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet 
 		outputLayout: ruleSet.outputLayout,
 		parent:       newParent,
 		required:     ruleSet.required,
+		withNil:      ruleSet.withNil,
 		label:        ruleSet.label,
 	}
 }
@@ -238,6 +261,7 @@ func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
 		rule:     rule,
 		parent:   ruleSet.noConflict(rule),
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 	}
 }
 

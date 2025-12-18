@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
@@ -14,6 +15,7 @@ type StringRuleSet struct {
 	strict   bool
 	rule     Rule[string]
 	required bool
+	withNil  bool
 	parent   *StringRuleSet
 	label    string
 }
@@ -36,6 +38,7 @@ func (v *StringRuleSet) WithStrict() *StringRuleSet {
 		strict:   true,
 		parent:   v,
 		required: v.required,
+		withNil:  v.withNil,
 		label:    "WithStrict()",
 	}
 }
@@ -52,13 +55,32 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 		strict:   v.strict,
 		parent:   v,
 		required: true,
+		withNil:  v.withNil,
 		label:    "WithRequired()",
+	}
+}
+
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (v *StringRuleSet) WithNil() *StringRuleSet {
+	return &StringRuleSet{
+		strict:   v.strict,
+		parent:   v,
+		required: v.required,
+		withNil:  true,
+		label:    "WithNil()",
 	}
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the resulting string to the output pointer
 // a ValidationErrorCollection.
 func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and value is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
+		return err
+	}
+
 	// Ensure output is a pointer that can be set
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -152,6 +174,7 @@ func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
 		parent:   newParent,
 		required: ruleSet.required,
 		strict:   ruleSet.strict,
+		withNil:  ruleSet.withNil,
 		label:    ruleSet.label,
 	}
 }
@@ -167,6 +190,7 @@ func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 		rule:     rule,
 		parent:   ruleSet.noConflict(rule),
 		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
 	}
 }
 

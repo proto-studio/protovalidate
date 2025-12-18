@@ -69,17 +69,7 @@ func TestFloatCoercionFromFloat64(t *testing.T) {
 }
 
 func TestFloatRequired(t *testing.T) {
-	ruleSet := rules.Float64()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[float64](t, rules.Float64())
 }
 
 func TestFloatCustom(t *testing.T) {
@@ -159,4 +149,11 @@ func TestFloat_Evaluate(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(5)
 	testhelpers.MustEvaluate[float64](t, ruleSet, 10)
 	testhelpers.MustNotEvaluate[float64](t, ruleSet, 1, errors.CodeMin)
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestFloatWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[float64](t, rules.Float64())
 }

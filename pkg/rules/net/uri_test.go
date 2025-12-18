@@ -125,18 +125,10 @@ func TestURIRuleSet(t *testing.T) {
 // - Required flag defaults to false.
 // - Calling WithRequired on a rule set that already has it returns the identity.
 func TestURIRequired(t *testing.T) {
-	ruleSet := net.URI()
+	testhelpers.MustImplementWithRequired[string](t, net.URI())
 
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
-
+	// Test idempotency
+	ruleSet := net.URI().WithRequired()
 	ruleSet2 := ruleSet.WithRequired()
 
 	if ruleSet2 != ruleSet {
@@ -585,4 +577,11 @@ func TestURICustomConflict(t *testing.T) {
 	if mockB.EvaluateCallCount() != 3 {
 		t.Errorf("Expected 3 call to Evaluate, got: %d", mockB.EvaluateCallCount())
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestURIWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[string](t, net.URI())
 }

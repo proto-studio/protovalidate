@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 	"proto.zip/studio/validate/pkg/rules"
@@ -14,6 +15,7 @@ import (
 type EmailRuleSet struct {
 	rules.NoConflict[string]
 	required      bool
+	withNil       bool
 	parent        *EmailRuleSet
 	rule          rules.Rule[string]
 	domainRuleSet rules.RuleSet[string]
@@ -40,15 +42,34 @@ func (ruleSet *EmailRuleSet) Required() bool {
 func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 	return &EmailRuleSet{
 		required:      true,
+		withNil:       ruleSet.withNil,
 		parent:        ruleSet,
 		domainRuleSet: ruleSet.domainRuleSet,
 		label:         "WithRequired()",
 	}
 }
 
+// WithNil returns a new child rule set with the withNil flag set.
+// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// By default, WithNil is false.
+func (ruleSet *EmailRuleSet) WithNil() *EmailRuleSet {
+	return &EmailRuleSet{
+		required:      ruleSet.required,
+		withNil:       true,
+		parent:        ruleSet,
+		domainRuleSet: ruleSet.domainRuleSet,
+		label:         "WithNil()",
+	}
+}
+
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
@@ -176,6 +197,7 @@ func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *Em
 	return &EmailRuleSet{
 		parent:        ruleSet,
 		required:      ruleSet.required,
+		withNil:       ruleSet.withNil,
 		domainRuleSet: domainRuleSet,
 	}
 }
@@ -190,6 +212,7 @@ func (ruleSet *EmailRuleSet) WithRule(rule rules.Rule[string]) *EmailRuleSet {
 		rule:          rule,
 		parent:        ruleSet,
 		required:      ruleSet.required,
+		withNil:       ruleSet.withNil,
 		domainRuleSet: ruleSet.domainRuleSet,
 	}
 }

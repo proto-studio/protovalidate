@@ -39,18 +39,10 @@ func TestConstantCoerce(t *testing.T) {
 // - Value is carried over.
 // - Returns identity if called more than once.
 func TestConstantRequired(t *testing.T) {
-	ruleSet := rules.Constant("abc")
+	testhelpers.MustImplementWithRequired[string](t, rules.Constant("abc"))
 
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
-
+	// Test value is carried over and idempotency
+	ruleSet := rules.Constant("abc").WithRequired()
 	testhelpers.MustApply(t, ruleSet.Any(), "abc")
 	testhelpers.MustNotApply(t, ruleSet.Any(), "x", errors.CodePattern)
 
@@ -82,4 +74,11 @@ func TestConstantRuleSet_Conflict(t *testing.T) {
 	if !xyz.Conflict(abc) {
 		t.Error("Expected Conflict to be true for xyz -> abc")
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestConstantWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[string](t, rules.Constant[string]("abc"))
 }

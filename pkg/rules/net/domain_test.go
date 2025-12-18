@@ -89,17 +89,7 @@ func TestDomainType(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestDomainRequired(t *testing.T) {
-	ruleSet := net.Domain()
-
-	if ruleSet.Required() {
-		t.Error("Expected rule set to not be required")
-	}
-
-	ruleSet = ruleSet.WithRequired()
-
-	if !ruleSet.Required() {
-		t.Error("Expected rule set to be required")
-	}
+	testhelpers.MustImplementWithRequired[string](t, net.Domain())
 }
 
 func TestDomainCustom(t *testing.T) {
@@ -150,4 +140,11 @@ func TestDomainRequiredString(t *testing.T) {
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
+}
+
+// Requirements:
+// - Returns error with CodeNull when nil is provided and WithNil is not used
+// - Does not error when nil is provided and WithNil is used
+func TestDomainWithNil(t *testing.T) {
+	testhelpers.MustImplementWithNil[string](t, net.Domain())
 }
