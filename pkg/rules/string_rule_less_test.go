@@ -1,0 +1,98 @@
+package rules_test
+
+import (
+	"context"
+	"testing"
+
+	"proto.zip/studio/validate/pkg/errors"
+	"proto.zip/studio/validate/pkg/rules"
+	"proto.zip/studio/validate/pkg/testhelpers"
+)
+
+func TestString_WithLess(t *testing.T) {
+	ruleSet := rules.String().WithLess("y").Any()
+
+	// "x" is lexicographically less than "y", should pass
+	testhelpers.MustApply(t, ruleSet, "x")
+
+	// "y" is equal to "y", should fail (exclusive)
+	testhelpers.MustNotApply(t, ruleSet, "y", errors.CodeMax)
+
+	// "z" is lexicographically greater than "y", should fail
+	testhelpers.MustNotApply(t, ruleSet, "z", errors.CodeMax)
+
+	// "ya" is lexicographically greater than "y", should fail
+	testhelpers.MustNotApply(t, ruleSet, "ya", errors.CodeMax)
+}
+
+// Requirements:
+// - Only one WithLess can exist on a rule set.
+// - Original rule set is not mutated.
+// - Most recent WithLess is used.
+// - Rule is serialized properly.
+func TestString_LessConflict(t *testing.T) {
+	ruleSet := rules.String().WithLess("z").WithMore("a")
+
+	var output string
+
+	// Test validation with a value equal to the threshold (should return an error)
+	err := ruleSet.Apply(context.TODO(), "z", &output)
+	if err == nil {
+		t.Errorf("Expected error to not be nil")
+	}
+
+	// Test validation with a value above the threshold (should return an error)
+	err = ruleSet.Apply(context.TODO(), "zzz", &output)
+	if err == nil {
+		t.Errorf("Expected error to not be nil")
+	}
+
+	// Test validation with a value below the threshold (should not return an error)
+	err = ruleSet.Apply(context.TODO(), "y", &output)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %s", err)
+	}
+
+	// Create a new rule set with a different threshold and test again
+	ruleSet2 := ruleSet.WithLess("y")
+
+	// Test validation with a value at the new threshold (should return an error - exclusive)
+	err = ruleSet2.Apply(context.TODO(), "y", &output)
+	if err == nil {
+		t.Errorf("Expected error to not be nil")
+	}
+
+	// Test validation with a value below the new threshold (should not return an error)
+	err = ruleSet2.Apply(context.TODO(), "x", &output)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got: %s", err)
+	}
+
+	// Verify that the original rule set is not mutated
+	expected := "StringRuleSet.WithLess(\"z\").WithMore(\"a\")"
+	if s := ruleSet.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+
+	// Verify that the new rule set has the updated threshold
+	expected = "StringRuleSet.WithMore(\"a\").WithLess(\"y\")"
+	if s := ruleSet2.String(); s != expected {
+		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	}
+}
+
+func TestString_WithLess_Lexicographical(t *testing.T) {
+	ruleSet := rules.String().WithLess("banana").Any()
+
+	// "apple" is lexicographically less, should pass
+	testhelpers.MustApply(t, ruleSet, "apple")
+
+	// "banana" is equal, should fail (exclusive)
+	testhelpers.MustNotApply(t, ruleSet, "banana", errors.CodeMax)
+
+	// "bananas" is lexicographically greater, should fail
+	testhelpers.MustNotApply(t, ruleSet, "bananas", errors.CodeMax)
+
+	// "cherry" is lexicographically greater, should fail
+	testhelpers.MustNotApply(t, ruleSet, "cherry", errors.CodeMax)
+}
