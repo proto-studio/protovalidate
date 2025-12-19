@@ -9,8 +9,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithLessInt(t *testing.T) {
-	ruleSet := rules.Int().WithLess(10).Any()
+func TestWithMaxExclusiveInt(t *testing.T) {
+	ruleSet := rules.Int().WithMaxExclusive(10).Any()
 
 	// 9 is less than 10, should pass
 	testhelpers.MustApply(t, ruleSet, 9)
@@ -22,8 +22,8 @@ func TestWithLessInt(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
-func TestWithLessFloat(t *testing.T) {
-	ruleSet := rules.Float64().WithLess(10.0).Any()
+func TestWithMaxExclusiveFloat(t *testing.T) {
+	ruleSet := rules.Float64().WithMaxExclusive(10.0).Any()
 
 	// 9.9 is less than 10.0, should pass
 	testhelpers.MustApply(t, ruleSet, 9.9)
@@ -36,12 +36,12 @@ func TestWithLessFloat(t *testing.T) {
 }
 
 // Requirements:
-// - Only one WithLess can exist on a rule set.
+// - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
-// - Most recent WithLess is used.
+// - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestIntLessConflict(t *testing.T) {
-	ruleSet := rules.Int().WithLess(10).WithMore(3)
+func TestIntMaxExclusiveConflict(t *testing.T) {
+	ruleSet := rules.Int().WithMaxExclusive(10).WithMinExclusive(3)
 
 	var output int
 
@@ -64,7 +64,7 @@ func TestIntLessConflict(t *testing.T) {
 	}
 
 	// Create a new rule set with a different threshold and test again
-	ruleSet2 := ruleSet.WithLess(9)
+	ruleSet2 := ruleSet.WithMaxExclusive(9)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
 	err = ruleSet2.Apply(context.TODO(), 9, &output)
@@ -79,25 +79,25 @@ func TestIntLessConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "IntRuleSet[int].WithLess(10).WithMore(3)"
+	expected := "IntRuleSet[int].WithMaxExclusive(10).WithMinExclusive(3)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "IntRuleSet[int].WithMore(3).WithLess(9)"
+	expected = "IntRuleSet[int].WithMinExclusive(3).WithMaxExclusive(9)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
 // Requirements:
-// - Only one WithLess can exist on a rule set.
+// - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
-// - Most recent WithLess is used.
+// - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestFloatLessConflict(t *testing.T) {
-	ruleSet := rules.Float64().WithLess(10.0).WithMore(3.0)
+func TestFloatMaxExclusiveConflict(t *testing.T) {
+	ruleSet := rules.Float64().WithMaxExclusive(10.0).WithMinExclusive(3.0)
 
 	var output float64
 
@@ -120,7 +120,7 @@ func TestFloatLessConflict(t *testing.T) {
 	}
 
 	// Create a new rule set with a different threshold and test again
-	ruleSet2 := ruleSet.WithLess(9.0)
+	ruleSet2 := ruleSet.WithMaxExclusive(9.0)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
 	err = ruleSet2.Apply(context.TODO(), 9.0, &output)
@@ -135,24 +135,24 @@ func TestFloatLessConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "FloatRuleSet[float64].WithLess(10.000000).WithMore(3.000000)"
+	expected := "FloatRuleSet[float64].WithMaxExclusive(10.000000).WithMinExclusive(3.000000)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "FloatRuleSet[float64].WithMore(3.000000).WithLess(9.000000)"
+	expected = "FloatRuleSet[float64].WithMinExclusive(3.000000).WithMaxExclusive(9.000000)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithMax and WithLess conflict with each other
-func TestIntMaxLessConflict(t *testing.T) {
+// Test that WithMax and WithMaxExclusive conflict with each other
+func TestIntMaxMaxExclusiveConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10)
 
-	// Adding WithLess should conflict and replace WithMax
-	ruleSet2 := ruleSet.WithLess(9)
+	// Adding WithMaxExclusive should conflict and replace WithMax
+	ruleSet2 := ruleSet.WithMaxExclusive(9)
 
 	var output int
 
@@ -162,32 +162,32 @@ func TestIntMaxLessConflict(t *testing.T) {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}
 
-	// New rule set should have WithLess (exclusive, so 9 should fail)
+	// New rule set should have WithMaxExclusive (exclusive, so 9 should fail)
 	err = ruleSet2.Apply(context.TODO(), 9, &output)
 	if err == nil {
-		t.Errorf("Expected error for WithLess at threshold (exclusive)")
+		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// Verify serialization shows the conflict resolution
-	expected := "IntRuleSet[int].WithLess(9)"
+	expected := "IntRuleSet[int].WithMaxExclusive(9)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithLess and WithMax conflict with each other (reverse order)
-func TestIntLessMaxConflict(t *testing.T) {
-	ruleSet := rules.Int().WithLess(10)
+// Test that WithMaxExclusive and WithMax conflict with each other (reverse order)
+func TestIntMaxExclusiveMaxConflict(t *testing.T) {
+	ruleSet := rules.Int().WithMaxExclusive(10)
 
-	// Adding WithMax should conflict and replace WithLess
+	// Adding WithMax should conflict and replace WithMaxExclusive
 	ruleSet2 := ruleSet.WithMax(9)
 
 	var output int
 
-	// Original rule set should still have WithLess
+	// Original rule set should still have WithMaxExclusive
 	err := ruleSet.Apply(context.TODO(), 10, &output)
 	if err == nil {
-		t.Errorf("Expected error for WithLess at threshold (exclusive)")
+		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMax (inclusive, so 9 should pass)

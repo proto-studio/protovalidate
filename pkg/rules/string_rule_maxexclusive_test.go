@@ -9,8 +9,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestString_WithLess(t *testing.T) {
-	ruleSet := rules.String().WithLess("y").Any()
+func TestString_WithMaxExclusive(t *testing.T) {
+	ruleSet := rules.String().WithMaxExclusive("y").Any()
 
 	// "x" is lexicographically less than "y", should pass
 	testhelpers.MustApply(t, ruleSet, "x")
@@ -26,12 +26,12 @@ func TestString_WithLess(t *testing.T) {
 }
 
 // Requirements:
-// - Only one WithLess can exist on a rule set.
+// - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
-// - Most recent WithLess is used.
+// - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestString_LessConflict(t *testing.T) {
-	ruleSet := rules.String().WithLess("z").WithMore("a")
+func TestString_MaxExclusiveConflict(t *testing.T) {
+	ruleSet := rules.String().WithMaxExclusive("z").WithMinExclusive("a")
 
 	var output string
 
@@ -54,7 +54,7 @@ func TestString_LessConflict(t *testing.T) {
 	}
 
 	// Create a new rule set with a different threshold and test again
-	ruleSet2 := ruleSet.WithLess("y")
+	ruleSet2 := ruleSet.WithMaxExclusive("y")
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
 	err = ruleSet2.Apply(context.TODO(), "y", &output)
@@ -69,20 +69,20 @@ func TestString_LessConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "StringRuleSet.WithLess(\"z\").WithMore(\"a\")"
+	expected := "StringRuleSet.WithMaxExclusive(\"z\").WithMinExclusive(\"a\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "StringRuleSet.WithMore(\"a\").WithLess(\"y\")"
+	expected = "StringRuleSet.WithMinExclusive(\"a\").WithMaxExclusive(\"y\")"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-func TestString_WithLess_Lexicographical(t *testing.T) {
-	ruleSet := rules.String().WithLess("banana").Any()
+func TestString_WithMaxExclusive_Lexicographical(t *testing.T) {
+	ruleSet := rules.String().WithMaxExclusive("banana").Any()
 
 	// "apple" is lexicographically less, should pass
 	testhelpers.MustApply(t, ruleSet, "apple")

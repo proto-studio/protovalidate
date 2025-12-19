@@ -36,7 +36,7 @@ func (rule *stringMinRule) Evaluate(ctx context.Context, value string) errors.Va
 // Conflict returns true for any minimum or exclusive minimum string value rule.
 func (rule *stringMinRule) Conflict(x Rule[string]) bool {
 	_, ok1 := x.(*stringMinRule)
-	_, ok2 := x.(*stringMoreRule)
+	_, ok2 := x.(*stringMinExclusiveRule)
 	return ok1 || ok2
 }
 

@@ -27,7 +27,7 @@ func (rule *minRule[T]) Evaluate(ctx context.Context, value T) errors.Validation
 // Conflict returns true for any minimum or exclusive minimum rule.
 func (rule *minRule[T]) Conflict(x Rule[T]) bool {
 	_, ok1 := x.(*minRule[T])
-	_, ok2 := x.(*moreRule[T])
+	_, ok2 := x.(*minExclusiveRule[T])
 	return ok1 || ok2
 }
 

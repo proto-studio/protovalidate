@@ -25,10 +25,11 @@ func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) errors.V
 	return nil
 }
 
-// Conflict returns true for any maximum rule.
+// Conflict returns true for any maximum or exclusive maximum rule.
 func (rule *maxTimeRule) Conflict(x rules.Rule[time.Time]) bool {
-	_, ok := x.(*maxTimeRule)
-	return ok
+	_, ok1 := x.(*maxTimeRule)
+	_, ok2 := x.(*maxExclusiveTimeRule)
+	return ok1 || ok2
 }
 
 // String returns the string representation of the maximum rule.
