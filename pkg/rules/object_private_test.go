@@ -22,6 +22,7 @@ func (c *alwaysErrorContext) Err() error {
 	return fmt.Errorf("test error")
 }
 
+// TestMissingMapping tests:
 func TestMissingMapping(t *testing.T) {
 	ruleSet := Struct[*testStruct]().withParent()
 
@@ -47,6 +48,7 @@ func TestMissingMapping(t *testing.T) {
 	ruleSet.WithKey("A", Any())
 }
 
+// TestUnexportedField tests:
 func TestUnexportedField(t *testing.T) {
 	defer func() {
 		err, ok := recover().(error)
@@ -67,7 +69,7 @@ func TestUnexportedField(t *testing.T) {
 	ruleSet.WithKey("z", Any())
 }
 
-// Requirements:
+// TestContextErrorToValidation tests:
 // - Returns nil
 // - Returns cancelled
 // - Returns timeout
@@ -112,7 +114,7 @@ func TestContextErrorToValidation(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestRefTrackerNegative tests:
 // - counter panics when it goes negative
 func TestRefTrackerNegative(t *testing.T) {
 	c := newCounter()

@@ -10,6 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestRoundingIntNone tests:
 func TestRoundingIntNone(t *testing.T) {
 	expected := 123
 	ruleSet := rules.Int().Any()
@@ -27,6 +28,7 @@ func TestRoundingIntNone(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(123+(1e-10)), expected)
 }
 
+// TestRoundingFloatNone tests:
 func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
 	ruleSet := rules.Float64()
@@ -45,6 +47,7 @@ func TestRoundingFloatNone(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), float64(expected), expected)
 }
 
+// TestRoundingIntFloor tests:
 func TestRoundingIntFloor(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingDown).Any()
 
@@ -75,6 +78,7 @@ func TestRoundingIntFloor(t *testing.T) {
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1064.6), errors.CodeRange)
 }
 
+// TestRoundingFloatFloor tests:
 func TestRoundingFloatFloor(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 0).Any()
 
@@ -97,6 +101,7 @@ func TestRoundingFloatFloor(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-122.6), expected)
 }
 
+// TestRoundingFloatFloorPrecision2 tests:
 func TestRoundingFloatFloorPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 2).Any()
 
@@ -119,6 +124,7 @@ func TestRoundingFloatFloorPrecision2(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-122.126), expected)
 }
 
+// TestRoundingIntCeil tests:
 func TestRoundingIntCeil(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingUp).Any()
 
@@ -149,6 +155,7 @@ func TestRoundingIntCeil(t *testing.T) {
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1064.6), errors.CodeRange)
 }
 
+// TestRoundingFloatCeil tests:
 func TestRoundingFloatCeil(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 0).Any()
 
@@ -171,6 +178,7 @@ func TestRoundingFloatCeil(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-122.6), expected)
 }
 
+// TestRoundingFloatCeilPrecision2 tests:
 func TestRoundingFloatCeilPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 2).Any()
 
@@ -193,6 +201,7 @@ func TestRoundingFloatCeilPrecision2(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-122.126), expected)
 }
 
+// TestRoundingIntHalfUp tests:
 func TestRoundingIntHalfUp(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfUp).Any()
 
@@ -229,6 +238,7 @@ func TestRoundingIntHalfUp(t *testing.T) {
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1064.6), errors.CodeRange)
 }
 
+// TestRoundingFloatHalfUp tests:
 func TestRoundingFloatHalfUp(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfUp, 0).Any()
 
@@ -257,6 +267,7 @@ func TestRoundingFloatHalfUp(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-124.6), expectedUp)
 }
 
+// TestRoundingFloatHalfUpPrecision2 tests:
 func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfUp, 2).Any()
 
@@ -285,6 +296,7 @@ func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-124.126), expectedUp)
 }
 
+// TestRoundingIntHalfEven tests:
 func TestRoundingIntHalfEven(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven).Any()
 
@@ -329,6 +341,7 @@ func TestRoundingIntHalfEven(t *testing.T) {
 	testhelpers.MustNotApply(t, int8RuleSet, float32(1064.6), errors.CodeRange)
 }
 
+// TestRoundingFloatHalfEven tests:
 func TestRoundingFloatHalfEven(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 0).Any()
 
@@ -366,6 +379,7 @@ func TestRoundingFloatHalfEven(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-123.5), expected)
 }
 
+// TestRoundingFloatHalfEvenPrecision2 tests:
 func TestRoundingFloatHalfEvenPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 2).Any()
 
@@ -405,7 +419,7 @@ func TestRoundingFloatHalfEvenPrecision2(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(-124.115), expected)
 }
 
-// Requirements:
+// TestRoundingSerialization tests:
 // - Serializes all the rounding levels
 func TestRoundingSerialization(t *testing.T) {
 	expected := "None"

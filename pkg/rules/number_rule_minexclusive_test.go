@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestIntRuleSet_WithMinExclusive tests:
 func TestIntRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Int().WithMinExclusive(10).Any()
 
@@ -22,6 +23,7 @@ func TestIntRuleSet_WithMinExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 11)
 }
 
+// TestFloatRuleSet_WithMinExclusive tests:
 func TestFloatRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Float64().WithMinExclusive(10.0).Any()
 
@@ -35,7 +37,7 @@ func TestFloatRuleSet_WithMinExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 10.1)
 }
 
-// Requirements:
+// TestIntRuleSet_WithMinExclusive_Conflict tests:
 // - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
@@ -91,7 +93,7 @@ func TestIntRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestFloatRuleSet_WithMinExclusive_Conflict tests:
 // - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.

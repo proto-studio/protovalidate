@@ -46,6 +46,7 @@ type testStructMapped struct {
 	D int `validate:""` // Empty tag, ignore
 }
 
+// TestObjectRuleSet tests:
 func TestObjectRuleSet(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStruct
@@ -74,6 +75,7 @@ func TestObjectRuleSet(t *testing.T) {
 	testhelpers.MustApplyTypes[*testStruct](t, rules.Struct[*testStruct](), &testStruct{})
 }
 
+// TestObjectOutput_Apply tests:
 func TestObjectOutput_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
@@ -183,6 +185,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 	}
 }
 
+// TestObjectOutputPointer_Apply tests:
 func TestObjectOutputPointer_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
@@ -259,6 +262,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 	}
 }
 
+// TestObjectFromMapToMap tests:
 func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
@@ -292,6 +296,7 @@ func TestObjectFromMapToMap(t *testing.T) {
 	}
 }
 
+// TestObjectFromMapToStruct tests:
 func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
@@ -325,6 +330,7 @@ func TestObjectFromMapToStruct(t *testing.T) {
 	}
 }
 
+// TestObjectFromStructToMap tests:
 func TestObjectFromStructToMap(t *testing.T) {
 	in := testStructInit()
 	in.X = 10
@@ -360,6 +366,7 @@ func TestObjectFromStructToMap(t *testing.T) {
 	}
 }
 
+// TestObjectFromStructToStruct tests:
 func TestObjectFromStructToStruct(t *testing.T) {
 	in := testStructInit()
 	in.X = 10
@@ -395,6 +402,7 @@ func TestObjectFromStructToStruct(t *testing.T) {
 	}
 }
 
+// TestPanicWhenOutputNotObjectLike tests:
 func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -405,6 +413,7 @@ func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 	rules.Struct[int]()
 }
 
+// TestPanicWhenAssigningRuleSetToMissingField tests:
 func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 	defer func() {
 		err, ok := recover().(error)
@@ -457,6 +466,7 @@ func TestKeyFunction(t *testing.T) {
 	}
 }
 
+// TestObjectMapping tests:
 func TestObjectMapping(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStructMapped
@@ -493,6 +503,7 @@ func TestObjectMapping(t *testing.T) {
 	}
 }
 
+// TestMissingField tests:
 func TestMissingField(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]int
@@ -525,7 +536,7 @@ func TestMissingField(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestUnderlyingMapField tests:
 // - Works when the input is a type whose underlying implementation is a map with string keys
 func TestUnderlyingMapField(t *testing.T) {
 	type underlyingMap map[string]string
@@ -562,6 +573,7 @@ func TestUnderlyingMapField(t *testing.T) {
 	}
 }
 
+// TestMissingRequiredField tests:
 func TestMissingRequiredField(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]int
@@ -577,10 +589,12 @@ func TestMissingRequiredField(t *testing.T) {
 	}
 }
 
+// TestObjectWithRequired tests:
 func TestObjectWithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[map[string]int](t, rules.StringMap[int]())
 }
 
+// TestUnknownFields tests:
 func TestUnknownFields(t *testing.T) {
 	ruleSet := rules.StringMap[int]().WithKey("A", rules.Int())
 	value := map[string]any{"A": 123, "C": 456}
@@ -591,6 +605,7 @@ func TestUnknownFields(t *testing.T) {
 	testhelpers.MustApplyFunc(t, ruleSet.Any(), value, "", func(_, _ any) error { return nil })
 }
 
+// TestInputNotObjectLike tests:
 func TestInputNotObjectLike(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStruct
@@ -603,6 +618,7 @@ func TestInputNotObjectLike(t *testing.T) {
 	}
 }
 
+// TestReturnsAllErrors tests:
 func TestReturnsAllErrors(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]any
@@ -621,6 +637,7 @@ func TestReturnsAllErrors(t *testing.T) {
 	}
 }
 
+// TestObjectReturnsCorrectPaths tests:
 func TestObjectReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
@@ -660,6 +677,7 @@ func TestObjectReturnsCorrectPaths(t *testing.T) {
 	}
 }
 
+// TestMixedMap tests:
 func TestMixedMap(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]any
@@ -677,6 +695,7 @@ func TestMixedMap(t *testing.T) {
 	}
 }
 
+// TestObjectCustom tests:
 func TestObjectCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[*testStruct](1)
 
@@ -701,6 +720,7 @@ func TestObjectCustom(t *testing.T) {
 	}
 }
 
+// TestObjectAny tests:
 func TestObjectAny(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -709,6 +729,7 @@ func TestObjectAny(t *testing.T) {
 	}
 }
 
+// TestPointer tests:
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
 	ruleSet := rules.Struct[*testStruct]().WithKey("W", rules.Int().Any())
@@ -756,7 +777,7 @@ func TestBug001(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestObjectRequiredString tests:
 // - Serializes to WithRequired()
 func TestObjectRequiredString(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().WithRequired()
@@ -767,7 +788,7 @@ func TestObjectRequiredString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestAllowUnknownString tests:
 // - Serializes to WithUnknown()
 func TestAllowUnknownString(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().WithUnknown()
@@ -778,7 +799,7 @@ func TestAllowUnknownString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestObjectWithItemRuleSetString tests:
 // - Serializes to WithItemRuleSet()
 func TestObjectWithItemRuleSetString(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().
@@ -791,7 +812,7 @@ func TestObjectWithItemRuleSetString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithRuleString tests:
 // - Serializes to WithRule()
 func TestWithRuleString(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().
@@ -803,7 +824,7 @@ func TestWithRuleString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestObjectEvaluate tests:
 // - Evaluate behaves like ValidateWithContext
 func TestObjectEvaluate(t *testing.T) {
 	ctx := context.Background()
@@ -830,7 +851,7 @@ func TestObjectEvaluate(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestMultipleRules tests:
 // - Multiple rules on the same key all evaluate
 func TestMultipleRules(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().
@@ -912,7 +933,7 @@ func TestTimeoutInKeyRule(t *testing.T) {
 	}
 }
 
-// Requirement:
+// TestCancelled tests:
 // - Rules stop running after the context is cancelled
 func TestCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -964,7 +985,7 @@ func TestCancelled(t *testing.T) {
 	}
 }
 
-// Requirement:
+// TestCancelledObjectRules tests:
 // - Object rules stop running after a cancel
 func TestCancelledObjectRules(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1101,7 +1122,7 @@ func TestKeyRules(t *testing.T) {
 
 }
 
-// Requirement:
+// TestConditionalKeyCycle tests:
 // - The code panics is a cycle is made directly with conditional keys
 func TestConditionalKeyCycle(t *testing.T) {
 	condX := rules.Struct[*testStruct]().
@@ -1122,7 +1143,7 @@ func TestConditionalKeyCycle(t *testing.T) {
 	ruleSet.WithConditionalKey("Y", condX, rules.Int().Any())
 }
 
-// Requirement:
+// TestConditionalKeyIndirectCycle tests:
 // - The code panics is a cycle is made indirectly with conditional keys
 func TestConditionalKeyIndirectCycle(t *testing.T) {
 	condX := rules.Struct[*testStruct]().
@@ -1147,7 +1168,7 @@ func TestConditionalKeyIndirectCycle(t *testing.T) {
 	ruleSet.WithConditionalKey("W", condX, rules.Int().Any())
 }
 
-// Requirements:
+// TestConditionalKeyVisited tests:
 // - No need to visit the same nodes twice
 func TestConditionalKeyVisited(t *testing.T) {
 
@@ -1238,7 +1259,7 @@ func TestNestedPointer(t *testing.T) {
 	testhelpers.MustApplyFunc(t, ruleSet.Any(), in, in, func(a, b any) error { return nil })
 }
 
-// Requirement:
+// TestObjectFromMapToMapUnknown tests:
 // - When WithUnknown is set, the resulting map should contain unknown values
 func TestObjectFromMapToMapUnknown(t *testing.T) {
 	in := testMap()
@@ -1315,7 +1336,7 @@ func TestConditionalKeyRequiredBug(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet.Any(), map[string]string{"type": "Y"}, errors.CodeRequired)
 }
 
-// Requirements:
+// TestWithKeyStringify tests:
 // - Stringified rule sets using WithConditionalKey should have WithConditionalKey in the string
 // - WithKey should be in sets using that
 // - The conditional RuleSet should serialized for WithConditionalKey
@@ -1355,7 +1376,7 @@ func TestWithKeyStringify(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithKeyStringifyInt tests:
 // - Maps with non-string keys should not be quoted in String() output.
 func TestWithKeyStringifyInt(t *testing.T) {
 	strRule := rules.String().WithMinLen(4)
@@ -1372,7 +1393,7 @@ func TestWithKeyStringifyInt(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestUnexpectedKeyPath tests:
 // - Correct path is returns on unexpected key
 func TestUnexpectedKeyPath(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
@@ -1401,7 +1422,7 @@ func TestUnexpectedKeyPath(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestJsonString tests:
 // - Does not parse Json string by default
 // - Can validate Json string
 // - Must also work for pointers to strings
@@ -1424,7 +1445,7 @@ func TestJsonString(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet.Any(), &invalid, errors.CodeType)
 }
 
-// Requirements:
+// TestJsonBytes tests:
 // - Does not parse Json []byte by default
 // - Can validate Json []byte
 func TestJsonBytes(t *testing.T) {
@@ -1440,7 +1461,7 @@ func TestJsonBytes(t *testing.T) {
 	testhelpers.MustApplyFunc(t, ruleSet.Any(), j, "", jsonTestValidator)
 }
 
-// Requirements:
+// TestJsonRawMessage tests:
 // - Does not parse json.RawMessage by default
 // - Can validate json.RawMessage
 // - Must also work with pointers to json.RawMessage
@@ -1459,7 +1480,7 @@ func TestJsonRawMessage(t *testing.T) {
 	testhelpers.MustApplyFunc(t, ruleSet.Any(), &j, "", jsonTestValidator)
 }
 
-// Requirements:
+// TestWithRequiredIdempotent tests:
 // - WithRequired is idempotent.
 func TestWithRequiredIdempotent(t *testing.T) {
 	a := rules.StringMap[any]()
@@ -1484,7 +1505,7 @@ func TestWithRequiredIdempotent(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithJsonIdempotent tests:
 // - WithJson is idempotent.
 func TestWithJsonIdempotent(t *testing.T) {
 	a := rules.StringMap[any]()
@@ -1499,7 +1520,7 @@ func TestWithJsonIdempotent(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithUnknownIdempotent tests:
 // - WithUnknown is idempotent.
 func TestWithUnknownIdempotent(t *testing.T) {
 	a := rules.StringMap[any]()
@@ -1514,7 +1535,7 @@ func TestWithUnknownIdempotent(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithDynamicKeyToMap tests:
 // - Dynamic keys are not considered "unknown"
 // - Rule is run for each matching key
 // - Errors are passed through
@@ -1533,7 +1554,7 @@ func TestWithDynamicKeyToMap(t *testing.T) {
 	testhelpers.MustApplyAny(t, ruleSet.Any(), validJson)
 }
 
-// Requirements:
+// TestWithDynamicBucketToMap tests:
 // - Keys in dynamic buckets are not considered "unknown"
 // - Value is copied into all matching buckets
 // - If no fields match, bucket is not present
@@ -1595,7 +1616,7 @@ func TestWithDynamicBucketToMap(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithDynamicBucketToStruct tests:
 // - Keys in dynamic buckets are not considered "unknown"
 // - Value is copied into all matching buckets
 // - If no fields match, bucket is nil
@@ -1665,7 +1686,7 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWithConditionalDynamicBucket tests:
 // - If no dynamic bucket is matched then the key is considered unknown
 // - Dynamic buckets are not created unless condition is met
 // - Values are not put in the bucket unless condition is met
@@ -1744,7 +1765,7 @@ func TestWithConditionalDynamicBucket(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestDynamicKeyWithBucket tests:
 // - Keys are still added to dynamic buckets when they match a dynamic key rule.
 // - Keys are not added to output map.
 // - Keys have the correct data type.
@@ -1954,7 +1975,7 @@ func TestQueryStringInput(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestObjectWithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestObjectWithNil(t *testing.T) {

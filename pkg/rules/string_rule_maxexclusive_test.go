@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestStringRuleSet_WithMaxExclusive tests:
 func TestStringRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("y").Any()
 
@@ -25,7 +26,7 @@ func TestStringRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "ya", errors.CodeMax)
 }
 
-// Requirements:
+// TestStringRuleSet_WithMaxExclusive_Conflict tests:
 // - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
@@ -81,6 +82,7 @@ func TestStringRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	}
 }
 
+// TestStringRuleSet_WithMaxExclusive_Lexicographical tests:
 func TestStringRuleSet_WithMaxExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("banana").Any()
 

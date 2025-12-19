@@ -6,7 +6,7 @@ import "fmt"
 // while preserving the validation data.
 type ValidationErrorCollection []ValidationError
 
-// Collection takes one or more ValidationError pointers and creates a new instance of a collection.
+// Collection creates a new ValidationErrorCollection from one or more ValidationError values.
 func Collection(errs ...ValidationError) ValidationErrorCollection {
 	var arr []ValidationError
 
@@ -36,14 +36,12 @@ func (collection ValidationErrorCollection) All() []ValidationError {
 
 // Error implements the standard Error interface to return a string.
 //
-// If there is more than one error, only the first will be returned and the total count
-// will also be returned with the string.
-//
-// When possible you should use the ValidationError object since this method loses contextual data.
+// Error returns only the first error if there is more than one, along with the total count.
+// Error loses contextual data, so use the ValidationError object when possible.
 //
 // If there is more than one error, which error is displayed is not guaranteed to be deterministic.
 //
-// An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
+// An empty collection should never be returned from a function. Return nil instead. Error panics if called on an empty collection.
 func (collection ValidationErrorCollection) Error() string {
 	if len(collection) > 1 {
 		return fmt.Sprintf("%s (and %d more)", []ValidationError(collection)[0].Error(), len(collection)-1)
@@ -58,7 +56,7 @@ func (collection ValidationErrorCollection) Error() string {
 
 // Unwrap implements the wrapped Error interface to return an array of errors.
 //
-// An empty collection should never be returned from a function. Return nil instead. This method panics if called on an empty collection.
+// An empty collection should never be returned from a function. Return nil instead. Unwrap panics if called on an empty collection.
 func (collection ValidationErrorCollection) Unwrap() []error {
 	errs := make([]error, len(collection))
 	for i := range collection {

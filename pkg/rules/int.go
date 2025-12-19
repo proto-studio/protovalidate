@@ -166,7 +166,7 @@ func (v *IntRuleSet[T]) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   v.strict,
@@ -180,7 +180,7 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
 	return &IntRuleSet[T]{
@@ -194,8 +194,8 @@ func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
+// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
+// Apply returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
@@ -254,8 +254,7 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 	return nil
 }
 
-// Evaluate performs a validation of a RuleSet against an integer value and returns an integer value of the
-// same type or a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against an integer value and returns a ValidationErrorCollection.
 func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
@@ -311,8 +310,6 @@ func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given number type.
-//
-// Use this when implementing custom rules.
 func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   ruleSet.strict,
@@ -328,13 +325,11 @@ func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 // WithRuleFunc returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // for the given number type.
-//
-// Use this when implementing custom rules.
 func (v *IntRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *IntRuleSet[T] {
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the number RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the number RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *IntRuleSet[T]) Any() RuleSet[any] {
 	return WrapAny[T](v)

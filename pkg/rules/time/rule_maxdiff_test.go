@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMaxDiff tests:
 func TestTimeRuleSet_WithMaxDiff(t *testing.T) {
 	now := internalTime.Now()
 	before14 := now.Add(-14 * internalTime.Minute)
@@ -22,7 +23,7 @@ func TestTimeRuleSet_WithMaxDiff(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, before16)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMaxDiff_Conflict tests:
 // - Only one max diff can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.

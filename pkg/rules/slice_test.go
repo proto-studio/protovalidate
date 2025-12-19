@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestSliceRuleSet_Apply tests:
 func TestSliceRuleSet_Apply(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -32,6 +33,7 @@ func TestSliceRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[[]string](t, rules.Slice[string](), []string{"a", "b", "c"})
 }
 
+// TestSliceRuleSet_Apply_TypeError tests:
 func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -44,6 +46,7 @@ func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 	}
 }
 
+// TestSliceRuleSet_Apply_WithItemRuleSet tests:
 func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -56,6 +59,7 @@ func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 	}
 }
 
+// TestSliceItemCastError tests:
 func TestSliceItemCastError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -68,6 +72,7 @@ func TestSliceItemCastError(t *testing.T) {
 	}
 }
 
+// TestSliceRuleSet_Apply_WithItemRuleSetError tests:
 func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -80,10 +85,12 @@ func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 	}
 }
 
+// TestWithRequired tests:
 func TestWithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[[]string](t, rules.Slice[string]())
 }
 
+// TestSliceRuleSet_WithRuleFunc tests:
 func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[[]int](1)
 
@@ -112,6 +119,7 @@ func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
+// TestSliceRuleSet_Apply_ReturnsCorrectPaths tests:
 func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myarray")
 
@@ -151,6 +159,7 @@ func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 	}
 }
 
+// TestSliceRuleSet_Any tests:
 func TestSliceRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Slice[int]().Any()
 
@@ -159,7 +168,7 @@ func TestSliceRuleSet_Any(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSliceRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestSliceRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithRequired()
@@ -170,7 +179,7 @@ func TestSliceRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSliceRuleSet_String_WithItemRuleSet tests:
 // - Serializes to WithItemRuleSet()
 func TestSliceRuleSet_String_WithItemRuleSet(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2))
@@ -181,7 +190,7 @@ func TestSliceRuleSet_String_WithItemRuleSet(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSliceRuleSet_Evaluate tests:
 // - Evaluate behaves like ValidateWithContext
 func TestSliceRuleSet_Evaluate(t *testing.T) {
 	v := []int{123, 456}
@@ -204,7 +213,7 @@ func TestSliceRuleSet_Evaluate(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSliceWithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestSliceWithNil(t *testing.T) {

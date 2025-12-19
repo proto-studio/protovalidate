@@ -28,6 +28,7 @@ func (m *MockRequiredAlwaysTrue) WithRequired() rules.RuleSet[int] {
 	return &MockRequiredAlwaysTrueWithRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockRequiredAlwaysTrueWithRequired is a mock rule set where Required always returns true and has WithRequired.
 type MockRequiredAlwaysTrueWithRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockRequiredAlwaysTrueWithRequired) Required() bool {
@@ -57,6 +58,7 @@ func (m *MockWithRequiredWrongReturnCount) WithRequired() (rules.RuleSet[int], s
 	return &MockWithRequiredWrongReturnCountWithRequired{MockRuleSet: m.MockRuleSet}, "extra value"
 }
 
+// MockWithRequiredWrongReturnCountWithRequired is a mock rule set where WithRequired returns wrong number of values.
 type MockWithRequiredWrongReturnCountWithRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithRequiredWrongReturnCountWithRequired) Required() bool {
@@ -74,6 +76,7 @@ func (m *MockWithRequiredNotRequired) WithRequired() rules.RuleSet[int] {
 	return &MockWithRequiredNotRequiredWithRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithRequiredNotRequiredWithRequired is a mock rule set where WithRequired returns a rule set that is not required.
 type MockWithRequiredNotRequiredWithRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithRequiredNotRequiredWithRequired) Required() bool {
@@ -81,6 +84,8 @@ func (m *MockWithRequiredNotRequiredWithRequired) Required() bool {
 	return false
 }
 
+// TestMustImplementWithRequired tests:
+// - MustImplementWithRequired correctly validates rule sets implement WithRequired
 func TestMustImplementWithRequired(t *testing.T) {
 	// Test with a real rule set that has WithRequired and Required - should pass
 	mockT := &MockT{}

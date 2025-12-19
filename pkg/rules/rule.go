@@ -6,6 +6,8 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
+// Rule defines the interface for validation rules.
+// Rule implementations validate a value of type T and return any validation errors.
 type Rule[T any] interface {
 	// Evaluate takes in a context and value and returns any validation errors.
 	Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection
@@ -35,13 +37,13 @@ func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) errors.Validation
 }
 
 // Conflict always returns false for rule functions.
-// To perform deduplication, implement the interface instead.
+// Conflict cannot perform deduplication; implement the interface instead.
 func (rule RuleFunc[T]) Conflict(_ Rule[T]) bool {
 	return false
 }
 
-// String always returns WithRule(func()) for function rules.
-// To use a different string, implement the interface instead.
+// String returns "WithRuleFunc(...)" for function rules.
+// String cannot be customized; implement the interface instead.
 func (rule RuleFunc[T]) String() string {
 	return "WithRuleFunc(...)"
 }

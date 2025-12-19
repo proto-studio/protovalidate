@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestStringRuleSet_WithMax tests:
 func TestStringRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.String().WithMax("y").Any()
 
@@ -25,7 +26,7 @@ func TestStringRuleSet_WithMax(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "ya", errors.CodeMax)
 }
 
-// Requirements:
+// TestStringRuleSet_WithMax_Conflict tests:
 // - Only one max can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
@@ -69,6 +70,7 @@ func TestStringRuleSet_WithMax_Conflict(t *testing.T) {
 	}
 }
 
+// TestStringRuleSet_WithMax_Lexicographical tests:
 func TestStringRuleSet_WithMax_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMax("banana").Any()
 
@@ -85,6 +87,7 @@ func TestStringRuleSet_WithMax_Lexicographical(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "cherry", errors.CodeMax)
 }
 
+// TestStringRuleSet_WithMax_Truncation tests:
 func TestStringRuleSet_WithMax_Truncation(t *testing.T) {
 	// Create a very long string (longer than 50 characters)
 	longString := "a"

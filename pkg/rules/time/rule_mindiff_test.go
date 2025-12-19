@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMinDiff tests:
 func TestTimeRuleSet_WithMinDiff(t *testing.T) {
 	now := internalTime.Now()
 	before14 := now.Add(-14 * internalTime.Minute)
@@ -22,7 +23,7 @@ func TestTimeRuleSet_WithMinDiff(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, before14)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMinDiff_Conflict tests:
 // - Only one min diff can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.

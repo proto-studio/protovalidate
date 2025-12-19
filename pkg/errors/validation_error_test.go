@@ -8,6 +8,8 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+// TestNew tests:
+// - Creates validation error with correct code, path, and message
 func TestNew(t *testing.T) {
 	err := errors.New(errors.CodeMin, "a.b.c", "testmessage")
 
@@ -24,6 +26,8 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// TestErrorfContainsFullPath tests:
+// - Errorf includes full path from context
 func TestErrorfContainsFullPath(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "a")
 	ctx = rulecontext.WithPathString(ctx, "b")
@@ -34,6 +38,8 @@ func TestErrorfContainsFullPath(t *testing.T) {
 	}
 }
 
+// TestErrorfContainsCode tests:
+// - Errorf includes correct error code
 func TestErrorfContainsCode(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "a")
 	ctx = rulecontext.WithPathString(ctx, "b")
@@ -51,6 +57,8 @@ func TestErrorfContainsCode(t *testing.T) {
 	}
 }
 
+// TestErrorMessage tests:
+// - Error message is correctly formatted
 func TestErrorMessage(t *testing.T) {
 	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
 

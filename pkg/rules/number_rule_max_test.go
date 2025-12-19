@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestIntRuleSet_WithMax tests:
 func TestIntRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10).Any()
 
@@ -17,6 +18,7 @@ func TestIntRuleSet_WithMax(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
+// TestFloatRuleSet_WithMax tests:
 func TestFloatRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Float64().WithMax(10.0).Any()
 
@@ -25,7 +27,7 @@ func TestFloatRuleSet_WithMax(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 10.1, errors.CodeMax)
 }
 
-// Requirements:
+// TestIntRuleSet_WithMax_Conflict tests:
 // - Only one max can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
@@ -69,7 +71,7 @@ func TestIntRuleSet_WithMax_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestFloatRuleSet_WithMax_Conflict tests:
 // - Only one max can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.

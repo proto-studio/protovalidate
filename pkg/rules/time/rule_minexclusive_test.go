@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMinExclusive tests:
 func TestTimeRuleSet_WithMinExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
@@ -28,7 +29,7 @@ func TestTimeRuleSet_WithMinExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, after)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMinExclusive_Conflict tests:
 // - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.

@@ -10,6 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestCoerceToInt tests:
 func TestCoerceToInt(t *testing.T) {
 	expected := int(123)
 	ruleSet := rules.Int().Any()
@@ -30,6 +31,7 @@ func TestCoerceToInt(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(123.0), expected)
 }
 
+// TestCoerceToInt8 tests:
 func TestCoerceToInt8(t *testing.T) {
 	expected := int8(12)
 	ruleSet := rules.Int8().Any()
@@ -50,6 +52,7 @@ func TestCoerceToInt8(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(12.0), expected)
 }
 
+// TestOutOfRangeInt8 tests:
 func TestOutOfRangeInt8(t *testing.T) {
 	ruleSet := rules.Int8().Any()
 
@@ -63,6 +66,7 @@ func TestOutOfRangeInt8(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "1024", errors.CodeRange)
 }
 
+// TestOutOfRangeUInt8 tests:
 func TestOutOfRangeUInt8(t *testing.T) {
 	ruleSet := rules.Uint8().Any()
 
@@ -81,6 +85,7 @@ func TestOutOfRangeUInt8(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, float64(-1024), errors.CodeRange)
 }
 
+// TestStringToInt tests:
 func TestStringToInt(t *testing.T) {
 	ruleSetBase10 := rules.Int().Any()
 	expected := int(123)
@@ -103,6 +108,7 @@ func TestStringToInt(t *testing.T) {
 	}
 }
 
+// TestStringToIntOutOfRange tests:
 func TestStringToIntOutOfRange(t *testing.T) {
 	ruleSetSigned := rules.Int8().Any()
 	testhelpers.MustNotApply(t, ruleSetSigned, "128", errors.CodeRange)
@@ -112,11 +118,13 @@ func TestStringToIntOutOfRange(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSetUnsigned, "256", errors.CodeRange)
 }
 
+// TestStringToIntInvalid tests:
 func TestStringToIntInvalid(t *testing.T) {
 	ruleSetUnsigned := rules.Int().Any()
 	testhelpers.MustNotApply(t, ruleSetUnsigned, "hello", errors.CodeType)
 }
 
+// TestUnknownToInt tests:
 func TestUnknownToInt(t *testing.T) {
 	from := new(struct{})
 
@@ -127,6 +135,7 @@ func TestUnknownToInt(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSetUnsigned, &from, errors.CodeType)
 }
 
+// TestCoerceToFloat64 tests:
 func TestCoerceToFloat64(t *testing.T) {
 	expected := float64(123.0)
 	ruleSet := rules.Float64().Any()
@@ -147,6 +156,7 @@ func TestCoerceToFloat64(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(123.0), expected)
 }
 
+// TestOutOfRangeFloat32 tests:
 func TestOutOfRangeFloat32(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -165,6 +175,7 @@ func TestOutOfRangeFloat32(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, fmt.Sprintf("%f", 1.7e+308), errors.CodeRange)
 }
 
+// TestOutOfRangeFloat64 tests:
 func TestOutOfRangeFloat64(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -185,6 +196,7 @@ func TestOutOfRangeFloat64(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, uint64(maxExactInt64+1), errors.CodeRange)
 }
 
+// TestFloat32BoundaryValues tests:
 func TestFloat32BoundaryValues(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -212,6 +224,7 @@ func TestFloat32BoundaryValues(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, -maxExactInt64-1, errors.CodeRange)
 }
 
+// TestFloat64BoundaryValues tests:
 func TestFloat64BoundaryValues(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -232,6 +245,7 @@ func TestFloat64BoundaryValues(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, -maxExactInt64-1, errors.CodeRange)
 }
 
+// TestCoerceToFloat32 tests:
 func TestCoerceToFloat32(t *testing.T) {
 	expected := float32(123.0)
 	ruleSet := rules.Float32().Any()
@@ -252,6 +266,7 @@ func TestCoerceToFloat32(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(123.0), expected)
 }
 
+// TestFloat32EqualityCheckFailure tests:
 func TestFloat32EqualityCheckFailure(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -263,6 +278,7 @@ func TestFloat32EqualityCheckFailure(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, uint64(16777217), errors.CodeRange) // 2^24 + 1
 }
 
+// TestFloat64EqualityCheckFailure tests:
 func TestFloat64EqualityCheckFailure(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -274,6 +290,7 @@ func TestFloat64EqualityCheckFailure(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, uint64(9007199254740993), errors.CodeRange) // 2^53 + 1
 }
 
+// TestStringToFloat tests:
 func TestStringToFloat(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 	expected := float64(123.456)
@@ -281,11 +298,13 @@ func TestStringToFloat(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, "123.456", expected)
 }
 
+// TestStringToFloatInvalid tests:
 func TestStringToFloatInvalid(t *testing.T) {
 	ruleSetUnsigned := rules.Float64().Any()
 	testhelpers.MustNotApply(t, ruleSetUnsigned, "hello", errors.CodeType)
 }
 
+// TestUnknownToFloat tests:
 func TestUnknownToFloat(t *testing.T) {
 	from := new(struct{})
 

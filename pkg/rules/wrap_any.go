@@ -26,8 +26,8 @@ type WrapAnyRuleSet[T any] struct {
 // WrapAny wraps an existing RuleSet in an "Any" rule set which can then be used to pass into nested validators
 // or any function where the type of RuleSet is not known ahead of time.
 //
-// Unless you are implementing a brand new RuleSet you probably want to use the .Any() method on the RuleSet
-// itself instead, which usually calls this function.
+// WrapAny is usually called by the .Any() method on RuleSet implementations.
+// Unless you are implementing a brand new RuleSet you probably want to use the .Any() method instead.
 func WrapAny[T any](inner RuleSet[T]) *WrapAnyRuleSet[T] {
 	return &WrapAnyRuleSet[T]{
 		required: inner.Required(),
@@ -41,7 +41,7 @@ func (v *WrapAnyRuleSet[T]) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 //
 // Required defaults to the value of the wrapped RuleSet so if it is already required then there is
 // no need to call this again.
@@ -56,7 +56,7 @@ func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *WrapAnyRuleSet[T]) WithNil() *WrapAnyRuleSet[T] {
 	return &WrapAnyRuleSet[T]{
@@ -89,9 +89,9 @@ func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors
 	return allErrors
 }
 
-// Run performs a validation of a RuleSet against a value and returns a value of the same type
-// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
-// added directly to the WrapAnyRuleSet.
+// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
+// Apply calls wrapped rules before any rules added directly to the WrapAnyRuleSet.
+// Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
@@ -112,9 +112,9 @@ func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors
 	}
 }
 
-// Evaluate performs a validation of a RuleSet against a value of any type.
-// If the input value implements the same type as the wrapped RuleSet then Evaluate is called directly, otherwise
-// Apply is called. This approach is usually more efficient since it does not need to allocate an output variable.
+// Evaluate performs validation of a RuleSet against a value of any type and returns a ValidationErrorCollection.
+// Evaluate calls the wrapped RuleSet's Evaluate method directly if the input value implements the same type,
+// otherwise it calls Apply. This approach is usually more efficient since it does not need to allocate an output variable.
 func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
 	if v, ok := value.(T); ok {
 		innerErrors := ruleSet.inner.Evaluate(ctx, v)
@@ -141,8 +141,6 @@ func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) error
 // explicitly for the "any" interface.
 //
 // If you want to add a rule directly to the wrapped RuleSet you must do it before wrapping it.
-//
-// Use this when implementing custom rules.
 func (v *WrapAnyRuleSet[T]) WithRule(rule Rule[any]) *WrapAnyRuleSet[T] {
 	return &WrapAnyRuleSet[T]{
 		required: v.required,
@@ -158,13 +156,11 @@ func (v *WrapAnyRuleSet[T]) WithRule(rule Rule[any]) *WrapAnyRuleSet[T] {
 // explicitly for the "any" interface.
 //
 // If you want to add a rule directly to the wrapped RuleSet you must do it before wrapping it.
-//
-// Use this when implementing custom rules.
 func (v *WrapAnyRuleSet[T]) WithRuleFunc(rule RuleFunc[any]) *WrapAnyRuleSet[T] {
 	return v.WithRule(rule)
 }
 
-// Any is an identity function for this implementation and returns the current rule set.
+// Any returns the current rule set.
 func (v *WrapAnyRuleSet[T]) Any() RuleSet[any] {
 	return v
 }

@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMaxExclusive tests:
 func TestTimeRuleSet_WithMaxExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
@@ -28,7 +29,7 @@ func TestTimeRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMax)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMaxExclusive_Conflict tests:
 // - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.

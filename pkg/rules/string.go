@@ -49,7 +49,7 @@ func (v *StringRuleSet) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (v *StringRuleSet) WithRequired() *StringRuleSet {
 	return &StringRuleSet{
 		strict:   v.strict,
@@ -61,7 +61,7 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *StringRuleSet) WithNil() *StringRuleSet {
 	return &StringRuleSet{
@@ -73,8 +73,8 @@ func (v *StringRuleSet) WithNil() *StringRuleSet {
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the resulting string to the output pointer
-// a ValidationErrorCollection.
+// Apply performs validation of a RuleSet against a value and assigns the resulting string to the output pointer.
+// Apply returns a ValidationErrorCollection.
 func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and value is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
@@ -122,8 +122,7 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 	)
 }
 
-// Evaluate performs a validation of a RuleSet against a string value and returns a string value or
-// a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a string value and returns a ValidationErrorCollection.
 func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
@@ -182,8 +181,6 @@ func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the string type.
-//
-// Use this when implementing custom rules.
 func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 	return &StringRuleSet{
 		strict:   ruleSet.strict,
@@ -197,13 +194,11 @@ func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 // WithRuleFunc returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // for the string type.
-//
-// Use this when implementing custom rules.
 func (v *StringRuleSet) WithRuleFunc(rule RuleFunc[string]) *StringRuleSet {
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the string RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the string RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *StringRuleSet) Any() RuleSet[any] {
 	return WrapAny[string](v)

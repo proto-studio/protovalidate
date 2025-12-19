@@ -25,7 +25,7 @@ func InitInterfaceRuleSet() rules.RuleSet[MyTestInterface] {
 		})
 }
 
-// Requirements:
+// TestInterfaceStruct tests:
 // - Can cast to interface.
 func TestInterfaceStruct(t *testing.T) {
 	innerRuleSet := InitInterfaceRuleSet()

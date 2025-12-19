@@ -7,6 +7,8 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
+// TestNewCoercionError tests:
+// - NewCoercionError creates error with correct code
 func TestNewCoercionError(t *testing.T) {
 	ctx := context.Background()
 

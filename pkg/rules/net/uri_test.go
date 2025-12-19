@@ -87,7 +87,7 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 	}
 }
 
-// Requirements:
+// TestURIRuleSet_Apply tests:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestURIRuleSet_Apply(t *testing.T) {
@@ -119,7 +119,7 @@ func TestURIRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[string](t, net.URI(), example)
 }
 
-// Requirements:
+// TestURIRuleSet_WithRequired tests:
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
@@ -136,7 +136,7 @@ func TestURIRuleSet_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestURIRuleSet_Apply_CoercionFromUnknown tests:
 // - Returns a coercion error if input is not a string.
 func TestURIRuleSet_Apply_CoercionFromUnknown(t *testing.T) {
 	val := new(struct {
@@ -146,7 +146,7 @@ func TestURIRuleSet_Apply_CoercionFromUnknown(t *testing.T) {
 	testhelpers.MustNotApply(t, net.URI().Any(), &val, errors.CodeType)
 }
 
-// Requirements:
+// TestURIRuleSet_Apply_SchemeCharacterSet tests:
 // - Scheme must start with a letter.
 // - Scheme can contain . - and +.
 func TestURIRuleSet_Apply_SchemeCharacterSet(t *testing.T) {
@@ -260,7 +260,7 @@ func TestURIRuleSet_CustomContext(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestURIRuleSet_Apply_Port tests:
 // - No negative ports.
 // - No out of range ports.
 // - Port must be a number.
@@ -272,7 +272,7 @@ func TestURIRuleSet_Apply_Port(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "https://example:notaport", errors.CodeType)
 }
 
-// Requirements:
+// TestURIRuleSet_Apply_DeepErrors tests:
 // - When the deep errors flag is not set, all errors return the same path.
 // - When the deep errors flag is set, all errors return a nested path.
 // - Calling WithDeepErrors on a rule set that already has it returns the identity.
@@ -329,7 +329,7 @@ func TestURIRuleSet_Apply_DeepErrors(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestURIRelative tests:
 // - Relative flag can be set.
 // - Relative flag can be read.
 // - Relative flag defaults to false.
@@ -354,7 +354,7 @@ func TestURIRelative(t *testing.T) {
 	}
 }
 
-// Requirement:
+// TestURIRuleSet_Apply_ZeroLength tests:
 // - Only relative URIs can be zero length.
 func TestURIRuleSet_Apply_ZeroLength(t *testing.T) {
 	ruleSet := net.URI()
@@ -436,7 +436,7 @@ func TestURIRuleSet_WithHostRequired(t *testing.T) {
 	testhelpers.MustApply(t, withRequired.Any(), "http://")
 }
 
-// Requirement:
+// TestURIRuleSet_WithPortRequired tests:
 // - Port can be required.
 func TestURIRuleSet_WithPortRequired(t *testing.T) {
 	withoutRequired := net.URI()
@@ -547,7 +547,7 @@ func TestURIRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestURIRuleSet_WithRuleFunc_Conflict tests:
 // - Conflicting rules are deduplicated
 func TestURIRuleSet_WithRuleFunc_Conflict(t *testing.T) {
 	testVal := "https://example.com"
@@ -579,7 +579,7 @@ func TestURIRuleSet_WithRuleFunc_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestURIRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestURIRuleSet_WithNil(t *testing.T) {

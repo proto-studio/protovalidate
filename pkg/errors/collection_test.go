@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+// TestCollectionWrapper tests:
 func TestCollectionWrapper(t *testing.T) {
 	ctx := context.Background()
 
@@ -53,7 +54,7 @@ func TestCollectionAll(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestCollectionUnwrap tests:
 // - Unwrap should return an array of errors.
 func TestCollectionUnwrap(t *testing.T) {
 	ctx := context.Background()
@@ -103,6 +104,7 @@ func TestCollectionSize(t *testing.T) {
 	}
 }
 
+// TestCollectionFirst tests:
 func TestCollectionFirst(t *testing.T) {
 	ctx := context.Background()
 	err1 := errors.NewCoercionError(ctx, "int", "float32")
@@ -128,6 +130,7 @@ func TestCollectionFirst(t *testing.T) {
 	}
 }
 
+// TestCollectionFirstEmpty tests:
 func TestCollectionFirstEmpty(t *testing.T) {
 	col := errors.Collection()
 	if first := col.First(); first != nil {
@@ -135,6 +138,7 @@ func TestCollectionFirstEmpty(t *testing.T) {
 	}
 }
 
+// TestCollectionFor tests:
 func TestCollectionFor(t *testing.T) {
 	ctx1 := rulecontext.WithPathString(context.Background(), "path1")
 	err1 := errors.Errorf(errors.CodeMax, ctx1, "error1")
@@ -181,6 +185,7 @@ func TestCollectionFor(t *testing.T) {
 	}
 }
 
+// TestCollectionForEmpty tests:
 func TestCollectionForEmpty(t *testing.T) {
 	col := errors.Collection()
 	if first := col.For("a"); first != nil {
@@ -188,6 +193,7 @@ func TestCollectionForEmpty(t *testing.T) {
 	}
 }
 
+// TestCollectionMessage tests:
 func TestCollectionMessage(t *testing.T) {
 	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
 
@@ -204,6 +210,7 @@ func TestCollectionMessage(t *testing.T) {
 	}
 }
 
+// TestPanicCollectionMessageEmpty tests:
 func TestPanicCollectionMessageEmpty(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {

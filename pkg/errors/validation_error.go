@@ -22,7 +22,7 @@ type validationError struct {
 	message string    // The error message converted to the context locale.
 }
 
-// New instantiates a validator error given a code, path, and message.
+// New creates a new ValidationError with the given code, path, and message.
 func New(code ErrorCode, path, message string) ValidationError {
 	return &validationError{
 		code:    code,
@@ -31,8 +31,8 @@ func New(code ErrorCode, path, message string) ValidationError {
 	}
 }
 
-// Errorf instantiates a new error given context and a format string.
-// This uses message.Sprintf to format the message.
+// Errorf creates a new ValidationError using a format string.
+// Errorf uses message.Sprintf to format the message.
 func Errorf(code ErrorCode, ctx context.Context, key string, args ...interface{}) ValidationError {
 	printer := rulecontext.Printer(ctx)
 	segment := rulecontext.Path(ctx)
@@ -45,12 +45,13 @@ func Errorf(code ErrorCode, ctx context.Context, key string, args ...interface{}
 }
 
 // Error implements the standard Error interface to return a string for validation errors.
-// When possible you should use the ValidationError object since this method loses contextual data.
+// Error loses contextual data, so use the ValidationError object when possible.
 func (err *validationError) Error() string {
 	return err.message
 }
 
-// Code returns the error code. It can be used to look up the error without relying on string checks.
+// Code returns the error code.
+// Code can be used to look up the error without relying on string checks.
 func (err *validationError) Code() ErrorCode {
 	return err.code
 }

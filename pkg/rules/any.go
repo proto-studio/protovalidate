@@ -10,7 +10,7 @@ import (
 )
 
 // AnyRuleSet implements RuleSet for the "any" interface.
-// Use when you don't care about the date type passed in and want to return it unaltered from the Validate method.
+// AnyRuleSet is used when you don't care about the data type passed in and want to return it unaltered from the Validate method.
 //
 // See also: WrapAny which also implements the "any" interface and wraps another RuleSet.
 type AnyRuleSet struct {
@@ -40,7 +40,7 @@ func (v *AnyRuleSet) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  true,
@@ -52,7 +52,7 @@ func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 }
 
 // WithForbidden returns a new child rule set with the forbidden flag set.
-// Use WithForbidden when a value is expected to always be nil or omitted.
+// WithForbidden is used when a value is expected to always be nil or omitted.
 func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
@@ -64,7 +64,7 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *AnyRuleSet) WithNil() *AnyRuleSet {
 	return &AnyRuleSet{
@@ -76,8 +76,8 @@ func (v *AnyRuleSet) WithNil() *AnyRuleSet {
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the value to the output
-// or a ValidationErrorCollection.
+// Apply performs validation of a RuleSet against a value and assigns the value to the output.
+// Apply returns a ValidationErrorCollection.
 func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
@@ -114,11 +114,8 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 	)
 }
 
-// Evaluate performs a validation of a RuleSet against a value and returns a value of the same type
-// as the wrapped RuleSet or a ValidationErrorCollection. The wrapped rules are called before any rules
-// added directly to the WrapAnyRuleSet.
-//
-// For WrapAny, Evaluate is identical to ValidateWithContext except for the argument order.
+// Evaluate performs validation of a RuleSet against a value and returns a ValidationErrorCollection.
+// Evaluate calls wrapped rules before any rules added directly to the AnyRuleSet.
 func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
 	if v.forbidden {
 		return errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
@@ -150,8 +147,6 @@ func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationE
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // explicitly for the "any" interface.
-//
-// Use this when implementing custom rules.
 func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
@@ -165,13 +160,11 @@ func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
 // WithRuleFunc returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // explicitly for the "any" interface.
-//
-// Use this when implementing custom rules.
 func (v *AnyRuleSet) WithRuleFunc(rule RuleFunc[any]) *AnyRuleSet {
 	return v.WithRule(rule)
 }
 
-// Any is an identity function for this implementation and returns the current rule set.
+// Any returns the current rule set.
 func (v *AnyRuleSet) Any() RuleSet[any] {
 	return v
 }

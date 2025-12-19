@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestStringRuleSet_WithAllowedValues tests:
 // - Allowed values are cumulative.
 func TestStringRuleSet_WithAllowedValues(t *testing.T) {
 	ruleSet := rules.String().WithAllowedValues("a", "b").WithMaxLen(1)
@@ -33,7 +33,7 @@ func TestStringRuleSet_WithAllowedValues(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_WithAllowedValues_More tests:
 // - Only the first 3 values are displayed.
 // - Values are separated by commas.
 // - Values are quoted.
@@ -65,7 +65,7 @@ func TestStringRuleSet_WithAllowedValues_More(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_WithRejectedValues tests:
 // - Rejected values are cumulative.
 // - Rejected values causes a validation error.
 func TestStringRuleSet_WithRejectedValues(t *testing.T) {

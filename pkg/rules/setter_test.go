@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestStructSetter_Set tests:
 func TestStructSetter_Set(t *testing.T) {
 	type outType struct {
 		X *string
@@ -43,6 +44,7 @@ func TestStructSetter_Set(t *testing.T) {
 	}
 }
 
+// TestStructSetter_SetBucket tests:
 func TestStructSetter_SetBucket(t *testing.T) {
 	type outType struct {
 		B map[string]any
@@ -70,6 +72,7 @@ func TestStructSetter_SetBucket(t *testing.T) {
 	}
 }
 
+// TestStructSetter_SetBucket_IncorrectType tests:
 func TestStructSetter_SetBucket_IncorrectType(t *testing.T) {
 	type outType struct {
 		B string
@@ -86,6 +89,7 @@ func TestStructSetter_SetBucket_IncorrectType(t *testing.T) {
 	setter.SetBucket("B", "A", 123)
 }
 
+// TestMapSetter_Set tests:
 func TestMapSetter_Set(t *testing.T) {
 	out := make(map[string]*string)
 
@@ -111,6 +115,7 @@ func TestMapSetter_Set(t *testing.T) {
 	}
 }
 
+// TestMapSetter_SetBucket tests:
 func TestMapSetter_SetBucket(t *testing.T) {
 	out := make(map[string]any)
 

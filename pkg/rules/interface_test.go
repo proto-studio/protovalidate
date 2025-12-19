@@ -9,23 +9,27 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// MyTestInterface is a test interface used for interface validation testing.
 type MyTestInterface interface {
 	Test() int
 }
 
+// MyTestImpl is a test implementation of MyTestInterface.
 type MyTestImpl struct{}
 
 func (x MyTestImpl) Test() int { return 1 }
 
+// MyTestImplInt is a test implementation of MyTestInterface using int.
 type MyTestImplInt int
 
 func (x MyTestImplInt) Test() int { return int(x) }
 
+// MyTestImplStr is a test implementation of MyTestInterface using string.
 type MyTestImplStr string
 
 func (x MyTestImplStr) Test() int { return len(x) }
 
-// Requirements:
+// TestInterfaceRuleSet_Apply tests:
 // - Implements the RuleSet interface.
 // - Does not error when default configured.
 // - Returns the value with the correct type.
@@ -44,7 +48,7 @@ func TestInterfaceRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[MyTestInterface](t, ruleSet, MyTestImpl{})
 }
 
-// Requirements:
+// TestInterfaceRuleSet_WithRequired tests:
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
 func TestInterfaceRuleSet_WithRequired(t *testing.T) {
@@ -57,7 +61,7 @@ func TestInterfaceRuleSet_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestInterfaceRuleSet_WithRuleFunc tests:
 // - Custom rules are executed.
 // - Custom rules can return errors.
 func TestInterfaceRuleSet_WithRuleFunc(t *testing.T) {
@@ -78,7 +82,7 @@ func TestInterfaceRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestInterfaceRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestInterfaceRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().WithRequired()
@@ -89,7 +93,7 @@ func TestInterfaceRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestInterfaceRuleSet_String_WithRuleFunc tests:
 // - Serializes to WithRule(...)
 func TestInterfaceRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().
@@ -101,7 +105,7 @@ func TestInterfaceRuleSet_String_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirement:
+// TestInterfaceRuleSet_Composition tests:
 // - RuleSets are usable as Rules for the same type
 func TestInterfaceRuleSet_Composition(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
@@ -153,7 +157,7 @@ func TestInterfaceRuleSet_WithCast(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSetWithError.Any(), "abc", errors.CodeUnexpected)
 }
 
-// Requirements:
+// TestInterfaceRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestInterfaceRuleSet_WithNil(t *testing.T) {

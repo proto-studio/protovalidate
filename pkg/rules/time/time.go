@@ -39,7 +39,7 @@ func (ruleSet *TimeRuleSet) Required() bool {
 }
 
 // WithRequired returns a new rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	return &TimeRuleSet{
 		required:     true,
@@ -51,7 +51,7 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
 	return &TimeRuleSet{
@@ -63,9 +63,9 @@ func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
 	}
 }
 
-// WithLayouts returns the a new rule set with the specified string layouts allowed for string coercion.
-// The validation function will attempt each format in the order they are provided and stop when a match
-// is found so it is recommended to list more specific layouts first.
+// WithLayouts returns a new rule set with the specified string layouts allowed for string coercion.
+// WithLayouts attempts each format in the order they are provided and stops when a match
+// is found, so it is recommended to list more specific layouts first.
 //
 // Layouts are cumulative, calling this method multiple times will result in all provided layouts across
 // all calls being allowed.
@@ -110,8 +110,8 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
+// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
+// Apply returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
@@ -193,8 +193,7 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 	return ruleSet.Evaluate(ctx, t)
 }
 
-// Evaluate performs a validation of a RuleSet against a time.Time value and returns a time.Time value of the
-// same type or a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a time.Time value and returns a ValidationErrorCollection.
 func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	allErrors := errors.Collection()
 
@@ -254,8 +253,6 @@ func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet 
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the time.Time type.
-//
-// Use this when implementing custom rules.
 func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
 	return &TimeRuleSet{
 		rule:     rule,
@@ -274,7 +271,7 @@ func (v *TimeRuleSet) WithRuleFunc(rule rules.RuleFunc[time.Time]) *TimeRuleSet 
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the time RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the time RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (ruleSet *TimeRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[time.Time](ruleSet)

@@ -8,13 +8,14 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// InterfaceTest is a test struct used for interface validation testing.
 type InterfaceTest struct {
 	IntTest    MyTestInterface
 	StringTest MyTestInterface
 	NilTest    MyTestInterface
 }
 
-// Requirements:
+// TestInterfaceSlice tests:
 // - Can cast to interface.
 func TestInterfaceSlice(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
