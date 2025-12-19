@@ -26,7 +26,7 @@ func (rule *stringMaxRule) Evaluate(ctx context.Context, value string) errors.Va
 // Conflict returns true for any maximum or exclusive maximum string value rule.
 func (rule *stringMaxRule) Conflict(x Rule[string]) bool {
 	_, ok1 := x.(*stringMaxRule)
-	_, ok2 := x.(*stringLessRule)
+	_, ok2 := x.(*stringMaxExclusiveRule)
 	return ok1 || ok2
 }
 

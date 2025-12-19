@@ -9,8 +9,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMoreInt(t *testing.T) {
-	ruleSet := rules.Int().WithMore(10).Any()
+func TestWithMinExclusiveInt(t *testing.T) {
+	ruleSet := rules.Int().WithMinExclusive(10).Any()
 
 	// 9 is less than 10, should fail
 	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMin)
@@ -22,8 +22,8 @@ func TestWithMoreInt(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 11)
 }
 
-func TestWithMoreFloat(t *testing.T) {
-	ruleSet := rules.Float64().WithMore(10.0).Any()
+func TestWithMinExclusiveFloat(t *testing.T) {
+	ruleSet := rules.Float64().WithMinExclusive(10.0).Any()
 
 	// 9.9 is less than 10.0, should fail
 	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMin)
@@ -36,12 +36,12 @@ func TestWithMoreFloat(t *testing.T) {
 }
 
 // Requirements:
-// - Only one WithMore can exist on a rule set.
+// - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
-// - Most recent WithMore is used.
+// - Most recent WithMinExclusive is used.
 // - Rule is serialized properly.
-func TestIntMoreConflict(t *testing.T) {
-	ruleSet := rules.Int().WithMore(3).WithLess(10)
+func TestIntMinExclusiveConflict(t *testing.T) {
+	ruleSet := rules.Int().WithMinExclusive(3).WithMaxExclusive(10)
 
 	var output int
 
@@ -64,7 +64,7 @@ func TestIntMoreConflict(t *testing.T) {
 	}
 
 	// Create a new rule set with a different threshold and test again
-	ruleSet2 := ruleSet.WithMore(2)
+	ruleSet2 := ruleSet.WithMinExclusive(2)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
 	err = ruleSet2.Apply(context.TODO(), 2, &output)
@@ -79,25 +79,25 @@ func TestIntMoreConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "IntRuleSet[int].WithMore(3).WithLess(10)"
+	expected := "IntRuleSet[int].WithMinExclusive(3).WithMaxExclusive(10)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "IntRuleSet[int].WithLess(10).WithMore(2)"
+	expected = "IntRuleSet[int].WithMaxExclusive(10).WithMinExclusive(2)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
 // Requirements:
-// - Only one WithMore can exist on a rule set.
+// - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
-// - Most recent WithMore is used.
+// - Most recent WithMinExclusive is used.
 // - Rule is serialized properly.
-func TestFloatMoreConflict(t *testing.T) {
-	ruleSet := rules.Float64().WithMore(3.0).WithLess(10.0)
+func TestFloatMinExclusiveConflict(t *testing.T) {
+	ruleSet := rules.Float64().WithMinExclusive(3.0).WithMaxExclusive(10.0)
 
 	var output float64
 
@@ -120,7 +120,7 @@ func TestFloatMoreConflict(t *testing.T) {
 	}
 
 	// Create a new rule set with a different threshold and test again
-	ruleSet2 := ruleSet.WithMore(2.0)
+	ruleSet2 := ruleSet.WithMinExclusive(2.0)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
 	err = ruleSet2.Apply(context.TODO(), 2.0, &output)
@@ -135,24 +135,24 @@ func TestFloatMoreConflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "FloatRuleSet[float64].WithMore(3.000000).WithLess(10.000000)"
+	expected := "FloatRuleSet[float64].WithMinExclusive(3.000000).WithMaxExclusive(10.000000)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "FloatRuleSet[float64].WithLess(10.000000).WithMore(2.000000)"
+	expected = "FloatRuleSet[float64].WithMaxExclusive(10.000000).WithMinExclusive(2.000000)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithMin and WithMore conflict with each other
-func TestIntMinMoreConflict(t *testing.T) {
+// Test that WithMin and WithMinExclusive conflict with each other
+func TestIntMinMinExclusiveConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMin(2)
 
-	// Adding WithMore should conflict and replace WithMin
-	ruleSet2 := ruleSet.WithMore(3)
+	// Adding WithMinExclusive should conflict and replace WithMin
+	ruleSet2 := ruleSet.WithMinExclusive(3)
 
 	var output int
 
@@ -162,32 +162,32 @@ func TestIntMinMoreConflict(t *testing.T) {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}
 
-	// New rule set should have WithMore (exclusive, so 3 should fail)
+	// New rule set should have WithMinExclusive (exclusive, so 3 should fail)
 	err = ruleSet2.Apply(context.TODO(), 3, &output)
 	if err == nil {
-		t.Errorf("Expected error for WithMore at threshold (exclusive)")
+		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// Verify serialization shows the conflict resolution
-	expected := "IntRuleSet[int].WithMore(3)"
+	expected := "IntRuleSet[int].WithMinExclusive(3)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithMore and WithMin conflict with each other (reverse order)
-func TestIntMoreMinConflict(t *testing.T) {
-	ruleSet := rules.Int().WithMore(2)
+// Test that WithMinExclusive and WithMin conflict with each other (reverse order)
+func TestIntMinExclusiveMinConflict(t *testing.T) {
+	ruleSet := rules.Int().WithMinExclusive(2)
 
-	// Adding WithMin should conflict and replace WithMore
+	// Adding WithMin should conflict and replace WithMinExclusive
 	ruleSet2 := ruleSet.WithMin(3)
 
 	var output int
 
-	// Original rule set should still have WithMore
+	// Original rule set should still have WithMinExclusive
 	err := ruleSet.Apply(context.TODO(), 2, &output)
 	if err == nil {
-		t.Errorf("Expected error for WithMore at threshold (exclusive)")
+		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMin (inclusive, so 3 should pass)

@@ -7,12 +7,12 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
-// Test that WithMin and WithMore conflict with each other
+// Test that WithMin and WithMinExclusive conflict with each other
 func TestString_MinMoreConflict(t *testing.T) {
 	ruleSet := rules.String().WithMin("b")
 
-	// Adding WithMore should conflict and replace WithMin
-	ruleSet2 := ruleSet.WithMore("c")
+	// Adding WithMinExclusive should conflict and replace WithMin
+	ruleSet2 := ruleSet.WithMinExclusive("c")
 
 	var output string
 
@@ -22,25 +22,25 @@ func TestString_MinMoreConflict(t *testing.T) {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}
 
-	// New rule set should have WithMore (exclusive, so "c" should fail)
+	// New rule set should have WithMinExclusive (exclusive, so "c" should fail)
 	err = ruleSet2.Apply(context.TODO(), "c", &output)
 	if err == nil {
-		t.Errorf("Expected error for WithMore at threshold (exclusive)")
+		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// Verify serialization shows the conflict resolution
-	expected := "StringRuleSet.WithMore(\"c\")"
+	expected := "StringRuleSet.WithMinExclusive(\"c\")"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithMax and WithLess conflict with each other
+// Test that WithMax and WithMaxExclusive conflict with each other
 func TestString_MaxLessConflict(t *testing.T) {
 	ruleSet := rules.String().WithMax("y")
 
-	// Adding WithLess should conflict and replace WithMax
-	ruleSet2 := ruleSet.WithLess("x")
+	// Adding WithMaxExclusive should conflict and replace WithMax
+	ruleSet2 := ruleSet.WithMaxExclusive("x")
 
 	var output string
 
@@ -50,32 +50,32 @@ func TestString_MaxLessConflict(t *testing.T) {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}
 
-	// New rule set should have WithLess (exclusive, so "x" should fail)
+	// New rule set should have WithMaxExclusive (exclusive, so "x" should fail)
 	err = ruleSet2.Apply(context.TODO(), "x", &output)
 	if err == nil {
-		t.Errorf("Expected error for WithLess at threshold (exclusive)")
+		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// Verify serialization shows the conflict resolution
-	expected := "StringRuleSet.WithLess(\"x\")"
+	expected := "StringRuleSet.WithMaxExclusive(\"x\")"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 }
 
-// Test that WithMore and WithMin conflict with each other (reverse order)
+// Test that WithMinExclusive and WithMin conflict with each other (reverse order)
 func TestString_MoreMinConflict(t *testing.T) {
-	ruleSet := rules.String().WithMore("b")
+	ruleSet := rules.String().WithMinExclusive("b")
 
-	// Adding WithMin should conflict and replace WithMore
+	// Adding WithMin should conflict and replace WithMinExclusive
 	ruleSet2 := ruleSet.WithMin("c")
 
 	var output string
 
-	// Original rule set should still have WithMore
+	// Original rule set should still have WithMinExclusive
 	err := ruleSet.Apply(context.TODO(), "b", &output)
 	if err == nil {
-		t.Errorf("Expected error for WithMore at threshold (exclusive)")
+		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMin (inclusive, so "c" should pass)
@@ -91,19 +91,19 @@ func TestString_MoreMinConflict(t *testing.T) {
 	}
 }
 
-// Test that WithLess and WithMax conflict with each other (reverse order)
+// Test that WithMaxExclusive and WithMax conflict with each other (reverse order)
 func TestString_LessMaxConflict(t *testing.T) {
-	ruleSet := rules.String().WithLess("y")
+	ruleSet := rules.String().WithMaxExclusive("y")
 
-	// Adding WithMax should conflict and replace WithLess
+	// Adding WithMax should conflict and replace WithMaxExclusive
 	ruleSet2 := ruleSet.WithMax("x")
 
 	var output string
 
-	// Original rule set should still have WithLess
+	// Original rule set should still have WithMaxExclusive
 	err := ruleSet.Apply(context.TODO(), "y", &output)
 	if err == nil {
-		t.Errorf("Expected error for WithLess at threshold (exclusive)")
+		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMax (inclusive, so "x" should pass)

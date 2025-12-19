@@ -27,7 +27,7 @@ func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.Validation
 // Conflict returns true for any maximum or exclusive maximum rule.
 func (rule *maxRule[T]) Conflict(x Rule[T]) bool {
 	_, ok1 := x.(*maxRule[T])
-	_, ok2 := x.(*lessRule[T])
+	_, ok2 := x.(*maxExclusiveRule[T])
 	return ok1 || ok2
 }
 
