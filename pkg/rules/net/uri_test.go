@@ -209,52 +209,52 @@ func TestURICustomContext(t *testing.T) {
 		t.Fatal("Expected context to not be nil")
 	}
 
-	scheme := ctxRef.Value("scheme")
+	scheme := ctxRef.Value(net.URIContextKeyScheme)
 	if scheme == nil || scheme.(string) != testScheme {
 		t.Errorf("Expected scheme to be `%s`, got `%s`", testScheme, scheme)
 	}
 
-	authority := ctxRef.Value("authority")
+	authority := ctxRef.Value(net.URIContextKeyAuthority)
 	if authority == nil || authority.(string) != testAuthority {
 		t.Errorf("Expected authority to be `%s`, got `%s`", testAuthority, authority)
 	}
 
-	userinfo := ctxRef.Value("userinfo")
+	userinfo := ctxRef.Value(net.URIContextKeyUserinfo)
 	if userinfo == nil || userinfo.(string) != testUserinfo {
 		t.Errorf("Expected userinfo to be `%s`, got `%s`", testUserinfo, userinfo)
 	}
 
-	user := ctxRef.Value("user")
+	user := ctxRef.Value(net.URIContextKeyUser)
 	if user == nil || user.(string) != testUser {
 		t.Errorf("Expected user to be `%s`, got `%s`", testUser, user)
 	}
 
-	password := ctxRef.Value("password")
+	password := ctxRef.Value(net.URIContextKeyPassword)
 	if password == nil || password.(string) != testPassword {
 		t.Errorf("Expected password to be `%s`, got `%s`", testPassword, password)
 	}
 
-	host := ctxRef.Value("host")
+	host := ctxRef.Value(net.URIContextKeyHost)
 	if host == nil || host.(string) != testHost {
 		t.Errorf("Expected host to be `%s`, got `%s`", testHost, host)
 	}
 
-	port := ctxRef.Value("port")
+	port := ctxRef.Value(net.URIContextKeyPort)
 	if port == nil || port.(string) != testPort {
 		t.Errorf("Expected port to be `%s`, got `%s`", testPort, port)
 	}
 
-	path := ctxRef.Value("path")
+	path := ctxRef.Value(net.URIContextKeyPath)
 	if path == nil || path.(string) != testPath {
 		t.Errorf("Expected path to be `%s`, got `%s`", testPath, path)
 	}
 
-	query := ctxRef.Value("query")
+	query := ctxRef.Value(net.URIContextKeyQuery)
 	if query == nil || query.(string) != testQuery {
 		t.Errorf("Expected query to be `%s`, got `%s`", testQuery, query)
 	}
 
-	fragment := ctxRef.Value("fragment")
+	fragment := ctxRef.Value(net.URIContextKeyFragment)
 	if fragment == nil || fragment.(string) != testFragment {
 		t.Errorf("Expected fragment to be `%s`, got `%s`", testFragment, fragment)
 	}
