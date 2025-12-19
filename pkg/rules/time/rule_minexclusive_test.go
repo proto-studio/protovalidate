@@ -12,6 +12,9 @@ import (
 )
 
 // TestTimeRuleSet_WithMinExclusive tests:
+// - Times before the minimum fail validation
+// - Times equal to the minimum fail validation (exclusive)
+// - Times after the minimum pass validation
 func TestTimeRuleSet_WithMinExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)

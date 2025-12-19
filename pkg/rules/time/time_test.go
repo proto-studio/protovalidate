@@ -87,6 +87,9 @@ func TestTimeRuleSet_WithRequired(t *testing.T) {
 }
 
 // TestTimeCustom tests:
+// - Custom rule functions are executed
+// - Custom rules can return errors
+// - Rule evaluation is called correctly
 func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
@@ -104,6 +107,7 @@ func TestTimeCustom(t *testing.T) {
 }
 
 // TestTimeRuleSet_Any tests:
+// - Any returns a RuleSet[any] implementation
 func TestTimeRuleSet_Any(t *testing.T) {
 	ruleSet := time.Time().Any()
 
@@ -115,6 +119,7 @@ func TestTimeRuleSet_Any(t *testing.T) {
 }
 
 // TestTimeRuleSet_Apply_Pointer tests:
+// - Correctly handles pointer time values
 func TestTimeRuleSet_Apply_Pointer(t *testing.T) {
 	now := internalTime.Now()
 
@@ -123,6 +128,7 @@ func TestTimeRuleSet_Apply_Pointer(t *testing.T) {
 }
 
 // TestTimeRuleSet_Apply_BadType tests:
+// - Returns error for types that cannot be coerced to time
 func TestTimeRuleSet_Apply_BadType(t *testing.T) {
 	ruleSet := time.Time()
 	type x struct{}

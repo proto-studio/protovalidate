@@ -10,6 +10,7 @@ import (
 )
 
 // TestCollectionWrapper tests:
+// - Collection correctly wraps multiple errors
 func TestCollectionWrapper(t *testing.T) {
 	ctx := context.Background()
 
@@ -105,6 +106,8 @@ func TestCollectionSize(t *testing.T) {
 }
 
 // TestCollectionFirst tests:
+// - Returns the first error from a collection
+// - Returns one of the errors when multiple errors exist
 func TestCollectionFirst(t *testing.T) {
 	ctx := context.Background()
 	err1 := errors.NewCoercionError(ctx, "int", "float32")
@@ -131,6 +134,7 @@ func TestCollectionFirst(t *testing.T) {
 }
 
 // TestCollectionFirstEmpty tests:
+// - Returns nil when collection is empty
 func TestCollectionFirstEmpty(t *testing.T) {
 	col := errors.Collection()
 	if first := col.First(); first != nil {
@@ -139,6 +143,9 @@ func TestCollectionFirstEmpty(t *testing.T) {
 }
 
 // TestCollectionFor tests:
+// - Returns errors matching a specific path
+// - Returns nil when no errors match the path
+// - Correctly filters errors by path
 func TestCollectionFor(t *testing.T) {
 	ctx1 := rulecontext.WithPathString(context.Background(), "path1")
 	err1 := errors.Errorf(errors.CodeMax, ctx1, "error1")
@@ -186,6 +193,7 @@ func TestCollectionFor(t *testing.T) {
 }
 
 // TestCollectionForEmpty tests:
+// - Returns nil when collection is empty
 func TestCollectionForEmpty(t *testing.T) {
 	col := errors.Collection()
 	if first := col.For("a"); first != nil {
@@ -194,6 +202,8 @@ func TestCollectionForEmpty(t *testing.T) {
 }
 
 // TestCollectionMessage tests:
+// - Error message is correctly formatted for single error
+// - Error message includes count for multiple errors
 func TestCollectionMessage(t *testing.T) {
 	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
 
@@ -211,6 +221,7 @@ func TestCollectionMessage(t *testing.T) {
 }
 
 // TestPanicCollectionMessageEmpty tests:
+// - Panics when Error is called on an empty collection
 func TestPanicCollectionMessageEmpty(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {

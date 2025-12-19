@@ -10,6 +10,9 @@ import (
 )
 
 // TestStringRuleSet_WithMaxExclusive tests:
+// - Strings less than maximum pass validation
+// - Strings equal to maximum fail validation (exclusive)
+// - Strings greater than maximum fail validation
 func TestStringRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("y").Any()
 
@@ -83,6 +86,7 @@ func TestStringRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMaxExclusive_Lexicographical tests:
+// - Uses lexicographical comparison for string maximum exclusive
 func TestStringRuleSet_WithMaxExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("banana").Any()
 

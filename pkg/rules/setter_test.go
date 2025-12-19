@@ -6,6 +6,9 @@ import (
 )
 
 // TestStructSetter_Set tests:
+// - Can set pointer fields
+// - Can set non-pointer fields
+// - Can set nil values
 func TestStructSetter_Set(t *testing.T) {
 	type outType struct {
 		X *string
@@ -45,6 +48,9 @@ func TestStructSetter_Set(t *testing.T) {
 }
 
 // TestStructSetter_SetBucket tests:
+// - Creates bucket if it does not exist
+// - Sets values in the bucket
+// - Can set nil values in bucket
 func TestStructSetter_SetBucket(t *testing.T) {
 	type outType struct {
 		B map[string]any
@@ -73,6 +79,7 @@ func TestStructSetter_SetBucket(t *testing.T) {
 }
 
 // TestStructSetter_SetBucket_IncorrectType tests:
+// - Does not error when bucket field is not a map
 func TestStructSetter_SetBucket_IncorrectType(t *testing.T) {
 	type outType struct {
 		B string
@@ -90,6 +97,8 @@ func TestStructSetter_SetBucket_IncorrectType(t *testing.T) {
 }
 
 // TestMapSetter_Set tests:
+// - Can set map keys
+// - Can set nil values
 func TestMapSetter_Set(t *testing.T) {
 	out := make(map[string]*string)
 
@@ -116,6 +125,9 @@ func TestMapSetter_Set(t *testing.T) {
 }
 
 // TestMapSetter_SetBucket tests:
+// - Creates bucket if it does not exist
+// - Sets values in the bucket
+// - Can set nil values in bucket
 func TestMapSetter_SetBucket(t *testing.T) {
 	out := make(map[string]any)
 

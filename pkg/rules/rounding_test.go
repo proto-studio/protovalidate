@@ -11,6 +11,8 @@ import (
 )
 
 // TestRoundingIntNone tests:
+// - Returns error for float values that are not whole numbers
+// - Accepts float values within tolerance of whole numbers
 func TestRoundingIntNone(t *testing.T) {
 	expected := 123
 	ruleSet := rules.Int().Any()
@@ -29,6 +31,8 @@ func TestRoundingIntNone(t *testing.T) {
 }
 
 // TestRoundingFloatNone tests:
+// - Coerces float32 to float64
+// - Coerces float64 to float64
 func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
 	ruleSet := rules.Float64()
@@ -48,6 +52,9 @@ func TestRoundingFloatNone(t *testing.T) {
 }
 
 // TestRoundingIntFloor tests:
+// - Rounds positive numbers down
+// - Rounds negative numbers down
+// - Handles zero correctly
 func TestRoundingIntFloor(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingDown).Any()
 
@@ -79,6 +86,8 @@ func TestRoundingIntFloor(t *testing.T) {
 }
 
 // TestRoundingFloatFloor tests:
+// - Rounds positive numbers down
+// - Rounds negative numbers down
 func TestRoundingFloatFloor(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 0).Any()
 
@@ -102,6 +111,7 @@ func TestRoundingFloatFloor(t *testing.T) {
 }
 
 // TestRoundingFloatFloorPrecision2 tests:
+// - Rounds to 2 decimal places using floor rounding
 func TestRoundingFloatFloorPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingDown, 2).Any()
 
@@ -125,6 +135,9 @@ func TestRoundingFloatFloorPrecision2(t *testing.T) {
 }
 
 // TestRoundingIntCeil tests:
+// - Rounds positive numbers up
+// - Rounds negative numbers up
+// - Handles zero correctly
 func TestRoundingIntCeil(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingUp).Any()
 
@@ -156,6 +169,8 @@ func TestRoundingIntCeil(t *testing.T) {
 }
 
 // TestRoundingFloatCeil tests:
+// - Rounds positive numbers up
+// - Rounds negative numbers up
 func TestRoundingFloatCeil(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 0).Any()
 
@@ -179,6 +194,7 @@ func TestRoundingFloatCeil(t *testing.T) {
 }
 
 // TestRoundingFloatCeilPrecision2 tests:
+// - Rounds to 2 decimal places using ceiling rounding
 func TestRoundingFloatCeilPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingUp, 2).Any()
 
@@ -202,6 +218,8 @@ func TestRoundingFloatCeilPrecision2(t *testing.T) {
 }
 
 // TestRoundingIntHalfUp tests:
+// - Rounds to nearest integer, rounding up on ties
+// - Handles positive and negative numbers
 func TestRoundingIntHalfUp(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfUp).Any()
 
@@ -268,6 +286,7 @@ func TestRoundingFloatHalfUp(t *testing.T) {
 }
 
 // TestRoundingFloatHalfUpPrecision2 tests:
+// - Rounds to 2 decimal places using half-up rounding
 func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfUp, 2).Any()
 
@@ -297,6 +316,8 @@ func TestRoundingFloatHalfUpPrecision2(t *testing.T) {
 }
 
 // TestRoundingIntHalfEven tests:
+// - Rounds to nearest integer, rounding to even on ties
+// - Handles positive and negative numbers
 func TestRoundingIntHalfEven(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven).Any()
 
@@ -342,6 +363,8 @@ func TestRoundingIntHalfEven(t *testing.T) {
 }
 
 // TestRoundingFloatHalfEven tests:
+// - Rounds to nearest value, rounding to even on ties
+// - Handles positive and negative numbers
 func TestRoundingFloatHalfEven(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 0).Any()
 
@@ -380,6 +403,7 @@ func TestRoundingFloatHalfEven(t *testing.T) {
 }
 
 // TestRoundingFloatHalfEvenPrecision2 tests:
+// - Rounds to 2 decimal places using half-even rounding
 func TestRoundingFloatHalfEvenPrecision2(t *testing.T) {
 	ruleSet := rules.Float64().WithRounding(rules.RoundingHalfEven, 2).Any()
 

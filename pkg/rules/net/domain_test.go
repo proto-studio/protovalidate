@@ -93,6 +93,7 @@ func TestDomainRuleSet_WithRequired(t *testing.T) {
 }
 
 // TestDomainRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
 func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 

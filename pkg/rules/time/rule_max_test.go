@@ -12,6 +12,9 @@ import (
 )
 
 // TestTimeRuleSet_WithMax tests:
+// - Times before the maximum pass validation
+// - Times equal to the maximum pass validation
+// - Times after the maximum fail validation
 func TestTimeRuleSet_WithMax(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)

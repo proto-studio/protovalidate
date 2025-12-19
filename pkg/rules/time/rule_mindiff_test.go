@@ -12,6 +12,8 @@ import (
 )
 
 // TestTimeRuleSet_WithMinDiff tests:
+// - Times with difference less than minimum fail validation
+// - Times with difference greater than or equal to minimum pass validation
 func TestTimeRuleSet_WithMinDiff(t *testing.T) {
 	now := internalTime.Now()
 	before14 := now.Add(-14 * internalTime.Minute)

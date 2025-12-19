@@ -10,6 +10,9 @@ import (
 )
 
 // TestSlice_MinLen tests:
+// - Slices under minimum length fail validation
+// - Slices at minimum length pass validation
+// - Slices over minimum length pass validation
 func TestSlice_MinLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMinLen(2)
 
@@ -82,6 +85,9 @@ func TestSlice_MinLen_Conflict(t *testing.T) {
 }
 
 // TestString_WithMinLen tests:
+// - Strings under minimum length fail validation
+// - Strings at minimum length pass validation
+// - Strings over minimum length pass validation
 func TestString_WithMinLen(t *testing.T) {
 	ruleSet := rules.String().WithMinLen(2).Any()
 

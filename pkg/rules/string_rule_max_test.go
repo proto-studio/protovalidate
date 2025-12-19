@@ -10,6 +10,9 @@ import (
 )
 
 // TestStringRuleSet_WithMax tests:
+// - Strings less than maximum pass validation
+// - Strings equal to maximum pass validation
+// - Strings greater than maximum fail validation
 func TestStringRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.String().WithMax("y").Any()
 
@@ -71,6 +74,7 @@ func TestStringRuleSet_WithMax_Conflict(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMax_Lexicographical tests:
+// - Uses lexicographical comparison for string maximum
 func TestStringRuleSet_WithMax_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMax("banana").Any()
 
@@ -88,6 +92,7 @@ func TestStringRuleSet_WithMax_Lexicographical(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMax_Truncation tests:
+// - Error messages truncate long maximum strings
 func TestStringRuleSet_WithMax_Truncation(t *testing.T) {
 	// Create a very long string (longer than 50 characters)
 	longString := "a"

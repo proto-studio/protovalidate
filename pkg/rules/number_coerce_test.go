@@ -11,6 +11,9 @@ import (
 )
 
 // TestCoerceToInt tests:
+// - Coerces various integer types to int
+// - Coerces unsigned integer types to int
+// - Coerces float types to int
 func TestCoerceToInt(t *testing.T) {
 	expected := int(123)
 	ruleSet := rules.Int().Any()
@@ -32,6 +35,9 @@ func TestCoerceToInt(t *testing.T) {
 }
 
 // TestCoerceToInt8 tests:
+// - Coerces various integer types to int8
+// - Coerces unsigned integer types to int8
+// - Coerces float types to int8
 func TestCoerceToInt8(t *testing.T) {
 	expected := int8(12)
 	ruleSet := rules.Int8().Any()
@@ -53,6 +59,8 @@ func TestCoerceToInt8(t *testing.T) {
 }
 
 // TestOutOfRangeInt8 tests:
+// - Returns error for values out of int8 range
+// - Returns error for string values out of range
 func TestOutOfRangeInt8(t *testing.T) {
 	ruleSet := rules.Int8().Any()
 
@@ -67,6 +75,9 @@ func TestOutOfRangeInt8(t *testing.T) {
 }
 
 // TestOutOfRangeUInt8 tests:
+// - Returns error for positive values out of uint8 range
+// - Returns error for negative values
+// - Returns error for string values out of range
 func TestOutOfRangeUInt8(t *testing.T) {
 	ruleSet := rules.Uint8().Any()
 
@@ -86,6 +97,9 @@ func TestOutOfRangeUInt8(t *testing.T) {
 }
 
 // TestStringToInt tests:
+// - Coerces base-10 string to int
+// - Returns error for invalid base-10 strings
+// - Coerces base-16 string to int when base is set
 func TestStringToInt(t *testing.T) {
 	ruleSetBase10 := rules.Int().Any()
 	expected := int(123)
@@ -109,6 +123,8 @@ func TestStringToInt(t *testing.T) {
 }
 
 // TestStringToIntOutOfRange tests:
+// - Returns error for signed int8 values out of range
+// - Returns error for unsigned uint8 values out of range
 func TestStringToIntOutOfRange(t *testing.T) {
 	ruleSetSigned := rules.Int8().Any()
 	testhelpers.MustNotApply(t, ruleSetSigned, "128", errors.CodeRange)
@@ -119,12 +135,14 @@ func TestStringToIntOutOfRange(t *testing.T) {
 }
 
 // TestStringToIntInvalid tests:
+// - Returns error for non-numeric strings
 func TestStringToIntInvalid(t *testing.T) {
 	ruleSetUnsigned := rules.Int().Any()
 	testhelpers.MustNotApply(t, ruleSetUnsigned, "hello", errors.CodeType)
 }
 
 // TestUnknownToInt tests:
+// - Returns error for unknown types that cannot be coerced
 func TestUnknownToInt(t *testing.T) {
 	from := new(struct{})
 
@@ -136,6 +154,9 @@ func TestUnknownToInt(t *testing.T) {
 }
 
 // TestCoerceToFloat64 tests:
+// - Coerces various integer types to float64
+// - Coerces unsigned integer types to float64
+// - Coerces float types to float64
 func TestCoerceToFloat64(t *testing.T) {
 	expected := float64(123.0)
 	ruleSet := rules.Float64().Any()
@@ -157,6 +178,9 @@ func TestCoerceToFloat64(t *testing.T) {
 }
 
 // TestOutOfRangeFloat32 tests:
+// - Returns error for integer values out of float32 range
+// - Returns error for float64 values out of float32 range
+// - Returns error for string values out of range
 func TestOutOfRangeFloat32(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -176,6 +200,9 @@ func TestOutOfRangeFloat32(t *testing.T) {
 }
 
 // TestOutOfRangeFloat64 tests:
+// - Returns error for integer values that cannot be exactly represented
+// - Returns error for very large int64 values
+// - Returns error for large uint64 values
 func TestOutOfRangeFloat64(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -197,6 +224,9 @@ func TestOutOfRangeFloat64(t *testing.T) {
 }
 
 // TestFloat32BoundaryValues tests:
+// - Values at the exact representation boundary work
+// - Values just below the boundary work
+// - Values just above the boundary return errors
 func TestFloat32BoundaryValues(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -225,6 +255,9 @@ func TestFloat32BoundaryValues(t *testing.T) {
 }
 
 // TestFloat64BoundaryValues tests:
+// - Values at the exact representation boundary work
+// - Values just below the boundary work
+// - Values just above the boundary return errors
 func TestFloat64BoundaryValues(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -246,6 +279,9 @@ func TestFloat64BoundaryValues(t *testing.T) {
 }
 
 // TestCoerceToFloat32 tests:
+// - Coerces various integer types to float32
+// - Coerces unsigned integer types to float32
+// - Coerces float types to float32
 func TestCoerceToFloat32(t *testing.T) {
 	expected := float32(123.0)
 	ruleSet := rules.Float32().Any()
@@ -267,6 +303,7 @@ func TestCoerceToFloat32(t *testing.T) {
 }
 
 // TestFloat32EqualityCheckFailure tests:
+// - Returns error when float32 cannot exactly represent the integer value
 func TestFloat32EqualityCheckFailure(t *testing.T) {
 	ruleSet := rules.Float32().Any()
 
@@ -279,6 +316,7 @@ func TestFloat32EqualityCheckFailure(t *testing.T) {
 }
 
 // TestFloat64EqualityCheckFailure tests:
+// - Returns error when float64 cannot exactly represent the integer value
 func TestFloat64EqualityCheckFailure(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -291,6 +329,7 @@ func TestFloat64EqualityCheckFailure(t *testing.T) {
 }
 
 // TestStringToFloat tests:
+// - Coerces numeric string to float
 func TestStringToFloat(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 	expected := float64(123.456)
@@ -299,12 +338,14 @@ func TestStringToFloat(t *testing.T) {
 }
 
 // TestStringToFloatInvalid tests:
+// - Returns error for non-numeric strings
 func TestStringToFloatInvalid(t *testing.T) {
 	ruleSetUnsigned := rules.Float64().Any()
 	testhelpers.MustNotApply(t, ruleSetUnsigned, "hello", errors.CodeType)
 }
 
 // TestUnknownToFloat tests:
+// - Returns error for unknown types that cannot be coerced
 func TestUnknownToFloat(t *testing.T) {
 	from := new(struct{})
 
