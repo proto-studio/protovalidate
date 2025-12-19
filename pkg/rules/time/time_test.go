@@ -12,7 +12,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestTimeRuleSet_Apply tests:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestTimeRuleSet_Apply(t *testing.T) {
@@ -41,7 +41,7 @@ func TestTimeRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[internalTime.Time](t, time.Time(), now)
 }
 
-// Requirements:
+// TestTimeRuleSet_Apply_RFC3339 tests:
 // - Will coerce time from RFC 3339
 func TestTimeRuleSet_Apply_RFC3339(t *testing.T) {
 	s := "2023-09-29T18:57:42.108Z"
@@ -58,7 +58,7 @@ func TestTimeRuleSet_Apply_RFC3339(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
-// Requirements:
+// TestTimeRuleSet_Apply_MultiLayout tests:
 // - Will coerce from multiple layouts
 func TestTimeRuleSet_Apply_MultiLayout(t *testing.T) {
 	s := "2023-09-29"
@@ -78,7 +78,7 @@ func TestTimeRuleSet_Apply_MultiLayout(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), s, tm)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithRequired tests:
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
@@ -86,6 +86,7 @@ func TestTimeRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[internalTime.Time](t, time.Time())
 }
 
+// TestTimeCustom tests:
 func TestTimeCustom(t *testing.T) {
 	now := internalTime.Now()
 
@@ -102,6 +103,7 @@ func TestTimeCustom(t *testing.T) {
 	}
 }
 
+// TestTimeRuleSet_Any tests:
 func TestTimeRuleSet_Any(t *testing.T) {
 	ruleSet := time.Time().Any()
 
@@ -112,6 +114,7 @@ func TestTimeRuleSet_Any(t *testing.T) {
 	}
 }
 
+// TestTimeRuleSet_Apply_Pointer tests:
 func TestTimeRuleSet_Apply_Pointer(t *testing.T) {
 	now := internalTime.Now()
 
@@ -119,6 +122,7 @@ func TestTimeRuleSet_Apply_Pointer(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), &now, now)
 }
 
+// TestTimeRuleSet_Apply_BadType tests:
 func TestTimeRuleSet_Apply_BadType(t *testing.T) {
 	ruleSet := time.Time()
 	type x struct{}
@@ -126,7 +130,7 @@ func TestTimeRuleSet_Apply_BadType(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet.Any(), new(x), errors.CodeType)
 }
 
-// Requirements:
+// TestTimeRuleSet_String_WithLayouts tests:
 // - WithLayouts will serialize up to 3 layouts.
 // - Layouts are comma separated.
 // - Layout values are quoted.
@@ -159,7 +163,7 @@ func TestTimeRuleSet_String_WithLayouts(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestTimeRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestTimeRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := time.Time().WithRequired()
@@ -170,7 +174,7 @@ func TestTimeRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestTimeRuleSet_Apply_String tests:
 // - Apply must convert to time.RFC3339 if output is a string.
 // - Apply must maintain input format if output and input are strings.
 // - Apply must allow the user to override the string output format.
@@ -221,7 +225,7 @@ func TestTimeRuleSet_Apply_String(t *testing.T) {
 
 }
 
-// Requirements:
+// TestTimeRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestTimeRuleSet_WithNil(t *testing.T) {

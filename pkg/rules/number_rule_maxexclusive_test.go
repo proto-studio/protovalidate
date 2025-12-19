@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestIntRuleSet_WithMaxExclusive tests:
 func TestIntRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.Int().WithMaxExclusive(10).Any()
 
@@ -22,6 +23,7 @@ func TestIntRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
+// TestFloatRuleSet_WithMaxExclusive tests:
 func TestFloatRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.Float64().WithMaxExclusive(10.0).Any()
 
@@ -35,7 +37,7 @@ func TestFloatRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 10.1, errors.CodeMax)
 }
 
-// Requirements:
+// TestIntRuleSet_WithMaxExclusive_Conflict tests:
 // - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
@@ -91,7 +93,7 @@ func TestIntRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestFloatRuleSet_WithMaxExclusive_Conflict tests:
 // - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.

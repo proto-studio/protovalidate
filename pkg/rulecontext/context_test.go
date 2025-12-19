@@ -16,6 +16,11 @@ const (
 	testContextKeyA testContextKey = "keyA"
 )
 
+// TestReturnsPrinter tests:
+// - Default printer is returned when context is nil
+// - Default printer is returned when no printer is set in context
+// - Custom printer is returned when set in context
+// - Context values are preserved when setting printer
 func TestReturnsPrinter(t *testing.T) {
 	defaultPrinter := rulecontext.Printer(nil)
 	if defaultPrinter == nil {
@@ -55,6 +60,8 @@ func TestReturnsPrinter(t *testing.T) {
 	}
 }
 
+// TestWithPrinterNil tests:
+// - Panics when nil printer is provided
 func TestWithPrinterNil(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -65,6 +72,10 @@ func TestWithPrinterNil(t *testing.T) {
 	rulecontext.WithPrinter(context.Background(), nil)
 }
 
+// TestReturnsRuleSet tests:
+// - Returns nil when context is nil
+// - Returns nil when no rule set is set in context
+// - Returns rule set when set in context
 func TestReturnsRuleSet(t *testing.T) {
 	v := rulecontext.RuleSet(nil)
 	if v != nil {
@@ -92,6 +103,8 @@ func TestReturnsRuleSet(t *testing.T) {
 	}
 }
 
+// TestWithRuleSetil tests:
+// - Panics when nil rule set is provided
 func TestWithRuleSetil(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -102,6 +115,8 @@ func TestWithRuleSetil(t *testing.T) {
 	rulecontext.WithRuleSet(context.Background(), nil)
 }
 
+// TestPathRuleSet tests:
+// - Path is correctly set in context
 func TestPathRuleSet(t *testing.T) {
 	const segmentA = "test"
 	const segmentB = "123"

@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestStringRuleSet_WithRegexpString tests:
 // - Executes valid regular expression provided as string
 // - Returns the user supplied error
 func TestStringRuleSet_WithRegexpString(t *testing.T) {
@@ -24,7 +24,7 @@ func TestStringRuleSet_WithRegexpString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_WithRegexpString_Invalid tests:
 // - Panics on invalid regexp string
 func TestStringRuleSet_WithRegexpString_Invalid(t *testing.T) {
 	defer func() {
@@ -36,7 +36,7 @@ func TestStringRuleSet_WithRegexpString_Invalid(t *testing.T) {
 	rules.String().WithRegexpString("[[[", "")
 }
 
-// Requirements:
+// TestStringRuleSet_WithRegexp tests:
 // - Executes valid regular expression provided as string
 // - Returns the user supplied error
 func TestStringRuleSet_WithRegexp(t *testing.T) {
@@ -52,7 +52,7 @@ func TestStringRuleSet_WithRegexp(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_String_WithRegexp tests:
 // - Serializes to WithRegex(...)
 func TestStringRuleSet_String_WithRegexp(t *testing.T) {
 	ruleSet := rules.String().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")

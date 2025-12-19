@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestStringRuleSet_Apply tests:
 func TestStringRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
@@ -32,7 +33,7 @@ func TestStringRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[string](t, rules.String(), "abc")
 }
 
-// Requirements:
+// TestStringRuleSet_RuleInterface tests:
 // - Should be usable as a rule
 // - Must implement the Rule[string] interface
 func TestStringRuleSet_RuleInterface(t *testing.T) {
@@ -43,6 +44,7 @@ func TestStringRuleSet_RuleInterface(t *testing.T) {
 	}
 }
 
+// TestStringRuleSet_Apply_TypeError tests:
 func TestStringRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
@@ -60,38 +62,46 @@ func tryStringCoercion(t testing.TB, val interface{}, expected string) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), val, expected)
 }
 
+// TestStringRuleSet_Apply_CoerceFromInt tests:
 func TestStringRuleSet_Apply_CoerceFromInt(t *testing.T) {
 	tryStringCoercion(t, 123, "123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromIntPointer tests:
 func TestStringRuleSet_Apply_CoerceFromIntPointer(t *testing.T) {
 	x := 123
 	tryStringCoercion(t, &x, "123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromFloat tests:
 func TestStringRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryStringCoercion(t, 123.123, "123.123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromFloatPointer tests:
 func TestStringRuleSet_Apply_CoerceFromFloatPointer(t *testing.T) {
 	x := 123.123
 	tryStringCoercion(t, &x, "123.123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromInt64 tests:
 func TestStringRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryStringCoercion(t, int64(123), "123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromInt64Pointer tests:
 func TestStringRuleSet_Apply_CoerceFromInt64Pointer(t *testing.T) {
 	var x int64 = 123
 	tryStringCoercion(t, &x, "123")
 }
 
+// TestStringRuleSet_Apply_CoerceFromStringPointer tests:
 func TestStringRuleSet_Apply_CoerceFromStringPointer(t *testing.T) {
 	s := "hello"
 	tryStringCoercion(t, &s, s)
 }
 
+// TestStringRuleSet_Apply_CoerceFromUnknown tests:
 func TestStringRuleSet_Apply_CoerceFromUnknown(t *testing.T) {
 	val := new(struct {
 		x int
@@ -100,7 +110,7 @@ func TestStringRuleSet_Apply_CoerceFromUnknown(t *testing.T) {
 	testhelpers.MustNotApply(t, rules.String().Any(), &val, errors.CodeType)
 }
 
-// Requirements:
+// TestStringRuleSet_WithRequired tests:
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
@@ -108,6 +118,7 @@ func TestStringRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, rules.String())
 }
 
+// TestStringRuleSet_WithRuleFunc tests:
 func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out string
@@ -141,6 +152,7 @@ func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
+// TestStringRuleSet_Any tests:
 func TestStringRuleSet_Any(t *testing.T) {
 	ruleSet := rules.String().Any()
 
@@ -151,7 +163,7 @@ func TestStringRuleSet_Any(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestStringRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.String().WithRequired()
@@ -162,7 +174,7 @@ func TestStringRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_String_WithStrict tests:
 // - Serializes to WithStrict()
 func TestStringRuleSet_String_WithStrict(t *testing.T) {
 	ruleSet := rules.String().WithStrict()
@@ -173,7 +185,7 @@ func TestStringRuleSet_String_WithStrict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestStringRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestStringRuleSet_WithNil(t *testing.T) {

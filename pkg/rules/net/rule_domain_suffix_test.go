@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestDomainRuleSet_WithSuffix tests:
 // - Domains with the custom suffixes pass.
 // - Domains using other suffixes fail.
 // - Domains using partial suffixes fail.
@@ -23,7 +23,7 @@ func TestDomainRuleSet_WithSuffix(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "dev.local", errors.CodePattern)
 }
 
-// Requirements:
+// TestDomainRuleSet_WithTLD tests:
 // - Domains with a standard TLD pass.
 // - Domains using a non-standard TLD do not pass.
 // - Domains with no "plus one" fail.
@@ -35,7 +35,7 @@ func TestDomainRuleSet_WithTLD(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "com", errors.CodePattern)
 }
 
-// Requirements:
+// TestDomainRuleSet_WithSuffix_PunycodeError tests:
 // - Panics when string cannot be encoded as punycode
 func TestDomainRuleSet_WithSuffix_PunycodeError(t *testing.T) {
 	defer func() {
@@ -49,7 +49,7 @@ func TestDomainRuleSet_WithSuffix_PunycodeError(t *testing.T) {
 	net.Domain().WithSuffix(str)
 }
 
-// Requirements:
+// TestDomainRuleSet_String_WithSuffix tests:
 // - Only one suffix list is preserved.
 // - WithSuffix will serialize up to 3 suffix values.
 // - Suffix values are comma separated.

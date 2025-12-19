@@ -16,7 +16,7 @@ var constCacheMap map[any]any
 // ConstantRuleSet implements RuleSet that returns an error for
 // any value that does not match the constant.
 //
-// This is primary used for conditional  To test a constant of a specific
+// This is primarily used for conditional validation. To test a constant of a specific
 // type it is usually best to use that type.
 type ConstantRuleSet[T comparable] struct {
 	required bool
@@ -26,7 +26,7 @@ type ConstantRuleSet[T comparable] struct {
 }
 
 // Constant creates a new Constant rule set for the specified value.
-// This function will return the same Rule Set when called multiple times with the same value.
+// Constant returns the same Rule Set when called multiple times with the same value.
 func Constant[T comparable](value T) *ConstantRuleSet[T] {
 	var empty T
 	var typedCache constCache[T]
@@ -58,7 +58,7 @@ func (ruleSet *ConstantRuleSet[T]) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 	if ruleSet.required {
 		return ruleSet
@@ -72,7 +72,7 @@ func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
 	return &ConstantRuleSet[T]{
@@ -83,7 +83,7 @@ func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
 }
 
 // Apply validates a RuleSet against an input value and assigns the validated value to output.
-// It returns a ValidationErrorCollection.
+// Apply returns a ValidationErrorCollection.
 func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
@@ -111,7 +111,7 @@ func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any)
 	return ruleSet.Evaluate(ctx, v)
 }
 
-// Evaluate performs a validation of a RuleSet against a value and returns any errors.
+// Evaluate performs validation of a RuleSet against a value and returns any errors.
 func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if value != ruleSet.value {
 		return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value does not match"))
@@ -119,12 +119,12 @@ func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors
 	return nil
 }
 
-// Conflict returns true for all rules since by definition no rule can be a superset of it.
+// Conflict returns true for all rules since by definition no rule can be a superset of a constant rule.
 func (ruleSet *ConstantRuleSet[T]) Conflict(other Rule[T]) bool {
 	return true
 }
 
-// Any is an identity function for this implementation and returns the current rule set.
+// Any returns the current rule set wrapped as a RuleSet[any].
 func (ruleSet *ConstantRuleSet[T]) Any() RuleSet[any] {
 	return WrapAny[T](ruleSet)
 }

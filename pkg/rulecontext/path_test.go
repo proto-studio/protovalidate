@@ -24,6 +24,9 @@ func fullPathHelper(t testing.TB, ctx context.Context, expected string) {
 	}
 }
 
+// TestPathNil tests:
+// - Returns nil when context is nil
+// - Returns nil when no path is set in context
 func TestPathNil(t *testing.T) {
 	if path := rulecontext.Path(nil); path != nil {
 		t.Errorf("Expected path to be nil, got: %v", path)
@@ -36,6 +39,8 @@ func TestPathNil(t *testing.T) {
 	}
 }
 
+// TestParentString tests:
+// - Parent path segments are correctly retrieved for string paths
 func TestParentString(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "patha")
 	ctx = rulecontext.WithPathString(ctx, "pathb")
@@ -62,6 +67,8 @@ func TestParentString(t *testing.T) {
 	}
 }
 
+// TestParentIndex tests:
+// - Parent path segments are correctly retrieved for index paths
 func TestParentIndex(t *testing.T) {
 	ctx := rulecontext.WithPathIndex(context.Background(), 1)
 	ctx = rulecontext.WithPathIndex(ctx, 2)
@@ -88,6 +95,8 @@ func TestParentIndex(t *testing.T) {
 	}
 }
 
+// TestWithPathCombined tests:
+// - Combined string and index paths work correctly
 func TestWithPathCombined(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "patha")
 	fullPathHelper(t, ctx, "/patha")

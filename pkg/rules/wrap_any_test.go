@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestWrapWrapAnyRuleSet tests:
 // - Does not error when default configured.
 // - Returns the value with the correct type.
 // - Implements the RuleSet interface.
@@ -38,7 +38,7 @@ func TestWrapWrapAnyRuleSet(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWrapAnyRequired tests:
 // - The required flag defaults to false.
 // - WithRequired sets the required flag.
 // - Require returns true only when the required flag is set.
@@ -54,7 +54,7 @@ func TestWrapAnyRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWrapWrapAnyRuleSetInnerError tests:
 // - The inner rule set rules are called.
 // - Errors in inner the rule set are passed to the wrapper.
 func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
@@ -65,7 +65,7 @@ func TestWrapWrapAnyRuleSetInnerError(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeUnknown)
 }
 
-// Requirements:
+// TestWrapAnyCustom tests:
 // - Custom rules are executed.
 // - Custom rules can return errors.
 // - Mutated values from the custom rules are returned.
@@ -85,7 +85,7 @@ func TestWrapAnyCustom(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, expected)
 }
 
-// Requirement:
+// TestWrapAnyReturnsIdentity tests:
 // - Implementations of RuleSet[any] should return themselves when calling the Any method.
 func TestWrapAnyReturnsIdentity(t *testing.T) {
 	innerRuleSet := rules.Any()
@@ -98,7 +98,7 @@ func TestWrapAnyReturnsIdentity(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWrapAnyRequiredString tests:
 // - Serializes to WithRequired()
 func TestWrapAnyRequiredString(t *testing.T) {
 	innerRuleSet := rules.Any()
@@ -110,7 +110,7 @@ func TestWrapAnyRequiredString(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWrapAnyRuleString tests:
 // - Serializes to WithRule(...)
 func TestWrapAnyRuleString(t *testing.T) {
 	innerRuleSet := rules.Any()
@@ -177,7 +177,7 @@ func TestWrapAnyEvaluate(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestWrapAnyWithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestWrapAnyWithNil(t *testing.T) {

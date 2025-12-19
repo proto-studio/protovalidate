@@ -10,6 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestIntRuleSet_Apply tests:
 func TestIntRuleSet_Apply(t *testing.T) {
 	var intval int
 	err := rules.Int().Apply(context.Background(), 123, &intval)
@@ -33,6 +34,7 @@ func TestIntRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[int](t, rules.Int(), 123)
 }
 
+// TestIntRuleSet_Apply_StrictError tests:
 func TestIntRuleSet_Apply_StrictError(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
@@ -57,18 +59,22 @@ func tryIntCoercion(t *testing.T, val interface{}, expected int) {
 	}
 }
 
+// TestIntRuleSet_Apply_CoerceFromString tests:
 func TestIntRuleSet_Apply_CoerceFromString(t *testing.T) {
 	tryIntCoercion(t, "123", 123)
 }
 
+// TestIntRuleSet_Apply_CoerceFromFloat tests:
 func TestIntRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryIntCoercion(t, float32(123.0), 123)
 }
 
+// TestIntRuleSet_Apply_CoerceFromInt64 tests:
 func TestIntRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryIntCoercion(t, float64(123.0), 123)
 }
 
+// TestIntRuleSet_Apply_CoerceFromHex tests:
 func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 	expected := 0xBEEF
 	var actual int
@@ -92,6 +98,7 @@ func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 	}
 }
 
+// TestIntRuleSet_Apply_CoerceFromFloatWithError tests:
 func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 	var out int
 	err := rules.Int().Apply(context.Background(), 1.000001, &out)
@@ -102,10 +109,12 @@ func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 	}
 }
 
+// TestIntRuleSet_WithRequired tests:
 func TestIntRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[int](t, rules.Int())
 }
 
+// TestIntRuleSet_WithRuleFunc tests:
 func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 	var out int
 	err := rules.Int().
@@ -133,6 +142,7 @@ func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
+// TestIntRuleSet_Any tests:
 func TestIntRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Int().Any()
 
@@ -143,7 +153,7 @@ func TestIntRuleSet_Any(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestIntRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Int().WithRequired()
@@ -154,7 +164,7 @@ func TestIntRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_String_WithStrict tests:
 // - Serializes to WithStrict()
 func TestIntRuleSet_String_WithStrict(t *testing.T) {
 	ruleSet := rules.Int().WithStrict()
@@ -165,7 +175,7 @@ func TestIntRuleSet_String_WithStrict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_String_WithBase tests:
 // - Serializes to WithBase(16)
 func TestIntRuleSet_String_WithBase(t *testing.T) {
 	ruleSet := rules.Int().WithBase(16)
@@ -176,7 +186,7 @@ func TestIntRuleSet_String_WithBase(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_String_WithRounding tests:
 // - Serializes to WithRounding(...)
 func TestIntRuleSet_String_WithRounding(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven)
@@ -187,7 +197,7 @@ func TestIntRuleSet_String_WithRounding(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_Evaluate tests:
 // - Evaluate behaves like Apply.
 func TestIntRuleSet_Evaluate(t *testing.T) {
 	ruleSet := rules.Int().WithMin(5)
@@ -195,6 +205,7 @@ func TestIntRuleSet_Evaluate(t *testing.T) {
 	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
 }
 
+// TestIntRuleSet_Apply_VariantTypes tests:
 func TestIntRuleSet_Apply_VariantTypes(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -237,7 +248,7 @@ func TestIntRuleSet_Apply_VariantTypes(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestIntRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestIntRuleSet_WithNil(t *testing.T) {

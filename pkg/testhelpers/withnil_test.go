@@ -30,6 +30,7 @@ func (m *MockWrongNilErrorCode) WithNil() rules.RuleSet[int] {
 	return &MockWrongNilErrorCodeWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWrongNilErrorCodeWithNil is a mock rule set that returns wrong error code for nil even with WithNil.
 type MockWrongNilErrorCodeWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWrongNilErrorCodeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -59,6 +60,7 @@ func (m *MockNilNotSet) WithNil() rules.RuleSet[int] {
 	return &MockNilNotSetWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockNilNotSetWithNil is a mock rule set that doesn't set output to nil when WithNil is used.
 type MockNilNotSetWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockNilNotSetWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -112,6 +114,7 @@ func (m *MockNilNoError) WithNil() rules.RuleSet[int] {
 	return &MockNilNoErrorWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockNilNoErrorWithNil is a mock rule set that doesn't return an error when nil is provided even with WithNil.
 type MockNilNoErrorWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockNilNoErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -149,6 +152,7 @@ func (m *MockNilWrongCodeWithoutWithNil) WithNil() rules.RuleSet[int] {
 	return &MockNilWrongCodeWithoutWithNilWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockNilWrongCodeWithoutWithNilWithNil is a mock rule set that returns wrong error code when nil is provided even with WithNil.
 type MockNilWrongCodeWithoutWithNilWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockNilWrongCodeWithoutWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -187,6 +191,7 @@ func (m *MockNilWrongReturnCount) WithNil() (rules.RuleSet[int], string) {
 	return &MockNilWrongReturnCountWithNil{MockRuleSet: m.MockRuleSet}, "extra value"
 }
 
+// MockNilWrongReturnCountWithNil is a mock rule set where WithNil returns wrong number of values.
 type MockNilWrongReturnCountWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockNilWrongReturnCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -207,6 +212,8 @@ func (m *MockNilWrongReturnCountWithNil) Apply(ctx context.Context, input, outpu
 	return mockRuleSet.Apply(ctx, input, output)
 }
 
+// TestMustImplementWithNil tests:
+// - MustImplementWithNil correctly validates rule sets implement WithNil
 func TestMustImplementWithNil(t *testing.T) {
 	// Test with a real rule set that has WithNil - should pass
 	mockT := &MockT{}
@@ -347,6 +354,7 @@ func (m *MockWithNilOnly) WithNil() rules.RuleSet[int] {
 	return &MockWithNilOnlyWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithNilOnlyWithNil is a mock rule set that has WithNil but not WithRequired.
 type MockWithNilOnlyWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithNilOnlyWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -382,6 +390,7 @@ func (m *MockWithRequiredNoWithNil) WithNil() rules.RuleSet[int] {
 	return &MockWithRequiredNoWithNilWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithRequiredNoWithNilWithNil is a mock rule set where WithRequired returns a rule set without WithNil.
 type MockWithRequiredNoWithNilWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithRequiredNoWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -405,6 +414,7 @@ func (m *MockWithRequiredNoWithNil) WithRequired() rules.RuleSet[int] {
 	return &MockWithRequiredNoWithNilRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithRequiredNoWithNilRequired is a mock rule set where WithRequired returns a rule set without WithNil.
 type MockWithRequiredNoWithNilRequired struct{ testhelpers.MockRuleSet[int] }
 
 // Note: This intentionally doesn't implement WithNil() method
@@ -424,6 +434,7 @@ func (m *MockWithRequiredWrongType) WithNil() rules.RuleSet[int] {
 	return &MockWithRequiredWrongTypeWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithRequiredWrongTypeWithNil is a mock rule set where WithRequired returns wrong type.
 type MockWithRequiredWrongTypeWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithRequiredWrongTypeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -461,6 +472,7 @@ func (m *MockWithRequiredWrongCount) WithNil() rules.RuleSet[int] {
 	return &MockWithRequiredWrongCountWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithRequiredWrongCountWithNil is a mock rule set where WithRequired returns wrong number of values.
 type MockWithRequiredWrongCountWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithRequiredWrongCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -498,6 +510,7 @@ func (m *MockWithNilWrongTypeOnRequired) WithNil() rules.RuleSet[int] {
 	return &MockWithNilWrongTypeOnRequiredWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithNilWrongTypeOnRequiredWithNil is a mock where WithRequired returns a rule set whose WithNil returns wrong type.
 type MockWithNilWrongTypeOnRequiredWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithNilWrongTypeOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -520,6 +533,7 @@ func (m *MockWithNilWrongTypeOnRequired) WithRequired() rules.RuleSet[int] {
 	return &MockWithNilWrongTypeOnRequiredRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithNilWrongTypeOnRequiredRequired is a mock where WithRequired returns a rule set whose WithNil returns wrong type.
 type MockWithNilWrongTypeOnRequiredRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithNilWrongTypeOnRequiredRequired) WithNil() string {
@@ -541,6 +555,7 @@ func (m *MockWithNilWrongCountOnRequired) WithNil() rules.RuleSet[int] {
 	return &MockWithNilWrongCountOnRequiredWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithNilWrongCountOnRequiredWithNil is a mock where WithRequired returns a rule set whose WithNil returns wrong count.
 type MockWithNilWrongCountOnRequiredWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithNilWrongCountOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -563,6 +578,7 @@ func (m *MockWithNilWrongCountOnRequired) WithRequired() rules.RuleSet[int] {
 	return &MockWithNilWrongCountOnRequiredRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithNilWrongCountOnRequiredRequired is a mock where WithRequired returns a rule set whose WithNil returns wrong count.
 type MockWithNilWrongCountOnRequiredRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithNilWrongCountOnRequiredRequired) WithNil() (rules.RuleSet[int], string) {
@@ -584,6 +600,7 @@ func (m *MockWithBothButError) WithNil() rules.RuleSet[int] {
 	return &MockWithBothButErrorWithNil{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithBothButErrorWithNil is a mock where both WithNil and WithRequired are set but Apply returns error.
 type MockWithBothButErrorWithNil struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithBothButErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
@@ -606,12 +623,14 @@ func (m *MockWithBothButError) WithRequired() rules.RuleSet[int] {
 	return &MockWithBothButErrorRequired{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithBothButErrorRequired is a mock where both WithNil and WithRequired are set but Apply returns error.
 type MockWithBothButErrorRequired struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithBothButErrorRequired) WithNil() rules.RuleSet[int] {
 	return &MockWithBothButErrorBoth{MockRuleSet: m.MockRuleSet}
 }
 
+// MockWithBothButErrorBoth is a mock where both WithNil and WithRequired are set but Apply returns error.
 type MockWithBothButErrorBoth struct{ testhelpers.MockRuleSet[int] }
 
 func (m *MockWithBothButErrorBoth) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {

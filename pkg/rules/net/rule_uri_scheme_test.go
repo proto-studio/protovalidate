@@ -8,6 +8,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestURIRuleSet_WithAllowedSchemes tests:
+// - Allowed schemes validation works correctly
 func TestURIRuleSet_WithAllowedSchemes(t *testing.T) {
 	ruleSet := net.URI().WithAllowedSchemes("http", "https").Any()
 

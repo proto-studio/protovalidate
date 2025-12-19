@@ -10,7 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestEmailRuleSet_Apply tests:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestEmailRuleSet_Apply(t *testing.T) {
@@ -42,7 +42,7 @@ func TestEmailRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[string](t, net.Email(), example)
 }
 
-// Requirements:
+// TestEmailRuleSet_Apply_DefaultDomain tests:
 // - Default validator requires a TLD
 // - Unknown TLDs error
 func TestEmailRuleSet_Apply_DefaultDomain(t *testing.T) {
@@ -52,7 +52,7 @@ func TestEmailRuleSet_Apply_DefaultDomain(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "hello@example.bogusbogus", errors.CodePattern)
 }
 
-// Requirements:
+// TestEmailRuleSet_Apply_Split tests:
 // - Errors if there isn't any "@"
 // - Errors if there is more than one "@"
 func TestEmailRuleSet_Apply_Split(t *testing.T) {
@@ -62,7 +62,7 @@ func TestEmailRuleSet_Apply_Split(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "hello@world@example.com", errors.CodePattern)
 }
 
-// Requirements:
+// TestEmailRuleSet_WithRequired tests:
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
@@ -70,6 +70,8 @@ func TestEmailRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, net.Email())
 }
 
+// TestEmailRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
 func TestEmailRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
@@ -116,7 +118,7 @@ func TestEmailRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestEmailRuleSet_WithDomain tests:
 // - Custom domain RuleSet overrides default set.
 func TestEmailRuleSet_WithDomain(t *testing.T) {
 	domainRuleSet := net.Domain().WithSuffix("edu")
@@ -126,7 +128,7 @@ func TestEmailRuleSet_WithDomain(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "hello@example.com", errors.CodePattern)
 }
 
-// Requirements:
+// TestEmailRuleSet_Apply_Type tests:
 // - Errors when input is not a string
 // - errors.CodeType is returned
 func TestEmailRuleSet_Apply_Type(t *testing.T) {
@@ -135,7 +137,7 @@ func TestEmailRuleSet_Apply_Type(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
 
-// Requirements:
+// TestEmailRuleSet_Apply_Dots tests:
 // - No double dots
 // - Can't start with a dot
 // - Can't end with a dot
@@ -148,7 +150,7 @@ func TestEmailRuleSet_Apply_Dots(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "helloworld.@example.com", errors.CodePattern)
 }
 
-// Requirements:
+// TestEmailRuleSet_Apply_EmptyLocal tests:
 // - Errors when the local part is empty
 func TestEmailRuleSet_Apply_EmptyLocal(t *testing.T) {
 	ruleSet := net.Email().Any()
@@ -156,7 +158,7 @@ func TestEmailRuleSet_Apply_EmptyLocal(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "@example.com", errors.CodePattern)
 }
 
-// Requirements:
+// TestEmailRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestEmailRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := net.Email().WithRequired()
@@ -167,7 +169,7 @@ func TestEmailRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestEmailRuleSet_DomainContext tests:
 // - Context is passed to domain
 func TestEmailRuleSet_DomainContext(t *testing.T) {
 	ruleSet := net.Email().Any()
@@ -190,7 +192,7 @@ func TestEmailRuleSet_DomainContext(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestEmailRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestEmailRuleSet_WithNil(t *testing.T) {

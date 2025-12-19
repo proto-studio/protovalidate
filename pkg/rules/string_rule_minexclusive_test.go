@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestStringRuleSet_WithMinExclusive tests:
 func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("b").Any()
 
@@ -25,7 +26,7 @@ func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, "ba")
 }
 
-// Requirements:
+// TestStringRuleSet_WithMinExclusive_Conflict tests:
 // - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
@@ -81,6 +82,7 @@ func TestStringRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	}
 }
 
+// TestStringRuleSet_WithMinExclusive_Lexicographical tests:
 func TestStringRuleSet_WithMinExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("apple").Any()
 

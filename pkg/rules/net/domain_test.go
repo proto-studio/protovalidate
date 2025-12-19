@@ -10,7 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestDomainRuleSet_Apply tests:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
 func TestDomainRuleSet_Apply(t *testing.T) {
@@ -55,7 +55,7 @@ func TestDomainRuleSet_Apply_SegmentLength(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, badLabel+".com", errors.CodePattern)
 }
 
-// Requirements:
+// TestDomainRuleSet_Apply_PunycodeError tests:
 // - Errors when string cannot be encoded as punycode
 func TestDomainRuleSet_Apply_PunycodeError(t *testing.T) {
 	ruleSet := net.Domain().Any()
@@ -65,7 +65,7 @@ func TestDomainRuleSet_Apply_PunycodeError(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodePattern)
 }
 
-// Requirements:
+// TestDomainRuleSet_Apply_Length tests:
 // - Errors when domain is too long
 // - errors.CodeMax is returned
 func TestDomainRuleSet_Apply_Length(t *testing.T) {
@@ -75,7 +75,7 @@ func TestDomainRuleSet_Apply_Length(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodeMax)
 }
 
-// Requirements:
+// TestDomainRuleSet_Apply_Type tests:
 // - Errors when input is not a string
 // - errors.CodeType is returned
 func TestDomainRuleSet_Apply_Type(t *testing.T) {
@@ -84,7 +84,7 @@ func TestDomainRuleSet_Apply_Type(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
 }
 
-// Requirements:
+// TestDomainRuleSet_WithRequired tests:
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
@@ -92,6 +92,7 @@ func TestDomainRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, net.Domain())
 }
 
+// TestDomainRuleSet_WithRuleFunc tests:
 func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
@@ -131,7 +132,7 @@ func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestDomainRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestDomainRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := net.Domain().WithRequired()
@@ -142,7 +143,7 @@ func TestDomainRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestDomainRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestDomainRuleSet_WithNil(t *testing.T) {

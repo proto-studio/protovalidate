@@ -34,12 +34,12 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	json         bool
 }
 
-// Struct returns a RuleSet that can be used to validate an struct of an
+// Struct returns a RuleSet that can be used to validate a struct of an
 // arbitrary type.
 //
-// Using the "validate" annotation you can may input values to different
+// Struct uses the "validate" annotation to map input values to different
 // properties of the object. This is useful for converting unstructured maps
-// created from Json and converting to an object.
+// created from JSON and converting to an object.
 func Struct[T any]() *ObjectRuleSet[T, string, any] {
 	var empty [0]T
 
@@ -142,9 +142,9 @@ func (v *ObjectRuleSet[T, TK, TV]) withParent() *ObjectRuleSet[T, TK, TV] {
 
 // WithUnknown returns a new RuleSet with the "unknown" flag set.
 //
-// By default if the validator fines an unknown key on a map it will return an error.
-// Setting the unknown flag will allow keys that aren't defined to be present in the map.
-// This is useful for parsing arbitrary Json where additional keys may be included.
+// By default if the validator finds an unknown key on a map it will return an error.
+// WithUnknown allows keys that aren't defined to be present in the map.
+// This is useful for parsing arbitrary JSON where additional keys may be included.
 func (v *ObjectRuleSet[T, TK, TV]) WithUnknown() *ObjectRuleSet[T, TK, TV] {
 	if v.allowUnknown {
 		return v
@@ -183,23 +183,23 @@ func (v *ObjectRuleSet[T, TK, TV]) mappingFor(ctx context.Context, key TK) (TK, 
 
 // WithKey returns a new RuleSet with a validation rule for the specified key.
 //
-// If more than one call is made with the same key than all will be evaluated. However, the order
+// If more than one call is made with the same key then all will be evaluated. However, the order
 // in which they are run is not guaranteed.
 //
-// Multiple rule sets may run in parallel but only one will run a time for each key since rule sets
+// Multiple rule sets may run in parallel but only one will run at a time for each key since rule sets
 // can return a mutated value.
 func (v *ObjectRuleSet[T, TK, TV]) WithKey(key TK, ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithConditionalKey(key, nil, ruleSet)
 }
 
 // WithDynamicKey returns a new RuleSet with a validation rule for any key that matches the key rule.
-// Dynamic rules are run even if they match a key that has an already defined rule. Mappings are not applied
-// to dynamic
+// WithDynamicKey runs dynamic rules even if they match a key that has an already defined rule. Mappings are not applied
+// to dynamic keys.
 //
-// If more than one call is made with the same key or overlapping dynamic rules, than all will be evaluated.
+// If more than one call is made with the same key or overlapping dynamic rules, then all will be evaluated.
 // However, the order in which they are run is not guaranteed.
 //
-// Multiple rule sets may run in parallel but only one will run a time for each key since rule sets
+// Multiple rule sets may run in parallel but only one will run at a time for each key since rule sets
 // can return a mutated value. This is true even for constant value keys and other dynamic rules if the
 // patterns overlap.
 //
@@ -379,7 +379,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
 func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 	if v.required {
 		return v
@@ -392,7 +392,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *ObjectRuleSet[T, TK, TV]) WithNil() *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
@@ -689,8 +689,8 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
+// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
+// Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and value is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
@@ -855,7 +855,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 	return nil
 }
 
-// Evaluate performs a validation of a RuleSet against a value of the object type and returns a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a value of the object type and returns a ValidationErrorCollection.
 func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	// Prepare a variable to hold the output after applying the rule set
 	var output T
@@ -865,7 +865,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) 
 	return errs
 }
 
-// WithJson allows the input to be a Json encoded string.
+// WithJson allows the input to be a JSON encoded string.
 func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 	if v.json {
 		return v
@@ -879,8 +879,6 @@ func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
 // for the given object type.
-//
-// Use this when implementing custom
 func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule Rule[T]) *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 	newRuleSet.objRule = rule
@@ -890,13 +888,11 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule Rule[T]) *ObjectRuleSet[T, TK, 
 // WithRuleFunc returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
 // for the given object type.
-//
-// Use this when implementing custom
 func (v *ObjectRuleSet[T, TK, TV]) WithRuleFunc(rule RuleFunc[T]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the object RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the object RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *ObjectRuleSet[T, TK, TV]) Any() RuleSet[any] {
 	return WrapAny[T](v)

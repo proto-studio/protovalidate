@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// PathSegment represents a segment in a validation path.
+// PathSegment can be either a string segment or an index segment.
 type PathSegment interface {
 	Parent() PathSegment
 	String() string
@@ -21,7 +23,7 @@ type pathSegmentIndex struct {
 	segment int
 }
 
-// Parent returns the previous path segment
+// Parent returns the previous path segment.
 func (s *pathSegmentString) Parent() PathSegment {
 	return s.parent
 }
@@ -39,7 +41,7 @@ func (s *pathSegmentString) FullString() string {
 	return "/" + s.String()
 }
 
-// Parent returns the previous path segment
+// Parent returns the previous path segment.
 func (s *pathSegmentIndex) Parent() PathSegment {
 	return s.parent
 }
@@ -59,7 +61,7 @@ func (s *pathSegmentIndex) FullString() string {
 	return s.String()
 }
 
-// WithPathString returns a new Context with the path segment added.
+// WithPathString returns a new context with the path segment added.
 func WithPathString(parent context.Context, value string) context.Context {
 	newPath := &pathSegmentString{
 		segment: value,
@@ -72,7 +74,7 @@ func WithPathString(parent context.Context, value string) context.Context {
 	return context.WithValue(parent, &pathContextKey, newPath)
 }
 
-// WithPathIndex returns a new Context with the path segment index added.
+// WithPathIndex returns a new context with the path segment index added.
 func WithPathIndex(parent context.Context, value int) context.Context {
 	newPath := &pathSegmentIndex{
 		segment: value,
@@ -85,8 +87,8 @@ func WithPathIndex(parent context.Context, value int) context.Context {
 	return context.WithValue(parent, &pathContextKey, newPath)
 }
 
-// Path returns the most recently added path segment, which can then be used to
-// build out the full path.
+// Path returns the most recently added path segment.
+// Path can be used to build out the full path.
 func Path(ctx context.Context) PathSegment {
 	if ctx == nil {
 		return nil

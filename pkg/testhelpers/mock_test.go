@@ -8,6 +8,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestMockRule tests:
+// - Mock rules work correctly with and without errors
 func TestMockRule(t *testing.T) {
 	ctx := context.Background()
 
@@ -37,6 +39,8 @@ func TestMockRule(t *testing.T) {
 	}
 }
 
+// TestMockConflict tests:
+// - Mock rule conflict detection works correctly
 func TestMockConflict(t *testing.T) {
 	mockA := testhelpers.NewMockRule[int]()
 	mockA.ConflictKey = "a"
@@ -62,6 +66,8 @@ func TestMockConflict(t *testing.T) {
 	}
 }
 
+// TestMockString tests:
+// - Mock rule string representation is correct
 func TestMockString(t *testing.T) {
 	str := testhelpers.NewMockRule[int]().String()
 
@@ -70,6 +76,8 @@ func TestMockString(t *testing.T) {
 	}
 }
 
+// TestMockCounter tests:
+// - Mock rule call counter works correctly
 func TestMockCounter(t *testing.T) {
 	mock := testhelpers.NewMockRule[int]()
 	ctx := context.Background()
@@ -98,6 +106,8 @@ func TestMockCounter(t *testing.T) {
 	}
 }
 
+// TestMockRuleSet_Apply tests:
+// - Mock rule set Apply method works correctly
 func TestMockRuleSet_Apply(t *testing.T) {
 	ctx := context.Background()
 

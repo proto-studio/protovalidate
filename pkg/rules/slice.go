@@ -22,7 +22,7 @@ type SliceRuleSet[T any] struct {
 	label     string
 }
 
-// NewInt creates a new array RuleSet.
+// Slice creates a new slice RuleSet.
 func Slice[T any]() *SliceRuleSet[T] {
 	var empty [0]T
 
@@ -37,8 +37,8 @@ func (v *SliceRuleSet[T]) Required() bool {
 }
 
 // WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
-// Required has no effect on integer if the RuleSet is strict since nil is not a valid number.
+// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired has no effect on slices if the RuleSet is strict since nil is not a valid slice.
 func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
 		parent:   v,
@@ -49,7 +49,7 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 }
 
 // WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
+// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
 // By default, WithNil is false.
 func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
@@ -74,8 +74,8 @@ func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T]
 	}
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
+// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
+// Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
@@ -176,8 +176,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	return nil
 }
 
-// Evaluate performs a validation of a RuleSet against a the array/slice type and returns a value of the
-// same type or a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a slice type and returns a ValidationErrorCollection.
 func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
 	var out any
 	return ruleSet.Apply(ctx, value, &out)
@@ -218,9 +217,7 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 
 // WithRule returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the given array and item type.
-//
-// Use this when implementing custom
+// for the given slice and item type.
 func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
 		rule:     rule,
@@ -232,14 +229,12 @@ func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 
 // WithRuleFunc returns a new child rule set with a rule added to the list of
 // rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the given array and item type.
-//
-// Use this when implementing custom
+// for the given slice and item type.
 func (v *SliceRuleSet[T]) WithRuleFunc(rule RuleFunc[[]T]) *SliceRuleSet[T] {
 	return v.WithRule(rule)
 }
 
-// Any returns a new RuleSet that wraps the array RuleSet in any Any rule set
+// Any returns a new RuleSet that wraps the slice RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *SliceRuleSet[T]) Any() RuleSet[any] {
 	return WrapAny[[]T](v)

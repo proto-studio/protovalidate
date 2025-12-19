@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestSlice_MaxLen tests:
 func TestSlice_MaxLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMaxLen(2)
 
@@ -36,7 +37,7 @@ func TestSlice_MaxLen(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSlice_MaxLen_Conflict tests:
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
@@ -80,6 +81,7 @@ func TestSlice_MaxLen_Conflict(t *testing.T) {
 	}
 }
 
+// TestString_WithMaxLen tests:
 func TestString_WithMaxLen(t *testing.T) {
 	ruleSet := rules.String().WithMaxLen(2).Any()
 
@@ -89,7 +91,7 @@ func TestString_WithMaxLen(t *testing.T) {
 
 }
 
-// Requirements:
+// TestString_WithMaxLen_Conflict tests:
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.

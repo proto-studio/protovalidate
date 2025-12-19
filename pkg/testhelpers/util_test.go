@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// MockT is a mock testing.T implementation used for testing test helpers.
 type MockT struct {
 	testing.T
 
@@ -28,6 +29,8 @@ func (t *MockT) Errorf(msg string, params ...any) {
 	t.errorValues = append(t.errorValues, fmt.Sprintf(msg, params...))
 }
 
+// TestMustApply tests:
+// - MustApply correctly validates rule sets
 func TestMustApply(t *testing.T) {
 	ruleSet := rules.Any()
 
@@ -50,6 +53,8 @@ func TestMustApply(t *testing.T) {
 	}
 }
 
+// TestMustApplyFunc tests:
+// - MustApplyFunc correctly validates rule sets with custom check function
 func TestMustApplyFunc(t *testing.T) {
 	ruleSet := rules.Any()
 	callCount := 0
@@ -89,6 +94,8 @@ func TestMustApplyFunc(t *testing.T) {
 	}
 }
 
+// TestMustNotApply tests:
+// - MustNotApply correctly validates that rule sets return errors
 func TestMustNotApply(t *testing.T) {
 	ruleSet := rules.Any().WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
@@ -121,6 +128,8 @@ func TestMustNotApply(t *testing.T) {
 	}
 }
 
+// TestMustApplyMutation tests:
+// - MustApplyMutation correctly validates rule sets with expected output mutations
 func TestMustApplyMutation(t *testing.T) {
 	out := 10
 
@@ -225,6 +234,8 @@ func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.V
 	return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, ""))
 }
 
+// TestMustApplyTypes tests:
+// - MustApplyTypes correctly validates rule sets with type checking
 func TestMustApplyTypes(t *testing.T) {
 
 	// MockRuleSet should pass all type tests by default
@@ -280,6 +291,8 @@ func TestMustApplyTypes(t *testing.T) {
 	}
 }
 
+// TestMustEvaluate tests:
+// - MustEvaluate correctly validates rules
 func TestMustEvaluate(t *testing.T) {
 	rule := testhelpers.NewMockRuleWithErrors[any](1)
 
@@ -301,6 +314,8 @@ func TestMustEvaluate(t *testing.T) {
 	}
 }
 
+// TestMustNotEvaluate tests:
+// - MustNotEvaluate correctly validates that rules return errors
 func TestMustNotEvaluate(t *testing.T) {
 	rule := testhelpers.NewMockRuleWithErrors[any](1)
 

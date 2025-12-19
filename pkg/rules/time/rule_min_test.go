@@ -11,6 +11,8 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMin tests:
+// - Minimum time validation works correctly
 func TestTimeRuleSet_WithMin(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
@@ -24,7 +26,7 @@ func TestTimeRuleSet_WithMin(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, after)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMin_Conflict tests:
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.

@@ -11,6 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestTimeRuleSet_WithMax tests:
 func TestTimeRuleSet_WithMax(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
@@ -23,7 +24,7 @@ func TestTimeRuleSet_WithMax(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMax)
 }
 
-// Requirements:
+// TestTimeRuleSet_WithMax_Conflict tests:
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.

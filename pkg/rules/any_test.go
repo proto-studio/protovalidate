@@ -8,7 +8,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestAnyRuleSet_Apply tests:
 // - Implements the RuleSet interface.
 // - Does not error when default configured.
 // - Returns the value with the correct type.
@@ -25,7 +25,7 @@ func TestAnyRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[any](t, ruleSet, 123)
 }
 
-// Requirements:
+// TestAnyRuleSet_WithForbidden tests:
 // - Sets the required flag when calling WithForbidden.
 // - Returns error when forbidden.
 func TestAnyRuleSet_WithForbidden(t *testing.T) {
@@ -34,14 +34,14 @@ func TestAnyRuleSet_WithForbidden(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeForbidden)
 }
 
-// Requirements:
+// TestAnyRuleSet_WithRequired tests:
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
 func TestAnyRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[any](t, rules.Any())
 }
 
-// Requirements:
+// TestAnyRuleSet_WithRuleFunc tests:
 // - Custom rules are executed.
 // - Custom rules can return errors.
 func TestAnyRuleSet_WithRuleFunc(t *testing.T) {
@@ -73,7 +73,7 @@ func TestAnyRuleSet_Any_ReturnsIdentity(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestAnyRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestAnyRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Any().WithRequired()
@@ -84,7 +84,7 @@ func TestAnyRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestAnyRuleSet_String_WithForbidden tests:
 // - Serializes to WithForbidden()
 func TestAnyRuleSet_String_WithForbidden(t *testing.T) {
 	ruleSet := rules.Any().WithForbidden()
@@ -95,7 +95,7 @@ func TestAnyRuleSet_String_WithForbidden(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestAnyRuleSet_String_WithRuleFunc tests:
 // - Serializes to WithRule(...)
 func TestAnyRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Any().
@@ -107,7 +107,7 @@ func TestAnyRuleSet_String_WithRuleFunc(t *testing.T) {
 	}
 }
 
-// Requirement:
+// TestAnyRuleSet_Composition tests:
 // - RuleSets are usable as Rules for the same type
 func TestAnyRuleSet_Composition(t *testing.T) {
 	innerRuleSet := rules.Any().
@@ -118,7 +118,7 @@ func TestAnyRuleSet_Composition(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeUnknown)
 }
 
-// Requirements:
+// TestAnyRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestAnyRuleSet_WithNil(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestSlice_MinLen tests:
 func TestSlice_MinLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMinLen(2)
 
@@ -36,7 +37,7 @@ func TestSlice_MinLen(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestSlice_MinLen_Conflict tests:
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
@@ -80,6 +81,7 @@ func TestSlice_MinLen_Conflict(t *testing.T) {
 	}
 }
 
+// TestString_WithMinLen tests:
 func TestString_WithMinLen(t *testing.T) {
 	ruleSet := rules.String().WithMinLen(2).Any()
 
@@ -88,7 +90,7 @@ func TestString_WithMinLen(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMin)
 }
 
-// Requirements:
+// TestString_WithMinLen_Conflict tests:
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.

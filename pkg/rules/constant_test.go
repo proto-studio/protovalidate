@@ -8,7 +8,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// Requirements:
+// TestConstantRuleSet_Apply tests:
 // - Implements the RuleSet interface.
 // - Errors when the constant does not match.
 // - Returns the value with the correct type.
@@ -26,14 +26,14 @@ func TestConstantRuleSet_Apply(t *testing.T) {
 	testhelpers.MustApplyTypes[string](t, ruleSet, "abc")
 }
 
-// Requirements:
+// TestConstantRuleSet_Apply_Coerce tests:
 // - Returns a coercion error if the type does not match.
 func TestConstantRuleSet_Apply_Coerce(t *testing.T) {
 	ruleSet := rules.Constant[string]("abc")
 	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
 }
 
-// Requirements:
+// TestConstantRuleSet_WithRequired tests:
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
 // - Value is carried over.
@@ -51,7 +51,7 @@ func TestConstantRuleSet_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestConstantRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
 func TestConstantRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Constant("x").WithRequired()
@@ -62,7 +62,7 @@ func TestConstantRuleSet_String_WithRequired(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestConstantRuleSet_Conflict tests:
 // - Conflict always returns true for ConstantRuleSet.
 func TestConstantRuleSet_Conflict(t *testing.T) {
 	abc := rules.Constant("abc")
@@ -76,7 +76,7 @@ func TestConstantRuleSet_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestConstantRuleSet_WithNil tests:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestConstantRuleSet_WithNil(t *testing.T) {

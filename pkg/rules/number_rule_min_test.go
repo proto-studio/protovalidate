@@ -9,6 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
+// TestIntRuleSet_WithMin tests:
 func TestIntRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Int().WithMin(10).Any()
 
@@ -17,6 +18,7 @@ func TestIntRuleSet_WithMin(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 11)
 }
 
+// TestFloatRuleSet_WithMin tests:
 func TestFloatRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(10.0).Any()
 
@@ -25,7 +27,7 @@ func TestFloatRuleSet_WithMin(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 10.1)
 }
 
-// Requirements:
+// TestIntRuleSet_WithMin_Conflict tests:
 // - Only one min can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
@@ -69,7 +71,7 @@ func TestIntRuleSet_WithMin_Conflict(t *testing.T) {
 	}
 }
 
-// Requirements:
+// TestFloatRuleSet_WithMin_Conflict tests:
 // - Only one min can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
