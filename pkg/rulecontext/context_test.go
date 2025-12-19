@@ -9,6 +9,13 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+// testContextKey is a custom type for test context keys to avoid key collisions.
+type testContextKey string
+
+const (
+	testContextKeyA testContextKey = "keyA"
+)
+
 func TestReturnsPrinter(t *testing.T) {
 	defaultPrinter := rulecontext.Printer(nil)
 	if defaultPrinter == nil {
@@ -24,7 +31,7 @@ func TestReturnsPrinter(t *testing.T) {
 		t.Error("Expected default printer")
 	}
 
-	ctx = context.WithValue(ctx, "keyA", "valA")
+	ctx = context.WithValue(ctx, testContextKeyA, "valA")
 	p = rulecontext.Printer(ctx)
 	if p == nil {
 		t.Error("Expected printer to not be nil")
@@ -40,7 +47,7 @@ func TestReturnsPrinter(t *testing.T) {
 		t.Error("Expected non-default printer")
 	}
 
-	v := ctx.Value("keyA")
+	v := ctx.Value(testContextKeyA)
 	if v == nil {
 		t.Error("Expected keyA to not be nil")
 	} else if v != "valA" {
@@ -70,7 +77,7 @@ func TestReturnsRuleSet(t *testing.T) {
 		t.Error("Expected rule set to be nil")
 	}
 
-	ctx = context.WithValue(ctx, "keyA", "valA")
+	ctx = context.WithValue(ctx, testContextKeyA, "valA")
 	v = rulecontext.RuleSet(ctx)
 	if v != nil {
 		t.Error("Expected rule set to be nil")
@@ -113,7 +120,7 @@ func TestPathRuleSet(t *testing.T) {
 		t.Errorf("Expected path segment to be `%s` got `%s`", segmentA, p.String())
 	}
 
-	ctx = context.WithValue(ctx, "keyA", "valA")
+	ctx = context.WithValue(ctx, testContextKeyA, "valA")
 	p = rulecontext.Path(ctx)
 	if p.String() != segmentA {
 		t.Errorf("Expected path segment to be `%s` got `%s`", segmentA, p.String())

@@ -13,6 +13,22 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// URIContextKey is a custom type for URI context keys to avoid key collisions.
+type URIContextKey string
+
+const (
+	URIContextKeyScheme    URIContextKey = "scheme"
+	URIContextKeyUser      URIContextKey = "user"
+	URIContextKeyPassword  URIContextKey = "password"
+	URIContextKeyUserinfo  URIContextKey = "userinfo"
+	URIContextKeyHost      URIContextKey = "host"
+	URIContextKeyPort      URIContextKey = "port"
+	URIContextKeyAuthority URIContextKey = "authority"
+	URIContextKeyPath      URIContextKey = "path"
+	URIContextKeyQuery     URIContextKey = "query"
+	URIContextKeyFragment  URIContextKey = "fragment"
+)
+
 // Base rule set for all normal string portions of the URI.
 func isHex(c rune) bool {
 	return (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
@@ -305,7 +321,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 
 // evaluateScheme evaluates the scheme portion of the URI and also returns a context with the scheme set.
 func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "scheme", value)
+	newCtx := context.WithValue(ctx, URIContextKeyScheme, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "scheme")
 
 	if value == "" {
@@ -320,7 +336,7 @@ func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (co
 
 // evaluateUser evaluates the user portion of the userinfo in the URI and also returns a context with the user set.
 func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "user", value)
+	newCtx := context.WithValue(ctx, URIContextKeyUser, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "user")
 
 	return newCtx, ruleSet.userRuleSet.Evaluate(subContext, value)
@@ -328,7 +344,7 @@ func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (cont
 
 // evaluatePassword evaluates the password portion of the userinfo in the URI and also returns a context with the password set.
 func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "password", value)
+	newCtx := context.WithValue(ctx, URIContextKeyPassword, value)
 
 	if value == "" && !ruleSet.passwordRuleSet.Required() {
 		return newCtx, nil
@@ -357,7 +373,7 @@ func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (
 		`([:]?)(?P<password>.*)` + // Password
 		`$`
 
-	newCtx := context.WithValue(ctx, "userinfo", value)
+	newCtx := context.WithValue(ctx, URIContextKeyUserinfo, value)
 
 	if value == "" {
 		var verr errors.ValidationErrorCollection
@@ -407,7 +423,7 @@ func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (
 
 // evaluateHost evaluates the host portion of the URI and also returns a context with the host set.
 func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "host", value)
+	newCtx := context.WithValue(ctx, URIContextKeyHost, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "host")
 
 	return newCtx, ruleSet.hostRuleSet.Evaluate(subContext, value)
@@ -415,7 +431,7 @@ func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (cont
 
 // evaluatePort evaluates the port portion of the URI and also returns a context with the port set.
 func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "port", value)
+	newCtx := context.WithValue(ctx, URIContextKeyPort, value)
 
 	if value == "" && !ruleSet.portRuleSet.Required() {
 		return newCtx, nil
@@ -444,7 +460,7 @@ func (ruleSet *URIRuleSet) evaluateAuthorityPart(ctx context.Context, name, valu
 // evaluateAuthority evaluates the authority portion of the URI and also returns a context with the authority, host, port, and userinfo set.
 func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
 	allErrors := errors.Collection()
-	newCtx := context.WithValue(ctx, "authority", value)
+	newCtx := context.WithValue(ctx, URIContextKeyAuthority, value)
 
 	// Authority can be omitted from the URI.
 	// If it is, that means that any required parts that are inside of the authority are missing.
@@ -470,11 +486,11 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 		}
 
 		// These are usually set in evaluateURIPart but we are skipping that
-		newCtx = context.WithValue(newCtx, "userinfo", "")
-		newCtx = context.WithValue(newCtx, "user", "")
-		newCtx = context.WithValue(newCtx, "password", "")
-		newCtx = context.WithValue(newCtx, "host", "")
-		newCtx = context.WithValue(newCtx, "port", "")
+		newCtx = context.WithValue(newCtx, URIContextKeyUserinfo, "")
+		newCtx = context.WithValue(newCtx, URIContextKeyUser, "")
+		newCtx = context.WithValue(newCtx, URIContextKeyPassword, "")
+		newCtx = context.WithValue(newCtx, URIContextKeyHost, "")
+		newCtx = context.WithValue(newCtx, URIContextKeyPort, "")
 		return newCtx, allErrors
 	}
 
@@ -513,7 +529,7 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 
 // evaluatePath evaluates the path portion of the URI and also returns a context with the path set.
 func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "path", value)
+	newCtx := context.WithValue(ctx, URIContextKeyPath, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "path")
 
 	return newCtx, ruleSet.pathRuleSet.Evaluate(subContext, value)
@@ -521,7 +537,7 @@ func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (cont
 
 // evaluateQuery evaluates the fragment portion of the URI and also returns a context with the fragment set.
 func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "query", value)
+	newCtx := context.WithValue(ctx, URIContextKeyQuery, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "query")
 
 	if missing {
@@ -538,7 +554,7 @@ func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, miss
 
 // evaluateFragment evaluates the fragment portion of the URI and also returns a context with the fragment set.
 func (ruleSet *URIRuleSet) evaluateFragment(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
-	newCtx := context.WithValue(ctx, "fragment", value)
+	newCtx := context.WithValue(ctx, URIContextKeyFragment, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "fragment")
 
 	if missing {
