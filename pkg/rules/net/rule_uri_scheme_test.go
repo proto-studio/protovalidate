@@ -8,7 +8,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithAllowedSchemes(t *testing.T) {
+func TestURIRuleSet_WithAllowedSchemes(t *testing.T) {
 	ruleSet := net.URI().WithAllowedSchemes("http", "https").Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "ftp://example.com", errors.CodeNotAllowed)

@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMinExclusiveInt(t *testing.T) {
+func TestIntRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Int().WithMinExclusive(10).Any()
 
 	// 9 is less than 10, should fail
@@ -22,7 +22,7 @@ func TestWithMinExclusiveInt(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 11)
 }
 
-func TestWithMinExclusiveFloat(t *testing.T) {
+func TestFloatRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Float64().WithMinExclusive(10.0).Any()
 
 	// 9.9 is less than 10.0, should fail
@@ -40,7 +40,7 @@ func TestWithMinExclusiveFloat(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
 // - Rule is serialized properly.
-func TestIntMinExclusiveConflict(t *testing.T) {
+func TestIntRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMinExclusive(3).WithMaxExclusive(10)
 
 	var output int
@@ -96,7 +96,7 @@ func TestIntMinExclusiveConflict(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
 // - Rule is serialized properly.
-func TestFloatMinExclusiveConflict(t *testing.T) {
+func TestFloatRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMinExclusive(3.0).WithMaxExclusive(10.0)
 
 	var output float64
@@ -148,7 +148,7 @@ func TestFloatMinExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMin and WithMinExclusive conflict with each other
-func TestIntMinMinExclusiveConflict(t *testing.T) {
+func TestIntRuleSet_WithMin_WithMinExclusiveConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMin(2)
 
 	// Adding WithMinExclusive should conflict and replace WithMin
@@ -176,7 +176,7 @@ func TestIntMinMinExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMinExclusive and WithMin conflict with each other (reverse order)
-func TestIntMinExclusiveMinConflict(t *testing.T) {
+func TestIntRuleSet_WithMinExclusive_WithMinConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMinExclusive(2)
 
 	// Adding WithMin should conflict and replace WithMinExclusive

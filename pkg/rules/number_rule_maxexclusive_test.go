@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMaxExclusiveInt(t *testing.T) {
+func TestIntRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.Int().WithMaxExclusive(10).Any()
 
 	// 9 is less than 10, should pass
@@ -22,7 +22,7 @@ func TestWithMaxExclusiveInt(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
-func TestWithMaxExclusiveFloat(t *testing.T) {
+func TestFloatRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.Float64().WithMaxExclusive(10.0).Any()
 
 	// 9.9 is less than 10.0, should pass
@@ -40,7 +40,7 @@ func TestWithMaxExclusiveFloat(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestIntMaxExclusiveConflict(t *testing.T) {
+func TestIntRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMaxExclusive(10).WithMinExclusive(3)
 
 	var output int
@@ -96,7 +96,7 @@ func TestIntMaxExclusiveConflict(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestFloatMaxExclusiveConflict(t *testing.T) {
+func TestFloatRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMaxExclusive(10.0).WithMinExclusive(3.0)
 
 	var output float64
@@ -148,7 +148,7 @@ func TestFloatMaxExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMax and WithMaxExclusive conflict with each other
-func TestIntMaxMaxExclusiveConflict(t *testing.T) {
+func TestIntRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10)
 
 	// Adding WithMaxExclusive should conflict and replace WithMax
@@ -176,7 +176,7 @@ func TestIntMaxMaxExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMaxExclusive and WithMax conflict with each other (reverse order)
-func TestIntMaxExclusiveMaxConflict(t *testing.T) {
+func TestIntRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	ruleSet := rules.Int().WithMaxExclusive(10)
 
 	// Adding WithMax should conflict and replace WithMaxExclusive

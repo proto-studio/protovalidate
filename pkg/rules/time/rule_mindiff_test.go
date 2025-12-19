@@ -11,7 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMinDiff(t *testing.T) {
+func TestTimeRuleSet_WithMinDiff(t *testing.T) {
 	now := internalTime.Now()
 	before14 := now.Add(-14 * internalTime.Minute)
 	before16 := now.Add(-16 * internalTime.Minute)
@@ -26,7 +26,7 @@ func TestWithMinDiff(t *testing.T) {
 // - Only one min diff can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
-func TestWithMinDiffConflict(t *testing.T) {
+func TestTimeRuleSet_WithMinDiff_Conflict(t *testing.T) {
 	now := internalTime.Now().Add(1 * internalTime.Minute)
 	before := now.Add(-10 * internalTime.Minute)
 

@@ -11,7 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMinTime(t *testing.T) {
+func TestTimeRuleSet_WithMin(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
@@ -28,7 +28,7 @@ func TestWithMinTime(t *testing.T) {
 // - Only one min length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
-func TestWithMinConflict(t *testing.T) {
+func TestTimeRuleSet_WithMin_Conflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)

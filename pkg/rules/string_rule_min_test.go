@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestString_WithMin(t *testing.T) {
+func TestStringRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.String().WithMin("b").Any()
 
 	// "a" is lexicographically less than "b", should fail
@@ -30,7 +30,7 @@ func TestString_WithMin(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 // - Rule is serialized properly.
-func TestString_MinConflict(t *testing.T) {
+func TestStringRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMin("c").WithMax("z")
 
 	var output string
@@ -69,7 +69,7 @@ func TestString_MinConflict(t *testing.T) {
 	}
 }
 
-func TestString_WithMin_Lexicographical(t *testing.T) {
+func TestStringRuleSet_WithMin_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMin("apple").Any()
 
 	// "ap" is lexicographically less than "apple"
@@ -85,7 +85,7 @@ func TestString_WithMin_Lexicographical(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, "banana")
 }
 
-func TestString_WithMin_Truncation(t *testing.T) {
+func TestStringRuleSet_WithMin_Truncation(t *testing.T) {
 	// Create a very long string (longer than 50 characters)
 	longString := "a"
 	for i := 0; i < 100; i++ {

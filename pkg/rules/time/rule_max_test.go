@@ -11,7 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMaxTime(t *testing.T) {
+func TestTimeRuleSet_WithMax(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
@@ -27,7 +27,7 @@ func TestWithMaxTime(t *testing.T) {
 // - Only one max length can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
-func TestWithMaxConflict(t *testing.T) {
+func TestTimeRuleSet_WithMax_Conflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)

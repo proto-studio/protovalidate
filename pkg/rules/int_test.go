@@ -10,7 +10,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestIntRuleSet(t *testing.T) {
+func TestIntRuleSet_Apply(t *testing.T) {
 	var intval int
 	err := rules.Int().Apply(context.Background(), 123, &intval)
 
@@ -33,7 +33,7 @@ func TestIntRuleSet(t *testing.T) {
 	testhelpers.MustApplyTypes[int](t, rules.Int(), 123)
 }
 
-func TestIntStrictError(t *testing.T) {
+func TestIntRuleSet_Apply_StrictError(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
 
@@ -57,19 +57,19 @@ func tryIntCoercion(t *testing.T, val interface{}, expected int) {
 	}
 }
 
-func TestIntCoercionFromString(t *testing.T) {
+func TestIntRuleSet_Apply_CoerceFromString(t *testing.T) {
 	tryIntCoercion(t, "123", 123)
 }
 
-func TestIntCoercionFromFloat(t *testing.T) {
+func TestIntRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryIntCoercion(t, float32(123.0), 123)
 }
 
-func TestIntCoercionFromInt64(t *testing.T) {
+func TestIntRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryIntCoercion(t, float64(123.0), 123)
 }
 
-func TestIntCoercionFromHex(t *testing.T) {
+func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 	expected := 0xBEEF
 	var actual int
 	err := rules.Int().WithBase(16).Apply(context.Background(), "BeEf", &actual)
@@ -92,7 +92,7 @@ func TestIntCoercionFromHex(t *testing.T) {
 	}
 }
 
-func TestIntCoercionFromFloatWithError(t *testing.T) {
+func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 	var out int
 	err := rules.Int().Apply(context.Background(), 1.000001, &out)
 
@@ -102,11 +102,11 @@ func TestIntCoercionFromFloatWithError(t *testing.T) {
 	}
 }
 
-func TestIntRequired(t *testing.T) {
+func TestIntRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[int](t, rules.Int())
 }
 
-func TestIntCustom(t *testing.T) {
+func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 	var out int
 	err := rules.Int().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[int](1).Function()).
@@ -133,7 +133,7 @@ func TestIntCustom(t *testing.T) {
 	}
 }
 
-func TestAnyInt(t *testing.T) {
+func TestIntRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Int().Any()
 
 	if ruleSet == nil {
@@ -145,7 +145,7 @@ func TestAnyInt(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestIntRequiredString(t *testing.T) {
+func TestIntRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Int().WithRequired()
 
 	expected := "IntRuleSet[int].WithRequired()"
@@ -156,7 +156,7 @@ func TestIntRequiredString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithStrict()
-func TestIntStrictString(t *testing.T) {
+func TestIntRuleSet_String_WithStrict(t *testing.T) {
 	ruleSet := rules.Int().WithStrict()
 
 	expected := "IntRuleSet[int].WithStrict()"
@@ -167,7 +167,7 @@ func TestIntStrictString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithBase(16)
-func TestIntBaseString(t *testing.T) {
+func TestIntRuleSet_String_WithBase(t *testing.T) {
 	ruleSet := rules.Int().WithBase(16)
 
 	expected := "IntRuleSet[int].WithBase(16)"
@@ -178,7 +178,7 @@ func TestIntBaseString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRounding(...)
-func TestIntRoundingString(t *testing.T) {
+func TestIntRuleSet_String_WithRounding(t *testing.T) {
 	ruleSet := rules.Int().WithRounding(rules.RoundingHalfEven)
 
 	expected := "IntRuleSet[int].WithRounding(HalfEven)"
@@ -189,13 +189,13 @@ func TestIntRoundingString(t *testing.T) {
 
 // Requirements:
 // - Evaluate behaves like Apply.
-func TestInt_Evaluate(t *testing.T) {
+func TestIntRuleSet_Evaluate(t *testing.T) {
 	ruleSet := rules.Int().WithMin(5)
 	testhelpers.MustEvaluate[int](t, ruleSet, 10)
 	testhelpers.MustNotEvaluate[int](t, ruleSet, 1, errors.CodeMin)
 }
 
-func TestIntVariantTypes(t *testing.T) {
+func TestIntRuleSet_Apply_VariantTypes(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  rules.RuleSet[any]
@@ -240,6 +240,6 @@ func TestIntVariantTypes(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestIntWithNil(t *testing.T) {
+func TestIntRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[int](t, rules.Int())
 }

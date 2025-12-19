@@ -8,7 +8,7 @@ import (
 )
 
 // Test that WithMin and WithMinExclusive conflict with each other
-func TestString_MinMoreConflict(t *testing.T) {
+func TestStringRuleSet_WithMin_WithMinExclusiveConflict(t *testing.T) {
 	ruleSet := rules.String().WithMin("b")
 
 	// Adding WithMinExclusive should conflict and replace WithMin
@@ -36,7 +36,7 @@ func TestString_MinMoreConflict(t *testing.T) {
 }
 
 // Test that WithMax and WithMaxExclusive conflict with each other
-func TestString_MaxLessConflict(t *testing.T) {
+func TestStringRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	ruleSet := rules.String().WithMax("y")
 
 	// Adding WithMaxExclusive should conflict and replace WithMax
@@ -64,7 +64,7 @@ func TestString_MaxLessConflict(t *testing.T) {
 }
 
 // Test that WithMinExclusive and WithMin conflict with each other (reverse order)
-func TestString_MoreMinConflict(t *testing.T) {
+func TestStringRuleSet_WithMinExclusive_WithMinConflict(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("b")
 
 	// Adding WithMin should conflict and replace WithMinExclusive
@@ -92,7 +92,7 @@ func TestString_MoreMinConflict(t *testing.T) {
 }
 
 // Test that WithMaxExclusive and WithMax conflict with each other (reverse order)
-func TestString_LessMaxConflict(t *testing.T) {
+func TestStringRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("y")
 
 	// Adding WithMax should conflict and replace WithMaxExclusive

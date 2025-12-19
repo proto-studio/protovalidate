@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestString_WithMaxExclusive(t *testing.T) {
+func TestStringRuleSet_WithMaxExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("y").Any()
 
 	// "x" is lexicographically less than "y", should pass
@@ -30,7 +30,7 @@ func TestString_WithMaxExclusive(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
 // - Rule is serialized properly.
-func TestString_MaxExclusiveConflict(t *testing.T) {
+func TestStringRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("z").WithMinExclusive("a")
 
 	var output string
@@ -81,7 +81,7 @@ func TestString_MaxExclusiveConflict(t *testing.T) {
 	}
 }
 
-func TestString_WithMaxExclusive_Lexicographical(t *testing.T) {
+func TestStringRuleSet_WithMaxExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMaxExclusive("banana").Any()
 
 	// "apple" is lexicographically less, should pass

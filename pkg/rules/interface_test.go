@@ -30,7 +30,7 @@ func (x MyTestImplStr) Test() int { return len(x) }
 // - Does not error when default configured.
 // - Returns the value with the correct type.
 // - Errors if input cannot be implicitly cast to the interface.
-func TestInterfaceRuleSet(t *testing.T) {
+func TestInterfaceRuleSet_Apply(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]()
 
 	ok := testhelpers.CheckRuleSetInterface[MyTestInterface](ruleSet)
@@ -47,7 +47,7 @@ func TestInterfaceRuleSet(t *testing.T) {
 // Requirements:
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
-func TestInterfaceRequired(t *testing.T) {
+func TestInterfaceRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[MyTestInterface](t, rules.Interface[MyTestInterface]())
 
 	// Test idempotency
@@ -60,7 +60,7 @@ func TestInterfaceRequired(t *testing.T) {
 // Requirements:
 // - Custom rules are executed.
 // - Custom rules can return errors.
-func TestInterfaceCustom(t *testing.T) {
+func TestInterfaceRuleSet_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[MyTestInterface](1).Function())
 
@@ -80,7 +80,7 @@ func TestInterfaceCustom(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestInterfaceRequiredString(t *testing.T) {
+func TestInterfaceRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().WithRequired()
 
 	expected := "InterfaceRuleSet[MyTestInterface].WithRequired()"
@@ -91,7 +91,7 @@ func TestInterfaceRequiredString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRule(...)
-func TestInterfaceRuleString(t *testing.T) {
+func TestInterfaceRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[MyTestInterface](1).Function())
 
@@ -103,7 +103,7 @@ func TestInterfaceRuleString(t *testing.T) {
 
 // Requirement:
 // - RuleSets are usable as Rules for the same type
-func TestInterfaceComposition(t *testing.T) {
+func TestInterfaceRuleSet_Composition(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
 		WithRule(testhelpers.NewMockRuleWithErrors[MyTestInterface](1))
 
@@ -115,7 +115,7 @@ func TestInterfaceComposition(t *testing.T) {
 // Requirement:
 // - Cast functions work.
 // - Cast functions can stack.
-func TestInterfaceWithCast(t *testing.T) {
+func TestInterfaceRuleSet_WithCast(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]()
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
@@ -156,6 +156,6 @@ func TestInterfaceWithCast(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestInterfaceWithNil(t *testing.T) {
+func TestInterfaceRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[MyTestInterface](t, rules.Interface[MyTestInterface]())
 }

@@ -14,7 +14,7 @@ import (
 // - Domains using other suffixes fail.
 // - Domains using partial suffixes fail.
 // - Domains with no "plus one" fail.
-func TestDomainWithSuffix(t *testing.T) {
+func TestDomainRuleSet_WithSuffix(t *testing.T) {
 	ruleSet := net.Domain().WithSuffix("test", "dev.local").Any()
 
 	testhelpers.MustApply(t, ruleSet, "example.test")
@@ -27,7 +27,7 @@ func TestDomainWithSuffix(t *testing.T) {
 // - Domains with a standard TLD pass.
 // - Domains using a non-standard TLD do not pass.
 // - Domains with no "plus one" fail.
-func TestDomainWithTLD(t *testing.T) {
+func TestDomainRuleSet_WithTLD(t *testing.T) {
 	ruleSet := net.Domain().WithTLD().Any()
 
 	testhelpers.MustApply(t, ruleSet, "example.com")
@@ -37,7 +37,7 @@ func TestDomainWithTLD(t *testing.T) {
 
 // Requirements:
 // - Panics when string cannot be encoded as punycode
-func TestSuffixPunycodeError(t *testing.T) {
+func TestDomainRuleSet_WithSuffix_PunycodeError(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Expected panic")
@@ -56,7 +56,7 @@ func TestSuffixPunycodeError(t *testing.T) {
 // - Suffix values are quoted.
 // - If there are more than 3, the test " ... and X more" is used.
 // - Suffix values are normalized.
-func TestLayoutsSerialize(t *testing.T) {
+func TestDomainRuleSet_String_WithSuffix(t *testing.T) {
 	values := []string{
 		"studio",
 		"com",

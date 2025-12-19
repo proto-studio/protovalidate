@@ -11,7 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMinExclusiveTime(t *testing.T) {
+func TestTimeRuleSet_WithMinExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
@@ -32,7 +32,7 @@ func TestWithMinExclusiveTime(t *testing.T) {
 // - Only one WithMinExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
-func TestWithMinExclusiveConflict(t *testing.T) {
+func TestTimeRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)
@@ -90,7 +90,7 @@ func TestWithMinExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMin and WithMinExclusive conflict with each other
-func TestMinMinExclusiveConflict(t *testing.T) {
+func TestTimeRuleSet_WithMin_WithMinExclusiveConflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 
@@ -121,7 +121,7 @@ func TestMinMinExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMinExclusive and WithMin conflict with each other (reverse order)
-func TestMinExclusiveMinConflict(t *testing.T) {
+func TestTimeRuleSet_WithMinExclusive_WithMinConflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 

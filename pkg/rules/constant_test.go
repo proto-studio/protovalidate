@@ -12,7 +12,7 @@ import (
 // - Implements the RuleSet interface.
 // - Errors when the constant does not match.
 // - Returns the value with the correct type.
-func TestConstantRuleSet(t *testing.T) {
+func TestConstantRuleSet_Apply(t *testing.T) {
 	ruleSet := rules.Constant[string]("abc")
 
 	ok := testhelpers.CheckRuleSetInterface[string](ruleSet)
@@ -28,7 +28,7 @@ func TestConstantRuleSet(t *testing.T) {
 
 // Requirements:
 // - Returns a coercion error if the type does not match.
-func TestConstantCoerce(t *testing.T) {
+func TestConstantRuleSet_Apply_Coerce(t *testing.T) {
 	ruleSet := rules.Constant[string]("abc")
 	testhelpers.MustNotApply(t, ruleSet.Any(), 123, errors.CodeType)
 }
@@ -38,7 +38,7 @@ func TestConstantCoerce(t *testing.T) {
 // - Calling WithRequired sets the required flag.
 // - Value is carried over.
 // - Returns identity if called more than once.
-func TestConstantRequired(t *testing.T) {
+func TestConstantRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, rules.Constant("abc"))
 
 	// Test value is carried over and idempotency
@@ -53,7 +53,7 @@ func TestConstantRequired(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestConstantRequiredString(t *testing.T) {
+func TestConstantRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Constant("x").WithRequired()
 
 	expected := `ConstantRuleSet(x).WithRequired()`
@@ -79,6 +79,6 @@ func TestConstantRuleSet_Conflict(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestConstantWithNil(t *testing.T) {
+func TestConstantRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, rules.Constant[string]("abc"))
 }

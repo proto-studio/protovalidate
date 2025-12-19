@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMinInt(t *testing.T) {
+func TestIntRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Int().WithMin(10).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMin)
@@ -17,7 +17,7 @@ func TestWithMinInt(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 11)
 }
 
-func TestWithMinFloat(t *testing.T) {
+func TestFloatRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(10.0).Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMin)
@@ -30,7 +30,7 @@ func TestWithMinFloat(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 // - Rule is serialized properly.
-func TestIntMinConflict(t *testing.T) {
+func TestIntRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMin(3).WithMax(10)
 
 	var output int
@@ -74,7 +74,7 @@ func TestIntMinConflict(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent minimum is used.
 // - Rule is serialized properly.
-func TestFloatMinConflict(t *testing.T) {
+func TestFloatRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(3.0).WithMax(10.0)
 
 	var output float64

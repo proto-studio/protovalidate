@@ -12,7 +12,7 @@ import (
 // Requirements:
 // - Executes valid regular expression provided as string
 // - Returns the user supplied error
-func TestRegexString(t *testing.T) {
+func TestStringRuleSet_WithRegexpString(t *testing.T) {
 	errStr := "test error"
 	ruleSet := rules.String().WithRegexpString("^[a-z]+$", errStr).Any()
 
@@ -26,7 +26,7 @@ func TestRegexString(t *testing.T) {
 
 // Requirements:
 // - Panics on invalid regexp string
-func TestInvalidRegex(t *testing.T) {
+func TestStringRuleSet_WithRegexpString_Invalid(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Expected panic")
@@ -39,7 +39,7 @@ func TestInvalidRegex(t *testing.T) {
 // Requirements:
 // - Executes valid regular expression provided as string
 // - Returns the user supplied error
-func TestRegex(t *testing.T) {
+func TestStringRuleSet_WithRegexp(t *testing.T) {
 	errStr := "test error"
 	exp := regexp.MustCompile("^[a-z]+$")
 	ruleSet := rules.String().WithRegexp(exp, errStr).Any()
@@ -54,7 +54,7 @@ func TestRegex(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRegex(...)
-func TestRegexStringSerialize(t *testing.T) {
+func TestStringRuleSet_String_WithRegexp(t *testing.T) {
 	ruleSet := rules.String().WithRegexpString("[a-z]", "").WithRegexpString("[0-9]", "")
 
 	expected := "StringRuleSet.WithRegexp([a-z]).WithRegexp([0-9])"

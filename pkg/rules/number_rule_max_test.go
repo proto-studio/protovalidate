@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMaxInt(t *testing.T) {
+func TestIntRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10).Any()
 
 	testhelpers.MustApply(t, ruleSet, 9)
@@ -17,7 +17,7 @@ func TestWithMaxInt(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
 }
 
-func TestWithMaxFloat(t *testing.T) {
+func TestFloatRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Float64().WithMax(10.0).Any()
 
 	testhelpers.MustApply(t, ruleSet, 9.9)
@@ -30,7 +30,7 @@ func TestWithMaxFloat(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
 // - Rule is serialized properly.
-func TestIntMaxConflict(t *testing.T) {
+func TestIntRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10).WithMin(3)
 
 	var output int
@@ -74,7 +74,7 @@ func TestIntMaxConflict(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent maximum is used.
 // - Rule is serialized properly.
-func TestFloatMaxConflict(t *testing.T) {
+func TestFloatRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMax(10.0).WithMin(3.0)
 
 	var output float64
