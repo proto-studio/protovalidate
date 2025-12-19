@@ -10,6 +10,9 @@ import (
 )
 
 // TestStringRuleSet_WithMin tests:
+// - Strings less than minimum fail validation
+// - Strings equal to minimum pass validation
+// - Strings greater than minimum pass validation
 func TestStringRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.String().WithMin("b").Any()
 
@@ -71,6 +74,7 @@ func TestStringRuleSet_WithMin_Conflict(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMin_Lexicographical tests:
+// - Uses lexicographical comparison for string minimum
 func TestStringRuleSet_WithMin_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMin("apple").Any()
 
@@ -88,6 +92,7 @@ func TestStringRuleSet_WithMin_Lexicographical(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMin_Truncation tests:
+// - Error messages truncate long minimum strings
 func TestStringRuleSet_WithMin_Truncation(t *testing.T) {
 	// Create a very long string (longer than 50 characters)
 	longString := "a"

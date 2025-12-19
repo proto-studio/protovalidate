@@ -10,6 +10,9 @@ import (
 )
 
 // TestStringRuleSet_WithMinExclusive tests:
+// - Strings less than minimum fail validation
+// - Strings equal to minimum fail validation (exclusive)
+// - Strings greater than minimum pass validation
 func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("b").Any()
 
@@ -83,6 +86,7 @@ func TestStringRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 }
 
 // TestStringRuleSet_WithMinExclusive_Lexicographical tests:
+// - Uses lexicographical comparison for string minimum exclusive
 func TestStringRuleSet_WithMinExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("apple").Any()
 

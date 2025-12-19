@@ -12,6 +12,9 @@ import (
 )
 
 // TestTimeRuleSet_WithMaxExclusive tests:
+// - Times before the maximum pass validation
+// - Times equal to the maximum fail validation (exclusive)
+// - Times after the maximum fail validation
 func TestTimeRuleSet_WithMaxExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)

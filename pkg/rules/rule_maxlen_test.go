@@ -10,6 +10,9 @@ import (
 )
 
 // TestSlice_MaxLen tests:
+// - Slices under maximum length pass validation
+// - Slices at maximum length pass validation
+// - Slices over maximum length fail validation
 func TestSlice_MaxLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMaxLen(2)
 
@@ -82,6 +85,9 @@ func TestSlice_MaxLen_Conflict(t *testing.T) {
 }
 
 // TestString_WithMaxLen tests:
+// - Strings under maximum length pass validation
+// - Strings at maximum length pass validation
+// - Strings over maximum length fail validation
 func TestString_WithMaxLen(t *testing.T) {
 	ruleSet := rules.String().WithMaxLen(2).Any()
 

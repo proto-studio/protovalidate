@@ -10,6 +10,9 @@ import (
 )
 
 // TestIntRuleSet_WithMax tests:
+// - Integers less than maximum pass validation
+// - Integers equal to maximum pass validation
+// - Integers greater than maximum fail validation
 func TestIntRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10).Any()
 
@@ -19,6 +22,9 @@ func TestIntRuleSet_WithMax(t *testing.T) {
 }
 
 // TestFloatRuleSet_WithMax tests:
+// - Floats less than maximum pass validation
+// - Floats equal to maximum pass validation
+// - Floats greater than maximum fail validation
 func TestFloatRuleSet_WithMax(t *testing.T) {
 	ruleSet := rules.Float64().WithMax(10.0).Any()
 

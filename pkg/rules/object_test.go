@@ -76,6 +76,10 @@ func TestObjectRuleSet(t *testing.T) {
 }
 
 // TestObjectOutput_Apply tests:
+// - Correctly applies validation to object output
+// - Preserves existing field values
+// - Works with pointer and non-pointer outputs
+// - Works with any interface outputs
 func TestObjectOutput_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
@@ -186,6 +190,10 @@ func TestObjectOutput_Apply(t *testing.T) {
 }
 
 // TestObjectOutputPointer_Apply tests:
+// - Correctly applies validation to pointer object output
+// - Works with double pointer outputs
+// - Works with any interface outputs
+// - Returns error for incorrect output types
 func TestObjectOutputPointer_Apply(t *testing.T) {
 	type outStruct struct {
 		Name string
@@ -263,6 +271,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 }
 
 // TestObjectFromMapToMap tests:
+// - Correctly validates and converts map to map
 func TestObjectFromMapToMap(t *testing.T) {
 	in := testMap()
 
@@ -297,6 +306,7 @@ func TestObjectFromMapToMap(t *testing.T) {
 }
 
 // TestObjectFromMapToStruct tests:
+// - Correctly validates and converts map to struct
 func TestObjectFromMapToStruct(t *testing.T) {
 	in := testMap()
 
@@ -331,6 +341,7 @@ func TestObjectFromMapToStruct(t *testing.T) {
 }
 
 // TestObjectFromStructToMap tests:
+// - Correctly validates and converts struct to map
 func TestObjectFromStructToMap(t *testing.T) {
 	in := testStructInit()
 	in.X = 10
@@ -367,6 +378,7 @@ func TestObjectFromStructToMap(t *testing.T) {
 }
 
 // TestObjectFromStructToStruct tests:
+// - Correctly validates and converts struct to struct
 func TestObjectFromStructToStruct(t *testing.T) {
 	in := testStructInit()
 	in.X = 10
@@ -403,6 +415,7 @@ func TestObjectFromStructToStruct(t *testing.T) {
 }
 
 // TestPanicWhenOutputNotObjectLike tests:
+// - Panics when output type is not object-like
 func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -414,6 +427,7 @@ func TestPanicWhenOutputNotObjectLike(t *testing.T) {
 }
 
 // TestPanicWhenAssigningRuleSetToMissingField tests:
+// - Panics when trying to assign rule set to a missing field
 func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 	defer func() {
 		err, ok := recover().(error)
@@ -428,8 +442,9 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 	rules.Struct[*testStruct]().WithKey("a", rules.String().Any())
 }
 
-// This function is deprecated and will be removed in v1.0.0.
-// Until then, make sure it still works.
+// TestKeyFunction tests:
+// - Deprecated Key function still works correctly
+// - This function is deprecated and will be removed in v1.0.0
 func TestKeyFunction(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStructMapped
@@ -467,6 +482,7 @@ func TestKeyFunction(t *testing.T) {
 }
 
 // TestObjectMapping tests:
+// - Field mappings work correctly
 func TestObjectMapping(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStructMapped
@@ -504,6 +520,7 @@ func TestObjectMapping(t *testing.T) {
 }
 
 // TestMissingField tests:
+// - Missing optional fields do not cause errors
 func TestMissingField(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]int
@@ -574,6 +591,7 @@ func TestUnderlyingMapField(t *testing.T) {
 }
 
 // TestMissingRequiredField tests:
+// - Missing required fields cause errors
 func TestMissingRequiredField(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]int
@@ -590,11 +608,14 @@ func TestMissingRequiredField(t *testing.T) {
 }
 
 // TestObjectWithRequired tests:
+// - WithRequired is correctly implemented for objects
 func TestObjectWithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[map[string]int](t, rules.StringMap[int]())
 }
 
 // TestUnknownFields tests:
+// - Unknown fields cause errors by default
+// - Unknown fields are allowed when WithUnknown is set
 func TestUnknownFields(t *testing.T) {
 	ruleSet := rules.StringMap[int]().WithKey("A", rules.Int())
 	value := map[string]any{"A": 123, "C": 456}
@@ -606,6 +627,7 @@ func TestUnknownFields(t *testing.T) {
 }
 
 // TestInputNotObjectLike tests:
+// - Returns error when input is not an object or map
 func TestInputNotObjectLike(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStruct
@@ -619,6 +641,7 @@ func TestInputNotObjectLike(t *testing.T) {
 }
 
 // TestReturnsAllErrors tests:
+// - Returns all validation errors, not just the first one
 func TestReturnsAllErrors(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]any
@@ -638,6 +661,7 @@ func TestReturnsAllErrors(t *testing.T) {
 }
 
 // TestObjectReturnsCorrectPaths tests:
+// - Error paths correctly reflect nested object structure
 func TestObjectReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myobj")
 
@@ -678,6 +702,7 @@ func TestObjectReturnsCorrectPaths(t *testing.T) {
 }
 
 // TestMixedMap tests:
+// - Handles maps with mixed value types
 func TestMixedMap(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out map[string]any
@@ -696,6 +721,8 @@ func TestMixedMap(t *testing.T) {
 }
 
 // TestObjectCustom tests:
+// - Custom rule functions are executed
+// - Multiple custom rules are all executed
 func TestObjectCustom(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[*testStruct](1)
 
@@ -721,6 +748,7 @@ func TestObjectCustom(t *testing.T) {
 }
 
 // TestObjectAny tests:
+// - Any returns a RuleSet[any] implementation
 func TestObjectAny(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 
@@ -730,6 +758,7 @@ func TestObjectAny(t *testing.T) {
 }
 
 // TestPointer tests:
+// - Handles pointer fields correctly
 func TestPointer(t *testing.T) {
 	// W is a pointer to an int
 	ruleSet := rules.Struct[*testStruct]().WithKey("W", rules.Int().Any())
@@ -869,10 +898,10 @@ func TestMultipleRules(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet, &testStruct{X: 5}, errors.CodeMax)
 }
 
-// Requirement:
-// This test is specifically for a timeout while performing an object rule (as opposed to a key rule)
+// TestTimeoutInObjectRule tests:
 // - RuleSet times out if context does
 // - Timeout error is returned
+// - This test is specifically for a timeout while performing an object rule (as opposed to a key rule)
 func TestTimeoutInObjectRule(t *testing.T) {
 	// Set up a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -901,10 +930,10 @@ func TestTimeoutInObjectRule(t *testing.T) {
 	}
 }
 
-// Requirement:
-// This test is specifically for a timeout while performing an key rule (as opposed to an object rule)
+// TestTimeoutInKeyRule tests:
 // - RuleSet times out if context does
 // - Timeout error is returned
+// - This test is specifically for a timeout while performing a key rule (as opposed to an object rule)
 func TestTimeoutInKeyRule(t *testing.T) {
 	// Set up a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -1193,14 +1222,12 @@ func TestConditionalKeyVisited(t *testing.T) {
 		WithConditionalKey("A", condC, rules.Int())
 }
 
-// Requirements:
-// - When an object that is already the right type is passed in, it is validated.
-// - 1:1 mapped keys works.
-// - Mapped keys still work even if the struct property is different.
+// TestStructRightType tests:
+// - When an object that is already the right type is passed in, it is validated
+// - 1:1 mapped keys work
+// - Mapped keys still work even if the struct property is different
 // - Works with the input being both the struct and a pointer to the struct
-//
-// C is mapped to B on input so a rule on C should act on B.
-// The actual value of C should be ignored.
+// - C is mapped to B on input so a rule on C should act on B
 func TestStructRightType(t *testing.T) {
 	ruleSet := rules.Struct[*testStructMapped]().
 		WithKey("A", rules.Int().WithMin(4).Any()).
@@ -1238,11 +1265,9 @@ func TestStructRightType(t *testing.T) {
 	testhelpers.MustApplyFunc(t, ruleSet.Any(), *in, in, check)
 }
 
-// Requirements:
+// TestNestedPointer tests:
 // - Will assign nested pointer structs to pointers
-//
-// Fixes issue:
-// **rules_test.testStructMapped is not assignable to type *rules_test.testStruct
+// - Fixes issue: **rules_test.testStructMapped is not assignable to type *rules_test.testStruct
 func TestNestedPointer(t *testing.T) {
 
 	type target struct {
@@ -1809,11 +1834,9 @@ func TestDynamicKeyWithBucket(t *testing.T) {
 	}
 }
 
-// Requirements:
-// - Static keys are not added to buckets.
-//
-// NOTE: This is UNDEFINED behavior. Rule writers should avoid having dynamic keys overlap with static keys.
-// The purpose of this test is just to let us know if this behavior unintentionally changes.
+// TestStaticKeyWithBucket tests:
+// - Static keys are not added to buckets
+// - NOTE: This is UNDEFINED behavior. Rule writers should avoid having dynamic keys overlap with static keys
 func TestStaticKeyWithBucket(t *testing.T) {
 	keyRule := rules.String().WithRegexp(regexp.MustCompile("^__"), "")
 
@@ -1855,16 +1878,9 @@ func TestStaticKeyWithBucket(t *testing.T) {
 // Two unconditional rule sets act on key "__abc". One is dynamic and the other is static. There is an additional
 // static conditional rule set that depends on "__abc". The conditional rule should not run until both the dynamic
 // and static unconditional rules run.
-// Requirements:
-// - Conditional rules are not run until after any dynamic keys that affect the keys they are dependent on.
-//
-// The order of this test depends heavily on weather WithDynamicKey or WithConditionalKey grab the lock first on the
-// __xyz key (as of v0.3) of for now we are just checking to make sure the __abc rules run first and it's impossible to
-// check that conditional rule does not block the __xyz rule without creating a race condition where the test sometimes
-// fails.
-//
-// This test triggered a bug with reference counting and the initial dynamic key code. It is important that the dynamic
-// key matches more than one input key to continue to test the reference bug.
+// TestDynamicKeyAsConditionalDependency tests:
+// - Conditional rules are not run until after any dynamic keys that affect the keys they are dependent on
+// - This test triggered a bug with reference counting and the initial dynamic key code
 func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 	var callCount int32 = 0
 
@@ -1894,9 +1910,9 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 	testhelpers.MustApplyAny(t, ruleSet.Any(), `{"__abc": "abc", "__xyz": "xyz"}`)
 }
 
-// Requirements:
-// - Ref tracker should panic if you try to use a dynamic key in a conditional.
-// In the future we may change this behavior but for now it would complicate the code to much.
+// TestDynamicKeyAsDependentConditional tests:
+// - Ref tracker should panic if you try to use a dynamic key in a conditional
+// - In the future we may change this behavior but for now it would complicate the code too much
 func TestDynamicKeyAsDependentConditional(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -1910,7 +1926,8 @@ func TestDynamicKeyAsDependentConditional(t *testing.T) {
 		WithConditionalKey("__xyz", rules.StringMap[any]().WithUnknown().WithDynamicKey(keyRule, rules.Any()), rules.Any())
 }
 
-// Bug: Passing a non-string into a Rule Set that supports Json deserialization results in empty output.
+// TestJsonEmptyOutputBug tests:
+// - Bug: Passing a non-string into a Rule Set that supports JSON deserialization results in empty output
 func TestJsonEmptyOutputBug(t *testing.T) {
 	jsonIn := `{"Name":"Abc"}`
 	mapIn := map[string]any{"Name": "Abc"}
@@ -1945,11 +1962,9 @@ func TestJsonEmptyOutputBug(t *testing.T) {
 	}
 }
 
-// Requirement:
-// - url.Values can be passed to object validator as input.
-//
-// This should always work because url.Values is simply a map[string] []string but this test
-// serves as an example and also to guard against regressions.
+// TestQueryStringInput tests:
+// - url.Values can be passed to object validator as input
+// - This should always work because url.Values is simply a map[string][]string but this test serves as an example and also to guard against regressions
 func TestQueryStringInput(t *testing.T) {
 	qs := "abc=123&xyz=789"
 	parsed, err := url.ParseQuery(qs)

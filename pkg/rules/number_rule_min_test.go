@@ -10,6 +10,9 @@ import (
 )
 
 // TestIntRuleSet_WithMin tests:
+// - Integers less than minimum fail validation
+// - Integers equal to minimum pass validation
+// - Integers greater than minimum pass validation
 func TestIntRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Int().WithMin(10).Any()
 
@@ -19,6 +22,9 @@ func TestIntRuleSet_WithMin(t *testing.T) {
 }
 
 // TestFloatRuleSet_WithMin tests:
+// - Floats less than minimum fail validation
+// - Floats equal to minimum pass validation
+// - Floats greater than minimum pass validation
 func TestFloatRuleSet_WithMin(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(10.0).Any()
 

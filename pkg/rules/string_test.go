@@ -10,6 +10,9 @@ import (
 )
 
 // TestStringRuleSet_Apply tests:
+// - Implements the RuleSet interface
+// - Correctly applies string validation
+// - Returns the correct value
 func TestStringRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
@@ -45,6 +48,7 @@ func TestStringRuleSet_RuleInterface(t *testing.T) {
 }
 
 // TestStringRuleSet_Apply_TypeError tests:
+// - Returns error when strict mode is enabled and input is not a string
 func TestStringRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
@@ -63,45 +67,53 @@ func tryStringCoercion(t testing.TB, val interface{}, expected string) {
 }
 
 // TestStringRuleSet_Apply_CoerceFromInt tests:
+// - Coerces integer values to strings
 func TestStringRuleSet_Apply_CoerceFromInt(t *testing.T) {
 	tryStringCoercion(t, 123, "123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromIntPointer tests:
+// - Coerces integer pointer values to strings
 func TestStringRuleSet_Apply_CoerceFromIntPointer(t *testing.T) {
 	x := 123
 	tryStringCoercion(t, &x, "123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromFloat tests:
+// - Coerces float values to strings
 func TestStringRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryStringCoercion(t, 123.123, "123.123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromFloatPointer tests:
+// - Coerces float pointer values to strings
 func TestStringRuleSet_Apply_CoerceFromFloatPointer(t *testing.T) {
 	x := 123.123
 	tryStringCoercion(t, &x, "123.123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromInt64 tests:
+// - Coerces int64 values to strings
 func TestStringRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryStringCoercion(t, int64(123), "123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromInt64Pointer tests:
+// - Coerces int64 pointer values to strings
 func TestStringRuleSet_Apply_CoerceFromInt64Pointer(t *testing.T) {
 	var x int64 = 123
 	tryStringCoercion(t, &x, "123")
 }
 
 // TestStringRuleSet_Apply_CoerceFromStringPointer tests:
+// - Coerces string pointer values to strings
 func TestStringRuleSet_Apply_CoerceFromStringPointer(t *testing.T) {
 	s := "hello"
 	tryStringCoercion(t, &s, s)
 }
 
 // TestStringRuleSet_Apply_CoerceFromUnknown tests:
+// - Returns error for unknown types that cannot be coerced
 func TestStringRuleSet_Apply_CoerceFromUnknown(t *testing.T) {
 	val := new(struct {
 		x int
@@ -119,6 +131,9 @@ func TestStringRuleSet_WithRequired(t *testing.T) {
 }
 
 // TestStringRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
+// - Custom rules can return errors
+// - Rule evaluation is called correctly
 func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out string
@@ -153,6 +168,7 @@ func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 }
 
 // TestStringRuleSet_Any tests:
+// - Any returns a RuleSet[any] implementation
 func TestStringRuleSet_Any(t *testing.T) {
 	ruleSet := rules.String().Any()
 

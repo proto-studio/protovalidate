@@ -12,6 +12,8 @@ import (
 )
 
 // TestTimeRuleSet_WithMaxDiff tests:
+// - Times with difference greater than maximum fail validation
+// - Times with difference less than or equal to maximum pass validation
 func TestTimeRuleSet_WithMaxDiff(t *testing.T) {
 	now := internalTime.Now()
 	before14 := now.Add(-14 * internalTime.Minute)

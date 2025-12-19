@@ -23,6 +23,7 @@ func (c *alwaysErrorContext) Err() error {
 }
 
 // TestMissingMapping tests:
+// - Panics when trying to use a key that doesn't have a field mapping
 func TestMissingMapping(t *testing.T) {
 	ruleSet := Struct[*testStruct]().withParent()
 
@@ -49,6 +50,7 @@ func TestMissingMapping(t *testing.T) {
 }
 
 // TestUnexportedField tests:
+// - Panics when trying to use an unexported field
 func TestUnexportedField(t *testing.T) {
 	defer func() {
 		err, ok := recover().(error)

@@ -10,6 +10,9 @@ import (
 )
 
 // TestFloatRuleSet_Apply tests:
+// - Implements the RuleSet interface
+// - Correctly applies float validation
+// - Returns the correct value
 func TestFloatRuleSet_Apply(t *testing.T) {
 	var floatval float64
 	err := rules.Float64().Apply(context.Background(), 123.0, &floatval)
@@ -59,26 +62,33 @@ func tryFloatCoercion(t *testing.T, val interface{}, expected float64) {
 }
 
 // TestFloatRuleSet_Apply_CoerceFromString tests:
+// - Coerces string values to floats
 func TestFloatRuleSet_Apply_CoerceFromString(t *testing.T) {
 	tryFloatCoercion(t, "123.0", 123.0)
 }
 
 // TestFloatRuleSet_Apply_CoerceFromFloat tests:
+// - Coerces float32 values to float64
 func TestFloatRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryFloatCoercion(t, float32(123.0), 123.0)
 }
 
 // TestFloatRuleSet_Apply_CoerceFromFloat64 tests:
+// - Coerces float64 values to float64
 func TestFloatRuleSet_Apply_CoerceFromFloat64(t *testing.T) {
 	tryFloatCoercion(t, float64(123.0), 123.0)
 }
 
 // TestFloatRuleSet_WithRequired tests:
+// - WithRequired is correctly implemented
 func TestFloatRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[float64](t, rules.Float64())
 }
 
 // TestFloatRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
+// - Custom rules can return errors
+// - Rule evaluation is called correctly
 func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
 	var out float64
 	err := rules.Float64().
@@ -108,6 +118,7 @@ func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
 }
 
 // TestFloatRuleSet_Any tests:
+// - Any returns a RuleSet[any] implementation
 func TestFloatRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Float64().Any()
 

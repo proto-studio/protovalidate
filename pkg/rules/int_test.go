@@ -11,6 +11,9 @@ import (
 )
 
 // TestIntRuleSet_Apply tests:
+// - Implements the RuleSet interface
+// - Correctly applies integer validation
+// - Returns the correct value
 func TestIntRuleSet_Apply(t *testing.T) {
 	var intval int
 	err := rules.Int().Apply(context.Background(), 123, &intval)
@@ -35,6 +38,7 @@ func TestIntRuleSet_Apply(t *testing.T) {
 }
 
 // TestIntRuleSet_Apply_StrictError tests:
+// - Returns error when strict mode is enabled and input is not an integer
 func TestIntRuleSet_Apply_StrictError(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
@@ -60,21 +64,26 @@ func tryIntCoercion(t *testing.T, val interface{}, expected int) {
 }
 
 // TestIntRuleSet_Apply_CoerceFromString tests:
+// - Coerces string values to integers
 func TestIntRuleSet_Apply_CoerceFromString(t *testing.T) {
 	tryIntCoercion(t, "123", 123)
 }
 
 // TestIntRuleSet_Apply_CoerceFromFloat tests:
+// - Coerces float32 values to integers
 func TestIntRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryIntCoercion(t, float32(123.0), 123)
 }
 
 // TestIntRuleSet_Apply_CoerceFromInt64 tests:
+// - Coerces float64 values to integers
 func TestIntRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryIntCoercion(t, float64(123.0), 123)
 }
 
 // TestIntRuleSet_Apply_CoerceFromHex tests:
+// - Coerces hexadecimal string values to integers when base is set
+// - Returns error for invalid hexadecimal strings
 func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 	expected := 0xBEEF
 	var actual int
@@ -99,6 +108,7 @@ func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 }
 
 // TestIntRuleSet_Apply_CoerceFromFloatWithError tests:
+// - Returns error when float value cannot be exactly represented as integer
 func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 	var out int
 	err := rules.Int().Apply(context.Background(), 1.000001, &out)
@@ -110,11 +120,15 @@ func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 }
 
 // TestIntRuleSet_WithRequired tests:
+// - WithRequired is correctly implemented
 func TestIntRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[int](t, rules.Int())
 }
 
 // TestIntRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
+// - Custom rules can return errors
+// - Rule evaluation is called correctly
 func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 	var out int
 	err := rules.Int().
@@ -143,6 +157,7 @@ func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 }
 
 // TestIntRuleSet_Any tests:
+// - Any returns a RuleSet[any] implementation
 func TestIntRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Int().Any()
 
@@ -206,6 +221,7 @@ func TestIntRuleSet_Evaluate(t *testing.T) {
 }
 
 // TestIntRuleSet_Apply_VariantTypes tests:
+// - Applies correctly to various integer types
 func TestIntRuleSet_Apply_VariantTypes(t *testing.T) {
 	tests := []struct {
 		name     string

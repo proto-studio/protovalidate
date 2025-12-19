@@ -10,6 +10,9 @@ import (
 )
 
 // TestSliceRuleSet_Apply tests:
+// - Implements the RuleSet interface
+// - Correctly applies slice validation
+// - Returns the correct slice
 func TestSliceRuleSet_Apply(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -34,6 +37,7 @@ func TestSliceRuleSet_Apply(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_TypeError tests:
+// - Returns error when input is not a slice or array
 func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -47,6 +51,7 @@ func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_WithItemRuleSet tests:
+// - Item rule sets are applied to each item
 func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -60,6 +65,7 @@ func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 }
 
 // TestSliceItemCastError tests:
+// - Returns error when slice items cannot be cast to the expected type
 func TestSliceItemCastError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -73,6 +79,7 @@ func TestSliceItemCastError(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_WithItemRuleSetError tests:
+// - Returns errors from item rule set validation
 func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
@@ -86,11 +93,14 @@ func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 }
 
 // TestWithRequired tests:
+// - WithRequired is correctly implemented for slices
 func TestWithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[[]string](t, rules.Slice[string]())
 }
 
 // TestSliceRuleSet_WithRuleFunc tests:
+// - Custom rule functions are executed
+// - Multiple custom rules are all executed
 func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[[]int](1)
 
@@ -120,6 +130,7 @@ func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ReturnsCorrectPaths tests:
+// - Error paths correctly reflect slice indices
 func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myarray")
 
@@ -160,6 +171,7 @@ func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 }
 
 // TestSliceRuleSet_Any tests:
+// - Any returns a RuleSet[any] implementation
 func TestSliceRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Slice[int]().Any()
 
