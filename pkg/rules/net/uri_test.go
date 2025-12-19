@@ -90,7 +90,7 @@ func uriPartRequiredHelper(t testing.TB, fnName, name string, withoutRequired, w
 // Requirements:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
-func TestURIRuleSet(t *testing.T) {
+func TestURIRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
 	var output string
 
@@ -124,7 +124,7 @@ func TestURIRuleSet(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 // - Calling WithRequired on a rule set that already has it returns the identity.
-func TestURIRequired(t *testing.T) {
+func TestURIRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, net.URI())
 
 	// Test idempotency
@@ -138,7 +138,7 @@ func TestURIRequired(t *testing.T) {
 
 // Requirements:
 // - Returns a coercion error if input is not a string.
-func TestURICoercionFromUknown(t *testing.T) {
+func TestURIRuleSet_Apply_CoercionFromUnknown(t *testing.T) {
 	val := new(struct {
 		x int
 	})
@@ -149,7 +149,7 @@ func TestURICoercionFromUknown(t *testing.T) {
 // Requirements:
 // - Scheme must start with a letter.
 // - Scheme can contain . - and +.
-func TestURISchemeCharacterSet(t *testing.T) {
+func TestURIRuleSet_Apply_SchemeCharacterSet(t *testing.T) {
 	ruleSet := net.URI().Any()
 
 	testhelpers.MustApply(t, ruleSet, "test://hello")
@@ -177,7 +177,7 @@ func TestURISchemeCharacterSet(t *testing.T) {
 //   - port
 //   - user
 //   - password
-func TestURICustomContext(t *testing.T) {
+func TestURIRuleSet_CustomContext(t *testing.T) {
 	var ctxRef context.Context
 
 	fn := func(ctx context.Context, value string) errors.ValidationErrorCollection {
@@ -264,7 +264,7 @@ func TestURICustomContext(t *testing.T) {
 // - No negative ports.
 // - No out of range ports.
 // - Port must be a number.
-func TestURIPort(t *testing.T) {
+func TestURIRuleSet_Apply_Port(t *testing.T) {
 	ruleSet := net.URI().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, "https://example:-1", errors.CodeMin)
@@ -276,7 +276,7 @@ func TestURIPort(t *testing.T) {
 // - When the deep errors flag is not set, all errors return the same path.
 // - When the deep errors flag is set, all errors return a nested path.
 // - Calling WithDeepErrors on a rule set that already has it returns the identity.
-func TestURIDeepErrors(t *testing.T) {
+func TestURIRuleSet_Apply_DeepErrors(t *testing.T) {
 	tests := map[string]string{
 		"scheme":   "%://example.com",
 		"user":     "https://%:@example.com",
@@ -356,7 +356,7 @@ func TestURIRelative(t *testing.T) {
 
 // Requirement:
 // - Only relative URIs can be zero length.
-func TestURIZeroLength(t *testing.T) {
+func TestURIRuleSet_Apply_ZeroLength(t *testing.T) {
 	ruleSet := net.URI()
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), "", errors.CodeRequired)
@@ -369,7 +369,7 @@ func TestURIZeroLength(t *testing.T) {
 // Requirement:
 // - User can be required.
 // - User can be empty even when required.
-func TestURIWithUserRequired(t *testing.T) {
+func TestURIRuleSet_WithUserRequired(t *testing.T) {
 	withoutRequired := net.URI()
 	withRequired := withoutRequired.WithUserRequired()
 	withRequiredB := withRequired.WithUserRequired()
@@ -415,7 +415,7 @@ func TestURIWithPassword(t *testing.T) {
 // Requirement:
 // - Host can be required.
 // - Host can be empty even when required.
-func TestURIWithHostRequired(t *testing.T) {
+func TestURIRuleSet_WithHostRequired(t *testing.T) {
 	withoutRequired := net.URI()
 	withRequired := withoutRequired.WithHostRequired()
 	withRequiredB := withRequired.WithHostRequired()
@@ -438,7 +438,7 @@ func TestURIWithHostRequired(t *testing.T) {
 
 // Requirement:
 // - Port can be required.
-func TestURIWithPortRequired(t *testing.T) {
+func TestURIRuleSet_WithPortRequired(t *testing.T) {
 	withoutRequired := net.URI()
 	withRequired := withoutRequired.WithPortRequired()
 	withRequiredB := withRequired.WithPortRequired()
@@ -461,7 +461,7 @@ func TestURIWithPortRequired(t *testing.T) {
 // Requirement:
 // - Query can be required.
 // - Query can be empty even when required.
-func TestURIWithQueryRequired(t *testing.T) {
+func TestURIRuleSet_WithQueryRequired(t *testing.T) {
 	withoutRequired := net.URI()
 	withRequired := withoutRequired.WithQueryRequired()
 	withRequiredB := withRequired.WithQueryRequired()
@@ -484,7 +484,7 @@ func TestURIWithQueryRequired(t *testing.T) {
 // Requirement:
 // - Fragment can be required.
 // - Fragment can be empty even when required.
-func TestURIWithFragmentRequired(t *testing.T) {
+func TestURIRuleSet_WithFragmentRequired(t *testing.T) {
 	withoutRequired := net.URI()
 	withRequired := withoutRequired.WithFragmentRequired()
 	withRequiredB := withRequired.WithFragmentRequired()
@@ -507,7 +507,7 @@ func TestURIWithFragmentRequired(t *testing.T) {
 // Requirement:
 // - Bad URI escaping should cause an error.
 // - Valid escaped URIs should pass validation.
-func TestURIEscaping(t *testing.T) {
+func TestURIRuleSet_Apply_Escaping(t *testing.T) {
 	ruleSet := net.URI()
 
 	// Valid
@@ -529,7 +529,7 @@ func TestURIEscaping(t *testing.T) {
 // Requirements
 // - Custom validation rules are called.
 // - All errors are returned.
-func TestURICustom(t *testing.T) {
+func TestURIRuleSet_WithRuleFunc(t *testing.T) {
 	testVal := "https://example.com"
 
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
@@ -549,7 +549,7 @@ func TestURICustom(t *testing.T) {
 
 // Requirements:
 // - Conflicting rules are deduplicated
-func TestURICustomConflict(t *testing.T) {
+func TestURIRuleSet_WithRuleFunc_Conflict(t *testing.T) {
 	testVal := "https://example.com"
 
 	mockA := testhelpers.NewMockRule[string]()
@@ -582,6 +582,6 @@ func TestURICustomConflict(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestURIWithNil(t *testing.T) {
+func TestURIRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, net.URI())
 }

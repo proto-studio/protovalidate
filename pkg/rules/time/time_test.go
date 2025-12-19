@@ -15,7 +15,7 @@ import (
 // Requirements:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
-func TestTimeRuleSet(t *testing.T) {
+func TestTimeRuleSet_Apply(t *testing.T) {
 	now := internalTime.Now()
 
 	// Prepare an output variable for Apply
@@ -43,7 +43,7 @@ func TestTimeRuleSet(t *testing.T) {
 
 // Requirements:
 // - Will coerce time from RFC 3339
-func TestTimeRFC3339(t *testing.T) {
+func TestTimeRuleSet_Apply_RFC3339(t *testing.T) {
 	s := "2023-09-29T18:57:42.108Z"
 
 	tm, err := internalTime.Parse(internalTime.RFC3339, s)
@@ -60,7 +60,7 @@ func TestTimeRFC3339(t *testing.T) {
 
 // Requirements:
 // - Will coerce from multiple layouts
-func TestTimeMultiLayout(t *testing.T) {
+func TestTimeRuleSet_Apply_MultiLayout(t *testing.T) {
 	s := "2023-09-29"
 
 	tm, err := internalTime.Parse(internalTime.DateOnly, s)
@@ -82,7 +82,7 @@ func TestTimeMultiLayout(t *testing.T) {
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
-func TestTimeRequired(t *testing.T) {
+func TestTimeRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[internalTime.Time](t, time.Time())
 }
 
@@ -102,7 +102,7 @@ func TestTimeCustom(t *testing.T) {
 	}
 }
 
-func TestTimeAny(t *testing.T) {
+func TestTimeRuleSet_Any(t *testing.T) {
 	ruleSet := time.Time().Any()
 
 	if ruleSet == nil {
@@ -112,14 +112,14 @@ func TestTimeAny(t *testing.T) {
 	}
 }
 
-func TestTimePointer(t *testing.T) {
+func TestTimeRuleSet_Apply_Pointer(t *testing.T) {
 	now := internalTime.Now()
 
 	ruleSet := time.Time()
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), &now, now)
 }
 
-func TestBadType(t *testing.T) {
+func TestTimeRuleSet_Apply_BadType(t *testing.T) {
 	ruleSet := time.Time()
 	type x struct{}
 
@@ -131,7 +131,7 @@ func TestBadType(t *testing.T) {
 // - Layouts are comma separated.
 // - Layout values are quoted.
 // - If there are more than 3, the test " ... and X more" is used.
-func TestLayoutsSerialize(t *testing.T) {
+func TestTimeRuleSet_String_WithLayouts(t *testing.T) {
 	layouts := []string{
 		internalTime.DateOnly,
 		internalTime.TimeOnly,
@@ -161,7 +161,7 @@ func TestLayoutsSerialize(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestRequiredString(t *testing.T) {
+func TestTimeRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := time.Time().WithRequired()
 
 	expected := "TimeRuleSet.WithRequired()"
@@ -175,7 +175,7 @@ func TestRequiredString(t *testing.T) {
 // - Apply must maintain input format if output and input are strings.
 // - Apply must allow the user to override the string output format.
 // - WithOutputLayout is idempotent.
-func TestTime_Apply_String(t *testing.T) {
+func TestTimeRuleSet_Apply_String(t *testing.T) {
 	now := internalTime.Now()
 	ctx := context.TODO()
 
@@ -224,6 +224,6 @@ func TestTime_Apply_String(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestTimeWithNil(t *testing.T) {
+func TestTimeRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[internalTime.Time](t, time.Time())
 }

@@ -11,7 +11,7 @@ import (
 
 // Requirements:
 // - Allowed values are cumulative.
-func TestWithAllowedValues(t *testing.T) {
+func TestStringRuleSet_WithAllowedValues(t *testing.T) {
 	ruleSet := rules.String().WithAllowedValues("a", "b").WithMaxLen(1)
 
 	testhelpers.MustApply(t, ruleSet.Any(), "a")
@@ -37,7 +37,7 @@ func TestWithAllowedValues(t *testing.T) {
 // - Only the first 3 values are displayed.
 // - Values are separated by commas.
 // - Values are quoted.
-func TestWithAllowedValuesMore(t *testing.T) {
+func TestStringRuleSet_WithAllowedValues_More(t *testing.T) {
 	values := []string{
 		"a",
 		"b",
@@ -68,7 +68,7 @@ func TestWithAllowedValuesMore(t *testing.T) {
 // Requirements:
 // - Rejected values are cumulative.
 // - Rejected values causes a validation error.
-func TestWithRejectedValues(t *testing.T) {
+func TestStringRuleSet_WithRejectedValues(t *testing.T) {
 	ruleSet := rules.String().WithRejectedValues("a", "b")
 
 	testhelpers.MustNotApply(t, ruleSet.Any(), "a", errors.CodeForbidden)

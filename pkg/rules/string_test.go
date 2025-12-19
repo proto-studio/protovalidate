@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestStringRuleSet(t *testing.T) {
+func TestStringRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
 
@@ -35,7 +35,7 @@ func TestStringRuleSet(t *testing.T) {
 // Requirements:
 // - Should be usable as a rule
 // - Must implement the Rule[string] interface
-func TestRuleImplementation(t *testing.T) {
+func TestStringRuleSet_RuleInterface(t *testing.T) {
 	ok := testhelpers.CheckRuleInterface[string](rules.String())
 	if !ok {
 		t.Error("Expected rule set to be implemented")
@@ -43,7 +43,7 @@ func TestRuleImplementation(t *testing.T) {
 	}
 }
 
-func TestStringRuleSetTypeError(t *testing.T) {
+func TestStringRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare the output variable for Apply
 	var str string
 
@@ -60,39 +60,39 @@ func tryStringCoercion(t testing.TB, val interface{}, expected string) {
 	testhelpers.MustApplyMutation(t, ruleSet.Any(), val, expected)
 }
 
-func TestStringCoercionFromInt(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromInt(t *testing.T) {
 	tryStringCoercion(t, 123, "123")
 }
 
-func TestStringCoercionFromIntPointer(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromIntPointer(t *testing.T) {
 	x := 123
 	tryStringCoercion(t, &x, "123")
 }
 
-func TestStringCoercionFromFloat(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromFloat(t *testing.T) {
 	tryStringCoercion(t, 123.123, "123.123")
 }
 
-func TestStringCoercionFromFloatPointer(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromFloatPointer(t *testing.T) {
 	x := 123.123
 	tryStringCoercion(t, &x, "123.123")
 }
 
-func TestStringCoercionFromInt64(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromInt64(t *testing.T) {
 	tryStringCoercion(t, int64(123), "123")
 }
 
-func TestStringCoercionFromInt64Pointer(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromInt64Pointer(t *testing.T) {
 	var x int64 = 123
 	tryStringCoercion(t, &x, "123")
 }
 
-func TestStringCoercionFromStringPointer(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromStringPointer(t *testing.T) {
 	s := "hello"
 	tryStringCoercion(t, &s, s)
 }
 
-func TestStringCoercionFromUnknown(t *testing.T) {
+func TestStringRuleSet_Apply_CoerceFromUnknown(t *testing.T) {
 	val := new(struct {
 		x int
 	})
@@ -104,11 +104,11 @@ func TestStringCoercionFromUnknown(t *testing.T) {
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
-func TestStringRequired(t *testing.T) {
+func TestStringRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, rules.String())
 }
 
-func TestStringCustom(t *testing.T) {
+func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out string
 
@@ -141,7 +141,7 @@ func TestStringCustom(t *testing.T) {
 	}
 }
 
-func TestString_Any(t *testing.T) {
+func TestStringRuleSet_Any(t *testing.T) {
 	ruleSet := rules.String().Any()
 
 	if ruleSet == nil {
@@ -153,7 +153,7 @@ func TestString_Any(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestString_WithRequired(t *testing.T) {
+func TestStringRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.String().WithRequired()
 
 	expected := "StringRuleSet.WithRequired()"
@@ -164,7 +164,7 @@ func TestString_WithRequired(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithStrict()
-func TestString_WithStrict(t *testing.T) {
+func TestStringRuleSet_String_WithStrict(t *testing.T) {
 	ruleSet := rules.String().WithStrict()
 
 	expected := "StringRuleSet.WithStrict()"
@@ -176,6 +176,6 @@ func TestString_WithStrict(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestStringWithNil(t *testing.T) {
+func TestStringRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, rules.String())
 }

@@ -11,7 +11,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestWithMaxExclusiveTime(t *testing.T) {
+func TestTimeRuleSet_WithMaxExclusive(t *testing.T) {
 	now := internalTime.Now()
 	before := now.Add(-1 * internalTime.Minute)
 	after := now.Add(1 * internalTime.Minute)
@@ -32,7 +32,7 @@ func TestWithMaxExclusiveTime(t *testing.T) {
 // - Only one WithMaxExclusive can exist on a rule set.
 // - Original rule set is not mutated.
 // - Most recent WithMaxExclusive is used.
-func TestWithMaxExclusiveConflict(t *testing.T) {
+func TestTimeRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	before := tm.Add(-1 * internalTime.Minute)
 	after := tm.Add(1 * internalTime.Minute)
@@ -90,7 +90,7 @@ func TestWithMaxExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMax and WithMaxExclusive conflict with each other
-func TestMaxMaxExclusiveConflict(t *testing.T) {
+func TestTimeRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	after := tm.Add(1 * internalTime.Minute)
 
@@ -121,7 +121,7 @@ func TestMaxMaxExclusiveConflict(t *testing.T) {
 }
 
 // Test that WithMaxExclusive and WithMax conflict with each other (reverse order)
-func TestMaxExclusiveMaxConflict(t *testing.T) {
+func TestTimeRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	tm, _ := internalTime.Parse(internalTime.RFC3339, "2023-10-05T00:12:12.927Z")
 	after := tm.Add(1 * internalTime.Minute)
 

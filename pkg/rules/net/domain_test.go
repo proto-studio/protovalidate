@@ -13,7 +13,7 @@ import (
 // Requirements:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
-func TestDomainRuleSet(t *testing.T) {
+func TestDomainRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
 	var output string
 
@@ -45,7 +45,7 @@ func TestDomainRuleSet(t *testing.T) {
 // Requirements:
 // - Segments (labels) cannot exceed 63 characters
 // See: RFC 1035
-func TestDomainSegmentLength(t *testing.T) {
+func TestDomainRuleSet_Apply_SegmentLength(t *testing.T) {
 	ruleSet := net.Domain().Any()
 
 	okLabel := strings.Repeat("a", 63)
@@ -57,7 +57,7 @@ func TestDomainSegmentLength(t *testing.T) {
 
 // Requirements:
 // - Errors when string cannot be encoded as punycode
-func TestDomainPunycodeError(t *testing.T) {
+func TestDomainRuleSet_Apply_PunycodeError(t *testing.T) {
 	ruleSet := net.Domain().Any()
 
 	// idna: invalid label "é"
@@ -68,7 +68,7 @@ func TestDomainPunycodeError(t *testing.T) {
 // Requirements:
 // - Errors when domain is too long
 // - errors.CodeMax is returned
-func TestDomainLength(t *testing.T) {
+func TestDomainRuleSet_Apply_Length(t *testing.T) {
 	ruleSet := net.Domain().Any()
 
 	str := strings.Repeat(strings.Repeat("a", 32), 9)
@@ -78,7 +78,7 @@ func TestDomainLength(t *testing.T) {
 // Requirements:
 // - Errors when input is not a string
 // - errors.CodeType is returned
-func TestDomainType(t *testing.T) {
+func TestDomainRuleSet_Apply_Type(t *testing.T) {
 	ruleSet := net.Domain().Any()
 
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeType)
@@ -88,11 +88,11 @@ func TestDomainType(t *testing.T) {
 // - Required flag can be set.
 // - Required flag can be read.
 // - Required flag defaults to false.
-func TestDomainRequired(t *testing.T) {
+func TestDomainRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[string](t, net.Domain())
 }
 
-func TestDomainCustom(t *testing.T) {
+func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
 	// Prepare the output variable for Apply
@@ -133,7 +133,7 @@ func TestDomainCustom(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestDomainRequiredString(t *testing.T) {
+func TestDomainRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := net.Domain().WithRequired()
 
 	expected := "DomainRuleSet.WithRequired()"
@@ -145,6 +145,6 @@ func TestDomainRequiredString(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestDomainWithNil(t *testing.T) {
+func TestDomainRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, net.Domain())
 }

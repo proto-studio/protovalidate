@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestString_WithMinExclusive(t *testing.T) {
+func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("b").Any()
 
 	// "a" is lexicographically less than "b", should fail
@@ -30,7 +30,7 @@ func TestString_WithMinExclusive(t *testing.T) {
 // - Original rule set is not mutated.
 // - Most recent WithMinExclusive is used.
 // - Rule is serialized properly.
-func TestString_MinExclusiveConflict(t *testing.T) {
+func TestStringRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("c").WithMaxExclusive("z")
 
 	var output string
@@ -81,7 +81,7 @@ func TestString_MinExclusiveConflict(t *testing.T) {
 	}
 }
 
-func TestString_WithMinExclusive_Lexicographical(t *testing.T) {
+func TestStringRuleSet_WithMinExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("apple").Any()
 
 	// "ap" is lexicographically less than "apple", should fail

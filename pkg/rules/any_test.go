@@ -12,7 +12,7 @@ import (
 // - Implements the RuleSet interface.
 // - Does not error when default configured.
 // - Returns the value with the correct type.
-func TestAnyRuleSet(t *testing.T) {
+func TestAnyRuleSet_Apply(t *testing.T) {
 	ruleSet := rules.Any()
 
 	ok := testhelpers.CheckRuleSetInterface[any](ruleSet)
@@ -28,7 +28,7 @@ func TestAnyRuleSet(t *testing.T) {
 // Requirements:
 // - Sets the required flag when calling WithForbidden.
 // - Returns error when forbidden.
-func TestAnyForbidden(t *testing.T) {
+func TestAnyRuleSet_WithForbidden(t *testing.T) {
 	ruleSet := rules.Any().WithForbidden()
 
 	testhelpers.MustNotApply(t, ruleSet, 123, errors.CodeForbidden)
@@ -37,14 +37,14 @@ func TestAnyForbidden(t *testing.T) {
 // Requirements:
 // - Required defaults to false.
 // - Calling WithRequired sets the required flag.
-func TestAnyRequired(t *testing.T) {
+func TestAnyRuleSet_WithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[any](t, rules.Any())
 }
 
 // Requirements:
 // - Custom rules are executed.
 // - Custom rules can return errors.
-func TestAnyCustom(t *testing.T) {
+func TestAnyRuleSet_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Any().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
@@ -64,7 +64,7 @@ func TestAnyCustom(t *testing.T) {
 
 // Requirement:
 // - Implementations of RuleSet[any] should return themselves when calling the Any method.
-func TestAnyReturnsIdentity(t *testing.T) {
+func TestAnyRuleSet_Any_ReturnsIdentity(t *testing.T) {
 	ruleSet1 := rules.Any()
 	ruleSet2 := ruleSet1.Any()
 
@@ -75,7 +75,7 @@ func TestAnyReturnsIdentity(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestAnyRequiredString(t *testing.T) {
+func TestAnyRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Any().WithRequired()
 
 	expected := "AnyRuleSet.WithRequired()"
@@ -86,7 +86,7 @@ func TestAnyRequiredString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithForbidden()
-func TestAnyForbiddenString(t *testing.T) {
+func TestAnyRuleSet_String_WithForbidden(t *testing.T) {
 	ruleSet := rules.Any().WithForbidden()
 
 	expected := "AnyRuleSet.WithForbidden()"
@@ -97,7 +97,7 @@ func TestAnyForbiddenString(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRule(...)
-func TestAnyRuleString(t *testing.T) {
+func TestAnyRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Any().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
@@ -109,7 +109,7 @@ func TestAnyRuleString(t *testing.T) {
 
 // Requirement:
 // - RuleSets are usable as Rules for the same type
-func TestAnyComposition(t *testing.T) {
+func TestAnyRuleSet_Composition(t *testing.T) {
 	innerRuleSet := rules.Any().
 		WithRule(testhelpers.NewMockRuleWithErrors[any](1))
 
@@ -121,6 +121,6 @@ func TestAnyComposition(t *testing.T) {
 // Requirements:
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
-func TestAnyWithNil(t *testing.T) {
+func TestAnyRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[any](t, rules.Any())
 }

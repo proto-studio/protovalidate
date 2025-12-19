@@ -9,7 +9,7 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-func TestSliceRuleSet(t *testing.T) {
+func TestSliceRuleSet_Apply(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -32,7 +32,7 @@ func TestSliceRuleSet(t *testing.T) {
 	testhelpers.MustApplyTypes[[]string](t, rules.Slice[string](), []string{"a", "b", "c"})
 }
 
-func TestSliceRuleSetTypeError(t *testing.T) {
+func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -44,7 +44,7 @@ func TestSliceRuleSetTypeError(t *testing.T) {
 	}
 }
 
-func TestSliceItemRuleSetSuccess(t *testing.T) {
+func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -68,7 +68,7 @@ func TestSliceItemCastError(t *testing.T) {
 	}
 }
 
-func TestSliceItemRuleSetError(t *testing.T) {
+func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 	// Prepare an output variable for Apply
 	var output []string
 
@@ -84,7 +84,7 @@ func TestWithRequired(t *testing.T) {
 	testhelpers.MustImplementWithRequired[[]string](t, rules.Slice[string]())
 }
 
-func TestCustom(t *testing.T) {
+func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[[]int](1)
 
 	// Prepare an output variable for Apply
@@ -112,7 +112,7 @@ func TestCustom(t *testing.T) {
 	}
 }
 
-func TestReturnsCorrectPaths(t *testing.T) {
+func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myarray")
 
 	// Prepare an output variable for Apply
@@ -151,7 +151,7 @@ func TestReturnsCorrectPaths(t *testing.T) {
 	}
 }
 
-func TestAny(t *testing.T) {
+func TestSliceRuleSet_Any(t *testing.T) {
 	ruleSet := rules.Slice[int]().Any()
 
 	if ruleSet == nil {
@@ -161,7 +161,7 @@ func TestAny(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithRequired()
-func TestRequiredSlice(t *testing.T) {
+func TestSliceRuleSet_String_WithRequired(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithRequired()
 
 	expected := "SliceRuleSet[int].WithRequired()"
@@ -172,7 +172,7 @@ func TestRequiredSlice(t *testing.T) {
 
 // Requirements:
 // - Serializes to WithItemRuleSet()
-func TestWithItemRuleSetString(t *testing.T) {
+func TestSliceRuleSet_String_WithItemRuleSet(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2))
 
 	expected := "SliceRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
@@ -183,7 +183,7 @@ func TestWithItemRuleSetString(t *testing.T) {
 
 // Requirements:
 // - Evaluate behaves like ValidateWithContext
-func TestEvaluate(t *testing.T) {
+func TestSliceRuleSet_Evaluate(t *testing.T) {
 	v := []int{123, 456}
 	ctx := context.Background()
 
