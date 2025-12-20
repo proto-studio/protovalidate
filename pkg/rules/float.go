@@ -44,8 +44,8 @@ func Float64() *FloatRuleSet[float64] {
 	return &baseFloat64
 }
 
-// WithStrict returns a new child RuleSet with the strict flag applied.
-// A strict rule will only validate if the value is already the correct type.
+// WithStrict returns a new child RuleSet that disables type coercion.
+// When strict mode is enabled, validation only succeeds if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
@@ -66,8 +66,8 @@ func (v *FloatRuleSet[T]) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    v.strict,
@@ -80,9 +80,9 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    v.strict,
@@ -214,9 +214,8 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the given number type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
 		strict:    ruleSet.strict,
@@ -229,9 +228,8 @@ func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the given number type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *FloatRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *FloatRuleSet[T] {
 	return v.WithRule(rule)
 }

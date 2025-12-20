@@ -38,8 +38,8 @@ func (ruleSet *TimeRuleSet) Required() bool {
 	return ruleSet.required
 }
 
-// WithRequired returns a new rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	return &TimeRuleSet{
 		required:     true,
@@ -50,9 +50,9 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
 	return &TimeRuleSet{
 		required:     ruleSet.required,
@@ -63,8 +63,8 @@ func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
 	}
 }
 
-// WithLayouts returns a new rule set with the specified string layouts allowed for string coercion.
-// WithLayouts attempts each format in the order they are provided and stops when a match
+// WithLayouts returns a new rule set that allows string-to-time conversion using the specified layouts.
+// The rule set attempts each format in the order they are provided and stops when a match
 // is found, so it is recommended to list more specific layouts first.
 //
 // Layouts are cumulative, calling this method multiple times will result in all provided layouts across
@@ -91,8 +91,9 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 	}
 }
 
-// WithOutputLayout returns a new rule set with the output layout set. This layout will be used any time
-// the output value of Apply is a string pointer regardless of the type or format of the input.
+// WithOutputLayout returns a new rule set that formats time values as strings using the specified layout.
+// When the output value of Apply is a string pointer, the time will be formatted using this layout
+// regardless of the type or format of the input.
 //
 // This method has no effect on input layouts. Use WithLayouts to set which layouts are allowed on input.
 // The default output format is time.RFC3339 unless the input is also a string.
@@ -250,9 +251,8 @@ func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet 
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the time.Time type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
 	return &TimeRuleSet{
 		rule:     rule,
@@ -262,9 +262,8 @@ func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule interface
-// for the time.Time type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (v *TimeRuleSet) WithRuleFunc(rule rules.RuleFunc[time.Time]) *TimeRuleSet {

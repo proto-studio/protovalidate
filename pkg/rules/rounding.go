@@ -33,7 +33,7 @@ func (r Rounding) String() string {
 	return "Unknown"
 }
 
-// WithRounding returns a new child RuleSet with the rounding rule set to the supplied value.
+// WithRounding returns a new child RuleSet that applies the specified rounding method when converting floating point numbers to integers.
 //
 // Notes on floating point numbers:
 // The RuleSet will attempt to convert floating point numbers to integers even if rounding is not enabled.
@@ -49,7 +49,7 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 	}
 }
 
-// WithRounding returns a new child RuleSet with the rounding rule set to the supplied value.
+// WithRounding returns a new child RuleSet that applies the specified rounding method and precision to floating point numbers.
 //
 // Standard warnings for floating point numbers apply:
 // - Some numbers cannot be represented precisely with floating points.

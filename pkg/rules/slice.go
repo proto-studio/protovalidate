@@ -36,8 +36,8 @@ func (v *SliceRuleSet[T]) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 // WithRequired has no effect on slices if the RuleSet is strict since nil is not a valid slice.
 func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
@@ -48,9 +48,9 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
 		parent:   v,
@@ -215,9 +215,8 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the given slice and item type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 	return &SliceRuleSet[T]{
 		rule:     rule,
@@ -227,9 +226,8 @@ func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the given slice and item type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *SliceRuleSet[T]) WithRuleFunc(rule RuleFunc[[]T]) *SliceRuleSet[T] {
 	return v.WithRule(rule)
 }

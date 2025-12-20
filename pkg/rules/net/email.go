@@ -37,8 +37,8 @@ func (ruleSet *EmailRuleSet) Required() bool {
 	return ruleSet.required
 }
 
-// WithRequired returns a new rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired returns a new rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 	return &EmailRuleSet{
 		required:      true,
@@ -49,9 +49,9 @@ func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (ruleSet *EmailRuleSet) WithNil() *EmailRuleSet {
 	return &EmailRuleSet{
 		required:      ruleSet.required,
@@ -187,8 +187,8 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.
 	}
 }
 
-// WithDomain returns a new child rule set with the domain validator assigned to
-// the provided RuleSet instead of the default domain rule set.
+// WithDomain returns a new child rule set that uses a custom domain validator
+// instead of the default domain rule set for validating the domain portion of email addresses.
 //
 // The default domain rule set for email validation is the equivalent of:
 //
@@ -202,9 +202,8 @@ func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *Em
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the string type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (ruleSet *EmailRuleSet) WithRule(rule rules.Rule[string]) *EmailRuleSet {
@@ -217,9 +216,8 @@ func (ruleSet *EmailRuleSet) WithRule(rule rules.Rule[string]) *EmailRuleSet {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule interface
-// for the string type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (v *EmailRuleSet) WithRuleFunc(rule rules.RuleFunc[string]) *EmailRuleSet {

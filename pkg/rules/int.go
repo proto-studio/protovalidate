@@ -126,8 +126,8 @@ func Uint64() *IntRuleSet[uint64] {
 	return &baseUint64
 }
 
-// WithStrict returns a new child RuleSet with the strict flag applied.
-// A strict rule will only validate if the value is already the correct type.
+// WithStrict returns a new child RuleSet that disables type coercion.
+// When strict mode is enabled, validation only succeeds if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
@@ -143,9 +143,9 @@ func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 	}
 }
 
-// WithBase returns a new child rule set with the number base set.
-// The base will be used to convert strings to numbers.
-// The base has no effect if the RuleSet is strict since strict sets will not convert types.
+// WithBase returns a new child rule set that uses the specified base for string-to-number conversion.
+// The base determines how numeric strings are parsed (e.g., base 16 for hexadecimal).
+// The base has no effect if the RuleSet is strict since strict mode disables type conversion.
 //
 // The default is base 10.
 func (v *IntRuleSet[T]) WithBase(base int) *IntRuleSet[T] {
@@ -165,8 +165,8 @@ func (v *IntRuleSet[T]) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   v.strict,
@@ -179,9 +179,9 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   v.strict,
@@ -307,9 +307,8 @@ func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the given number type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 	return &IntRuleSet[T]{
 		strict:   ruleSet.strict,
@@ -322,9 +321,8 @@ func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the given number type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *IntRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *IntRuleSet[T] {
 	return v.WithRule(rule)
 }
