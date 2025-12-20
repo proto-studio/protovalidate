@@ -6,7 +6,7 @@ import (
 	"proto.zip/studio/validate/internal/util"
 )
 
-// WithPortMin returns a new rule set with the port minimum set.
+// WithMinPort returns a new rule set that validates the port number is at least the specified minimum.
 func (ruleSet *URIRuleSet) WithMinPort(min int) *URIRuleSet {
 	newRuleSet := ruleSet.copyWithParent(ruleSet)
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithMin(min)
@@ -14,7 +14,7 @@ func (ruleSet *URIRuleSet) WithMinPort(min int) *URIRuleSet {
 	return newRuleSet
 }
 
-// WithPortMax returns a new rule set with the port maximum set.
+// WithMaxPort returns a new rule set that validates the port number is at most the specified maximum.
 func (ruleSet *URIRuleSet) WithMaxPort(max int) *URIRuleSet {
 	newRuleSet := ruleSet.copyWithParent(ruleSet)
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithMax(max)

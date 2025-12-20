@@ -117,8 +117,8 @@ func (ruleSet *URIRuleSet) Required() bool {
 	return ruleSet.required
 }
 
-// WithRequired returns a new rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired returns a new rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 	if ruleSet.required {
 		return ruleSet
@@ -130,9 +130,9 @@ func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (ruleSet *URIRuleSet) WithNil() *URIRuleSet {
 	newRuleSet := ruleSet.copyWithParent(ruleSet)
 	newRuleSet.withNil = true
@@ -140,8 +140,8 @@ func (ruleSet *URIRuleSet) WithNil() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithUserRequired returns a new rule set with the user set to required.
-// The user must be in the URI, however, it may be empty.
+// WithUserRequired returns a new rule set that requires the user component to be present in the URI.
+// The user component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithUserRequired() *URIRuleSet {
 	if ruleSet.userRuleSet.Required() {
 		return ruleSet
@@ -153,8 +153,8 @@ func (ruleSet *URIRuleSet) WithUserRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithPasswordRequired returns a new rule set with the password set to required.
-// The password must be in the URI, however, it may be empty.
+// WithPasswordRequired returns a new rule set that requires the password component to be present in the URI.
+// The password component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithPasswordRequired() *URIRuleSet {
 	if ruleSet.passwordRuleSet.Required() {
 		return ruleSet
@@ -166,8 +166,8 @@ func (ruleSet *URIRuleSet) WithPasswordRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithHostRequired returns a new rule set with the host set to required.
-// The host must be in the URI, however, it may be empty.
+// WithHostRequired returns a new rule set that requires the host component to be present in the URI.
+// The host component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithHostRequired() *URIRuleSet {
 	if ruleSet.hostRuleSet.Required() {
 		return ruleSet
@@ -179,8 +179,8 @@ func (ruleSet *URIRuleSet) WithHostRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithPortRequired returns a new rule set with the port set to required.
-// The port must be in the URI, however, it may be empty.
+// WithPortRequired returns a new rule set that requires the port component to be present in the URI.
+// The port component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithPortRequired() *URIRuleSet {
 	if ruleSet.portRuleSet.Required() {
 		return ruleSet
@@ -192,8 +192,8 @@ func (ruleSet *URIRuleSet) WithPortRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithQueryRequired returns a new rule set with the query set to required.
-// The query must be in the URI, however, it may be empty.
+// WithQueryRequired returns a new rule set that requires the query component to be present in the URI.
+// The query component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithQueryRequired() *URIRuleSet {
 	if ruleSet.queryRuleSet.Required() {
 		return ruleSet
@@ -205,8 +205,8 @@ func (ruleSet *URIRuleSet) WithQueryRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithFragmentRequired returns a new rule set with the fragment set to required.
-// The fragment must be in the URI, however, it may be empty.
+// WithFragmentRequired returns a new rule set that requires the fragment component to be present in the URI.
+// The fragment component must be in the URI, however, it may be empty.
 func (ruleSet *URIRuleSet) WithFragmentRequired() *URIRuleSet {
 	if ruleSet.fragmentRuleSet.Required() {
 		return ruleSet
@@ -235,9 +235,9 @@ func (ruleSet *URIRuleSet) DeepErrors() bool {
 	return ruleSet.deepErrors
 }
 
-// WithDeepErrors returns a new rule set with the deep errors flag set.
-// By default URIRuleSet will return the path to the string itself when returning errors. Setting deep errors
-// will tell the rules to return the rull path to the error nested inside the string.
+// WithDeepErrors returns a new rule set that includes nested error paths in validation errors.
+// By default, URIRuleSet returns the path to the string itself when returning errors.
+// With deep errors enabled, validation errors include the full path to the error nested inside the URI string.
 //
 // For example,the URI https://example.com:-1/ has an invalid port numbers (ports can not be negative).
 // By default the path may look like this: `/myobj/some_uri`
@@ -258,9 +258,9 @@ func (ruleSet *URIRuleSet) Relative() bool {
 	return ruleSet.relative
 }
 
-// WithRelative returns a new rule set with the relative flag set.
-// By default URIRuleSet requires all parts of the URI to be specified. WithRelative will allow some
-// parts of the URI to be omitted.
+// WithRelative returns a new rule set that allows relative URIs.
+// By default, URIRuleSet requires all parts of the URI to be specified.
+// WithRelative allows some parts of the URI to be omitted, enabling validation of relative URIs.
 //
 // Scheme is normally required for URIs but is optional if relative URIs are enabled.
 func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
@@ -660,9 +660,8 @@ func (ruleSet *URIRuleSet) noConflict(rule rules.Rule[string]) *URIRuleSet {
 	return newRuleSet
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the string type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 //
@@ -683,9 +682,8 @@ func (ruleSet *URIRuleSet) WithRule(rule rules.Rule[string]) *URIRuleSet {
 	return newRuleSet
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the RuleFunc interface
-// for the string type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 //

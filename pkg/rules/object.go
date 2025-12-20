@@ -140,9 +140,9 @@ func (v *ObjectRuleSet[T, TK, TV]) withParent() *ObjectRuleSet[T, TK, TV] {
 	}
 }
 
-// WithUnknown returns a new RuleSet with the "unknown" flag set.
+// WithUnknown returns a new RuleSet that allows unknown keys in maps and objects.
 //
-// By default if the validator finds an unknown key on a map it will return an error.
+// By default, if the validator finds an unknown key on a map it will return an error.
 // WithUnknown allows keys that aren't defined to be present in the map.
 // This is useful for parsing arbitrary JSON where additional keys may be included.
 func (v *ObjectRuleSet[T, TK, TV]) WithUnknown() *ObjectRuleSet[T, TK, TV] {
@@ -378,8 +378,8 @@ func (v *ObjectRuleSet[T, TK, TV]) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 	if v.required {
 		return v
@@ -391,9 +391,9 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 	return newRuleSet
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *ObjectRuleSet[T, TK, TV]) WithNil() *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 	newRuleSet.withNil = true
@@ -876,18 +876,16 @@ func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 	return newRuleSet
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the given object type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule Rule[T]) *ObjectRuleSet[T, TK, TV] {
 	newRuleSet := v.withParent()
 	newRuleSet.objRule = rule
 	return newRuleSet
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the given object type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *ObjectRuleSet[T, TK, TV]) WithRuleFunc(rule RuleFunc[T]) *ObjectRuleSet[T, TK, TV] {
 	return v.WithRule(rule)
 }

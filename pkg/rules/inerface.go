@@ -55,8 +55,8 @@ func (v *InterfaceRuleSet[T]) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *InterfaceRuleSet[T]) WithRequired() *InterfaceRuleSet[T] {
 	if v.required {
 		return v
@@ -70,9 +70,9 @@ func (v *InterfaceRuleSet[T]) WithRequired() *InterfaceRuleSet[T] {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *InterfaceRuleSet[T]) WithNil() *InterfaceRuleSet[T] {
 	return &InterfaceRuleSet[T]{
 		required: v.required,
@@ -159,9 +159,8 @@ func (v *InterfaceRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Vali
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// explicitly for the "any" interface.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (v *InterfaceRuleSet[T]) WithRule(rule Rule[T]) *InterfaceRuleSet[T] {
@@ -174,9 +173,8 @@ func (v *InterfaceRuleSet[T]) WithRule(rule Rule[T]) *InterfaceRuleSet[T] {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// explicitly for the "any" interface.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (v *InterfaceRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *InterfaceRuleSet[T] {

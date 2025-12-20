@@ -39,8 +39,8 @@ func (v *AnyRuleSet) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  true,
@@ -51,8 +51,8 @@ func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
 	}
 }
 
-// WithForbidden returns a new child rule set with the forbidden flag set.
-// WithForbidden is used when a value is expected to always be nil or omitted.
+// WithForbidden returns a new child rule set that requires values to be nil or omitted.
+// When a value is present, validation fails with an error.
 func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
@@ -63,9 +63,9 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *AnyRuleSet) WithNil() *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
@@ -144,9 +144,8 @@ func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationE
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// explicitly for the "any" interface.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
 	return &AnyRuleSet{
 		required:  v.required,
@@ -157,9 +156,8 @@ func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// explicitly for the "any" interface.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *AnyRuleSet) WithRuleFunc(rule RuleFunc[any]) *AnyRuleSet {
 	return v.WithRule(rule)
 }

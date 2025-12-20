@@ -31,8 +31,8 @@ func String() *StringRuleSet {
 	return &baseStringRuleSet
 }
 
-// WithStrict returns a new child RuleSet with the strict flag applied.
-// A strict rule will only validate if the value is already a string.
+// WithStrict returns a new child RuleSet that disables type coercion.
+// When strict mode is enabled, validation only succeeds if the value is already a string.
 func (v *StringRuleSet) WithStrict() *StringRuleSet {
 	return &StringRuleSet{
 		strict:   true,
@@ -48,8 +48,8 @@ func (v *StringRuleSet) Required() bool {
 	return v.required
 }
 
-// WithRequired returns a new child rule set with the required flag set.
-// WithRequired is used when nesting a RuleSet and a value is not allowed to be omitted.
+// WithRequired returns a new child rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (v *StringRuleSet) WithRequired() *StringRuleSet {
 	return &StringRuleSet{
 		strict:   v.strict,
@@ -60,9 +60,9 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// WithNil allows values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (v *StringRuleSet) WithNil() *StringRuleSet {
 	return &StringRuleSet{
 		strict:   v.strict,
@@ -178,9 +178,8 @@ func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the string type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 	return &StringRuleSet{
 		strict:   ruleSet.strict,
@@ -191,9 +190,8 @@ func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule function
-// for the string type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 func (v *StringRuleSet) WithRuleFunc(rule RuleFunc[string]) *StringRuleSet {
 	return v.WithRule(rule)
 }

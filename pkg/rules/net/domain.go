@@ -41,8 +41,8 @@ func (ruleSet *DomainRuleSet) Required() bool {
 	return ruleSet.required
 }
 
-// WithRequired returns a new rule set with the required flag set.
-// Use WithRequired when nesting a RuleSet and the a value is not allowed to be omitted.
+// WithRequired returns a new rule set that requires the value to be present when nested in an object.
+// When a required field is missing from the input, validation fails with an error.
 func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	return &DomainRuleSet{
 		required: true,
@@ -52,9 +52,9 @@ func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 	}
 }
 
-// WithNil returns a new child rule set with the withNil flag set.
-// Use WithNil when you want to allow values to be explicitly set to nil if the output parameter supports nil values.
-// By default, WithNil is false.
+// WithNil returns a new child rule set that allows nil input values.
+// When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
+// By default, nil input values return a CodeNull error.
 func (ruleSet *DomainRuleSet) WithNil() *DomainRuleSet {
 	return &DomainRuleSet{
 		required: ruleSet.required,
@@ -201,9 +201,8 @@ func (ruleSet *DomainRuleSet) noConflict(rule rules.Rule[string]) *DomainRuleSet
 	}
 }
 
-// WithRule returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRule takes an implementation of the Rule interface
-// for the string type.
+// WithRule returns a new child rule set that applies a custom validation rule.
+// The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (ruleSet *DomainRuleSet) WithRule(rule rules.Rule[string]) *DomainRuleSet {
@@ -215,9 +214,8 @@ func (ruleSet *DomainRuleSet) WithRule(rule rules.Rule[string]) *DomainRuleSet {
 	}
 }
 
-// WithRuleFunc returns a new child rule set with a rule added to the list of
-// rules to evaluate. WithRuleFunc takes an implementation of the Rule interface
-// for the string type.
+// WithRuleFunc returns a new child rule set that applies a custom validation function.
+// The custom function is evaluated during validation and any errors it returns are included in the validation result.
 //
 // Use this when implementing custom rules.
 func (v *DomainRuleSet) WithRuleFunc(rule rules.RuleFunc[string]) *DomainRuleSet {
