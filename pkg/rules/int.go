@@ -143,8 +143,9 @@ func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 	}
 }
 
-// WithBase returns a new child rule set that uses the specified base for string-to-number conversion.
-// The base determines how numeric strings are parsed (e.g., base 16 for hexadecimal).
+// WithBase returns a new child rule set that uses the specified base for string-to-number conversion and number-to-string conversion.
+// The base determines how numeric strings are parsed from input (e.g., base 16 for hexadecimal) and how integers are formatted to strings in output.
+// When outputting to a string type, the integer will be formatted using the specified base (e.g., base 16 will format as hexadecimal like "beef").
 // The base has no effect if the RuleSet is strict since strict mode disables type conversion.
 //
 // The default is base 10.
@@ -221,12 +222,29 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 
 	var assignable bool
 
-	// If output is a nil interface, or an assignable type, set it directly to the new integer value
-	if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
+	// Format the integer as a string using the same base as input parsing
+	strVal := formatInt(intval, ruleSet.base)
+
+	// Check if output is a string type
+	if outputElem.Kind() == reflect.String {
+		outputElem.SetString(strVal)
+		assignable = true
+	} else if outputElem.Kind() == reflect.Ptr && outputElem.Type().Elem().Kind() == reflect.String {
+		// Handle pointer to string
+		if outputElem.IsNil() {
+			newStrPtr := reflect.New(outputElem.Type().Elem())
+			newStrPtr.Elem().SetString(strVal)
+			outputElem.Set(newStrPtr)
+		} else {
+			outputElem.Elem().SetString(strVal)
+		}
+		assignable = true
+	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
 		(outputElem.Kind() == reflect.Int || outputElem.Kind() == reflect.Int8 ||
 			outputElem.Kind() == reflect.Int16 || outputElem.Kind() == reflect.Int32 ||
 			outputElem.Kind() == reflect.Int64 || outputElem.Type().AssignableTo(reflect.TypeOf(intval))) {
 
+		// If output is a nil interface, or an assignable type, set it directly to the new integer value
 		outputElem.Set(reflect.ValueOf(intval))
 		assignable = true
 	}

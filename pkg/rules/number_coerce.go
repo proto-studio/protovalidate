@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"proto.zip/studio/validate/pkg/errors"
 )
@@ -67,6 +68,83 @@ func parseInt[To integer](value string, base int) (To, error) {
 		intval, err := strconv.ParseInt(value, base, t.Bits())
 		return To(intval), err
 	}
+}
+
+// formatInt formats an integer to a string using the specified base.
+func formatInt[T integer](value T, base int) string {
+	t := reflect.TypeOf(value)
+
+	switch t.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(uint64(value), base)
+	default:
+		return strconv.FormatInt(int64(value), base)
+	}
+}
+
+// formatFloat formats a float to a string.
+// If outputPrecision is set (>= 0) via WithFixedOutput, uses fixed-point format with zero-padding.
+// If rounding was applied via WithRounding, caps output precision at the rounding precision (no zero-padding).
+// Otherwise, uses a smart format that avoids floating point artifacts.
+func formatFloat[T floating](ruleSet *FloatRuleSet[T], value T) string {
+	float64val := float64(value)
+
+	// Get the bit size for the float type
+	bits := reflect.TypeOf(*new(T)).Bits()
+
+	// Find output precision and rounding precision by traversing the ruleSet chain
+	outputPrecision := -1   // -1 means not set
+	roundingPrecision := -1 // -1 means no rounding applied
+
+	for rs := ruleSet; rs != nil; rs = rs.parent {
+		if outputPrecision < 0 && rs.outputPrecision >= 0 {
+			outputPrecision = rs.outputPrecision
+		}
+		if roundingPrecision < 0 && rs.rounding != RoundingNone {
+			roundingPrecision = rs.precision
+		}
+	}
+
+	// If output precision is explicitly set via WithFixedOutput, use fixed-point format
+	if outputPrecision >= 0 {
+		return strconv.FormatFloat(float64val, 'f', outputPrecision, bits)
+	}
+
+	// If rounding was applied, cap output at the rounding precision (no zero-padding)
+	if roundingPrecision >= 0 {
+		formatted := strconv.FormatFloat(float64val, 'f', roundingPrecision, bits)
+		return trimTrailingZeros(formatted)
+	}
+
+	// Default case: use 'g' format which automatically chooses the best representation
+	// and avoids floating point artifacts
+	sigDigits := 15 // float64 has ~15-17 decimal digits of precision, use 15 to be safe
+	if bits == 32 {
+		sigDigits = 7 // float32 has ~7 decimal digits of precision
+	}
+
+	return strconv.FormatFloat(float64val, 'g', sigDigits, bits)
+}
+
+// trimTrailingZeros removes trailing zeros after the decimal point.
+func trimTrailingZeros(s string) string {
+	dotIdx := strings.Index(s, ".")
+	if dotIdx == -1 {
+		return s
+	}
+
+	// Find last non-zero character
+	lastNonZero := len(s) - 1
+	for lastNonZero > dotIdx && s[lastNonZero] == '0' {
+		lastNonZero--
+	}
+
+	// If we're at the decimal point, remove it too
+	if lastNonZero == dotIdx {
+		return s[:dotIdx]
+	}
+
+	return s[:lastNonZero+1]
 }
 
 // tryCoerceIntDefault attempts to convert to an int from a non-float and non-int type

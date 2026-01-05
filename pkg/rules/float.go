@@ -10,11 +10,13 @@ import (
 )
 
 var baseFloat32 FloatRuleSet[float32] = FloatRuleSet[float32]{
-	label: "FloatRuleSet[float32]",
+	outputPrecision: -1, // -1 means not set
+	label:           "FloatRuleSet[float32]",
 }
 
 var baseFloat64 FloatRuleSet[float64] = FloatRuleSet[float64]{
-	label: "FloatRuleSet[float64]",
+	outputPrecision: -1, // -1 means not set
+	label:           "FloatRuleSet[float64]",
 }
 
 type floating interface {
@@ -24,14 +26,15 @@ type floating interface {
 // Implementation of RuleSet for floats.
 type FloatRuleSet[T floating] struct {
 	NoConflict[T]
-	strict    bool
-	rule      Rule[T]
-	required  bool
-	withNil   bool
-	parent    *FloatRuleSet[T]
-	rounding  Rounding
-	precision int
-	label     string
+	strict          bool
+	rule            Rule[T]
+	required        bool
+	withNil         bool
+	parent          *FloatRuleSet[T]
+	rounding        Rounding
+	precision       int // Precision for rounding (used with WithRounding)
+	outputPrecision int // Precision for string output (-1 means not set, >= 0 means fixed output)
+	label           string
 }
 
 // Float32 creates a new float32 RuleSet.
@@ -51,13 +54,14 @@ func Float64() *FloatRuleSet[float64] {
 // deterministically and without loss.
 func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    true,
-		parent:    v,
-		required:  v.required,
-		withNil:   v.withNil,
-		rounding:  v.rounding,
-		precision: v.precision,
-		label:     "WithStrict()",
+		strict:          true,
+		parent:          v,
+		required:        v.required,
+		withNil:         v.withNil,
+		rounding:        v.rounding,
+		precision:       v.precision,
+		outputPrecision: v.outputPrecision,
+		label:           "WithStrict()",
 	}
 }
 
@@ -70,13 +74,14 @@ func (v *FloatRuleSet[T]) Required() bool {
 // When a required field is missing from the input, validation fails with an error.
 func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    v.strict,
-		parent:    v,
-		required:  true,
-		withNil:   v.withNil,
-		rounding:  v.rounding,
-		precision: v.precision,
-		label:     "WithRequired()",
+		strict:          v.strict,
+		parent:          v,
+		required:        true,
+		withNil:         v.withNil,
+		rounding:        v.rounding,
+		precision:       v.precision,
+		outputPrecision: v.outputPrecision,
+		label:           "WithRequired()",
 	}
 }
 
@@ -85,13 +90,14 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 // By default, nil input values return a CodeNull error.
 func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    v.strict,
-		parent:    v,
-		required:  v.required,
-		withNil:   true,
-		rounding:  v.rounding,
-		precision: v.precision,
-		label:     "WithNil()",
+		strict:          v.strict,
+		parent:          v,
+		required:        v.required,
+		withNil:         true,
+		rounding:        v.rounding,
+		precision:       v.precision,
+		outputPrecision: v.outputPrecision,
+		label:           "WithNil()",
 	}
 }
 
@@ -142,11 +148,28 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 
 	var assignable bool
 
-	// If output is a nil interface, or an assignable type, set it directly to the new float value
-	if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
+	// Format the float as a string with the appropriate precision
+	strVal := formatFloat(v, floatval)
+
+	// Check if output is a string type
+	if outputElem.Kind() == reflect.String {
+		outputElem.SetString(strVal)
+		assignable = true
+	} else if outputElem.Kind() == reflect.Ptr && outputElem.Type().Elem().Kind() == reflect.String {
+		// Handle pointer to string
+		if outputElem.IsNil() {
+			newStrPtr := reflect.New(outputElem.Type().Elem())
+			newStrPtr.Elem().SetString(strVal)
+			outputElem.Set(newStrPtr)
+		} else {
+			outputElem.Elem().SetString(strVal)
+		}
+		assignable = true
+	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
 		(outputElem.Kind() == reflect.Float32 || outputElem.Kind() == reflect.Float64 ||
 			outputElem.Type().AssignableTo(reflect.TypeOf(floatval))) {
 
+		// If output is a nil interface, or an assignable type, set it directly to the new float value
 		outputElem.Set(reflect.ValueOf(floatval))
 		assignable = true
 	}
@@ -203,14 +226,15 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 	}
 
 	return &FloatRuleSet[T]{
-		strict:    ruleSet.strict,
-		rule:      ruleSet.rule,
-		required:  ruleSet.required,
-		withNil:   ruleSet.withNil,
-		parent:    newParent,
-		rounding:  ruleSet.rounding,
-		precision: ruleSet.precision,
-		label:     ruleSet.label,
+		strict:          ruleSet.strict,
+		rule:            ruleSet.rule,
+		required:        ruleSet.required,
+		withNil:         ruleSet.withNil,
+		parent:          newParent,
+		rounding:        ruleSet.rounding,
+		precision:       ruleSet.precision,
+		outputPrecision: ruleSet.outputPrecision,
+		label:           ruleSet.label,
 	}
 }
 
@@ -218,13 +242,14 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    ruleSet.strict,
-		parent:    ruleSet.noConflict(rule),
-		rule:      rule,
-		required:  ruleSet.required,
-		withNil:   ruleSet.withNil,
-		rounding:  ruleSet.rounding,
-		precision: ruleSet.precision,
+		strict:          ruleSet.strict,
+		parent:          ruleSet.noConflict(rule),
+		rule:            rule,
+		required:        ruleSet.required,
+		withNil:         ruleSet.withNil,
+		rounding:        ruleSet.rounding,
+		precision:       ruleSet.precision,
+		outputPrecision: ruleSet.outputPrecision,
 	}
 }
 
