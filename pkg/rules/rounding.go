@@ -44,6 +44,7 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 		parent:   v,
 		base:     v.base,
 		required: v.required,
+		withNil:  v.withNil,
 		rounding: rounding,
 		label:    fmt.Sprintf("WithRounding(%s)", rounding.String()),
 	}
@@ -57,11 +58,31 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 // - For best results, consider using int for your math and data storage/transfer.
 func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatRuleSet[T] {
 	return &FloatRuleSet[T]{
-		strict:    v.strict,
-		parent:    v,
-		required:  v.required,
-		rounding:  rounding,
-		precision: precision,
-		label:     fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision),
+		strict:          v.strict,
+		parent:          v,
+		required:        v.required,
+		withNil:         v.withNil,
+		rounding:        rounding,
+		precision:       precision,
+		outputPrecision: v.outputPrecision,
+		label:           fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision),
+	}
+}
+
+// WithFixedOutput returns a new child RuleSet that uses a fixed precision for string output.
+// When outputting to a string type, the value will be zero-padded to exactly the specified number of decimal places.
+// This is useful for consistent formatting where you always want the same number of decimal places.
+//
+// Example: WithFixedOutput(2) will format 123.4 as "123.40" and 123.456 as "123.46" (after rounding if applicable).
+func (v *FloatRuleSet[T]) WithFixedOutput(precision int) *FloatRuleSet[T] {
+	return &FloatRuleSet[T]{
+		strict:          v.strict,
+		parent:          v,
+		required:        v.required,
+		withNil:         v.withNil,
+		rounding:        v.rounding,
+		precision:       v.precision,
+		outputPrecision: precision,
+		label:           fmt.Sprintf("WithFixedOutput(%d)", precision),
 	}
 }

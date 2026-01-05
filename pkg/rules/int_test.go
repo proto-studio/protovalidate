@@ -270,3 +270,134 @@ func TestIntRuleSet_Apply_VariantTypes(t *testing.T) {
 func TestIntRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[int](t, rules.Int())
 }
+
+// TestIntRuleSet_Apply_StringOutput tests:
+// - Outputs string values when output is a string type
+// - Uses the same base as input parsing
+func TestIntRuleSet_Apply_StringOutput(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.IntRuleSet[int]
+		input    interface{}
+		expected string
+	}{
+		{"Base10", rules.Int(), 123, "123"},
+		{"Base16", rules.Int().WithBase(16), 0xBEEF, "beef"},
+		{"Base16Hex", rules.Int().WithBase(16), 0xFF, "ff"},
+		{"Base8", rules.Int().WithBase(8), 0777, "777"},
+		{"Base2", rules.Int().WithBase(2), 0b1010, "1010"},
+		{"Negative", rules.Int(), -42, "-42"},
+		{"Zero", rules.Int(), 0, "0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out string
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out != tt.expected {
+				t.Errorf("Expected string %q, got %q", tt.expected, out)
+			}
+		})
+	}
+}
+
+// TestIntRuleSet_Apply_PointerToStringOutput tests:
+// - Outputs string values when output is a pointer to string type
+// - Handles nil pointer by creating a new string
+func TestIntRuleSet_Apply_PointerToStringOutput(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.IntRuleSet[int]
+		input    interface{}
+		expected string
+	}{
+		{"Base10", rules.Int(), 123, "123"},
+		{"Base16", rules.Int().WithBase(16), 0xBEEF, "beef"},
+		{"Negative", rules.Int(), -42, "-42"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name+"_NilPointer", func(t *testing.T) {
+			var out *string
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out == nil {
+				t.Error("Expected pointer to be non-nil")
+				return
+			}
+
+			if *out != tt.expected {
+				t.Errorf("Expected string %q, got %q", tt.expected, *out)
+			}
+		})
+
+		t.Run(tt.name+"_ExistingPointer", func(t *testing.T) {
+			existing := "existing"
+			out := &existing
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out == nil {
+				t.Error("Expected pointer to be non-nil")
+				return
+			}
+
+			if *out != tt.expected {
+				t.Errorf("Expected string %q, got %q", tt.expected, *out)
+			}
+		})
+	}
+}
+
+// TestIntRuleSet_Apply_StringOutput_VariousTypes tests:
+// - String output works with various integer types
+func TestIntRuleSet_Apply_StringOutput_VariousTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  rules.RuleSet[any]
+		input    interface{}
+		expected string
+	}{
+		{"Int", rules.Int().Any(), int(42), "42"},
+		{"Uint", rules.Uint().Any(), uint(42), "42"},
+		{"Int8", rules.Int8().Any(), int8(42), "42"},
+		{"Uint8", rules.Uint8().Any(), uint8(42), "42"},
+		{"Int16", rules.Int16().Any(), int16(42), "42"},
+		{"Uint16", rules.Uint16().Any(), uint16(42), "42"},
+		{"Int32", rules.Int32().Any(), int32(42), "42"},
+		{"Uint32", rules.Uint32().Any(), uint32(42), "42"},
+		{"Int64", rules.Int64().Any(), int64(42), "42"},
+		{"Uint64", rules.Uint64().Any(), uint64(42), "42"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out string
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out != tt.expected {
+				t.Errorf("Expected string %q, got %q", tt.expected, out)
+			}
+		})
+	}
+}
