@@ -551,7 +551,7 @@ func (v *SliceRuleSet[T]) WithRuleFunc(rule RuleFunc[[]T]) *SliceRuleSet[T] {
 // Any returns a new RuleSet that wraps the slice RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *SliceRuleSet[T]) Any() RuleSet[any] {
-	return WrapAny[[]T](v)
+	return WrapAny(v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

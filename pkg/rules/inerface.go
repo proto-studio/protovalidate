@@ -19,7 +19,6 @@ type InterfaceRuleSet[T any] struct {
 	parent   *InterfaceRuleSet[T]
 	label    string
 	cast     func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)
-	empty    T // leave empty
 }
 
 // Interface creates a new Interface rule set.
@@ -183,7 +182,7 @@ func (v *InterfaceRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *InterfaceRuleSet[T
 
 // Interface is an identity function for this implementation and returns the current rule set.
 func (v *InterfaceRuleSet[T]) Any() RuleSet[any] {
-	return WrapAny[T](v)
+	return WrapAny(v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

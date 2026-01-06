@@ -176,31 +176,31 @@ func (ruleSet *IntRuleSet[T]) coerceInt(value any, ctx context.Context) (T, erro
 	case T:
 		return x, nil
 	case int:
-		return tryCoerceIntToInt[int, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case int8:
-		return tryCoerceIntToInt[int8, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case int16:
-		return tryCoerceIntToInt[int16, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case int32:
-		return tryCoerceIntToInt[int32, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case int64:
-		return tryCoerceIntToInt[int64, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case uint:
-		return tryCoerceIntToInt[uint, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case uint8:
-		return tryCoerceIntToInt[uint8, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case uint16:
-		return tryCoerceIntToInt[uint16, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case uint32:
-		return tryCoerceIntToInt[uint32, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case uint64:
-		return tryCoerceIntToInt[uint64, T](ruleSet, x, ctx)
+		return tryCoerceIntToInt(ruleSet, x, ctx)
 	case float32:
-		return tryCoerceFloatToInt[float32, T](ruleSet, x, ctx)
+		return tryCoerceFloatToInt(ruleSet, x, ctx)
 	case float64:
-		return tryCoerceFloatToInt[float64, T](ruleSet, x, ctx)
+		return tryCoerceFloatToInt(ruleSet, x, ctx)
 	default:
-		return tryCoerceIntDefault[T](ruleSet, value, ctx)
+		return tryCoerceIntDefault(ruleSet, value, ctx)
 	}
 }
 
@@ -277,30 +277,30 @@ func (v *FloatRuleSet[T]) coerceFloat(value any, ctx context.Context) (T, errors
 	case T:
 		return x, nil
 	case int:
-		return tryCoerceIntToFloat[int, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case int8:
-		return tryCoerceIntToFloat[int8, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case int16:
-		return tryCoerceIntToFloat[int16, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case int32:
-		return tryCoerceIntToFloat[int32, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case int64:
-		return tryCoerceIntToFloat[int64, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case uint:
-		return tryCoerceIntToFloat[uint, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case uint8:
-		return tryCoerceIntToFloat[uint8, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case uint16:
-		return tryCoerceIntToFloat[uint16, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case uint32:
-		return tryCoerceIntToFloat[uint32, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case uint64:
-		return tryCoerceIntToFloat[uint64, T](v, x, ctx)
+		return tryCoerceIntToFloat(v, x, ctx)
 	case float32:
 		return tryCoerceFloatToFloat[float32, T](x, ctx)
 	case float64:
 		return tryCoerceFloatToFloat[float64, T](x, ctx)
 	default:
-		return tryCoerceFloatDefault[T](v, value, ctx)
+		return tryCoerceFloatDefault(v, value, ctx)
 	}
 }
