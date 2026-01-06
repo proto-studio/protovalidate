@@ -28,7 +28,7 @@ func TestMissingMapping(t *testing.T) {
 	ruleSet := Struct[*testStruct]().withParent()
 
 	// Manually create a mapping that is not on the struct
-	ruleSet.key = Constant[string]("A")
+	ruleSet.key = Constant("A")
 	ruleSet.mapping = "A"
 
 	// This should work
@@ -65,7 +65,7 @@ func TestUnexportedField(t *testing.T) {
 	ruleSet := Struct[*testStruct]().withParent()
 
 	// Manually create a mapping for the unexported field
-	ruleSet.key = Constant[string]("z")
+	ruleSet.key = Constant("z")
 	ruleSet.mapping = "z"
 
 	ruleSet.WithKey("z", Any())
@@ -123,7 +123,7 @@ func TestRefTrackerNegative(t *testing.T) {
 	c.Increment()
 
 	c.Lock()
-	// Intentionally empty critical section
+	//lint:ignore SA2001 Intentionally empty critical section to test decrement logic
 	c.Unlock()
 
 	defer func() {
@@ -133,5 +133,6 @@ func TestRefTrackerNegative(t *testing.T) {
 	}()
 
 	c.Lock()
+	//lint:ignore SA2001 Intentionally empty critical section to trigger panic
 	c.Unlock()
 }

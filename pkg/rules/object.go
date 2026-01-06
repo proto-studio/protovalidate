@@ -94,7 +94,7 @@ func Struct[T any]() *ObjectRuleSet[T, string, any] {
 
 		ruleSet = &ObjectRuleSet[T, string, any]{
 			parent:     ruleSet,
-			key:        Constant[string](key),
+			key:        Constant(key),
 			mapping:    field.Name,
 			outputType: ruleSet.outputType,
 			ptr:        ruleSet.ptr,
@@ -335,7 +335,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 	}
 
 	return v.withKeyHelper(
-		Constant[TK](key),
+		Constant(key),
 		destKey,
 		condition,
 		ruleSet,
@@ -893,7 +893,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRuleFunc(rule RuleFunc[T]) *ObjectRuleSet
 // Any returns a new RuleSet that wraps the object RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *ObjectRuleSet[T, TK, TV]) Any() RuleSet[any] {
-	return WrapAny[T](v)
+	return WrapAny(v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

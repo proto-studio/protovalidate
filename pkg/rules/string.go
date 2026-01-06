@@ -199,7 +199,7 @@ func (v *StringRuleSet) WithRuleFunc(rule RuleFunc[string]) *StringRuleSet {
 // Any returns a new RuleSet that wraps the string RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *StringRuleSet) Any() RuleSet[any] {
-	return WrapAny[string](v)
+	return WrapAny(v)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

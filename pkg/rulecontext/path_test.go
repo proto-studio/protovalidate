@@ -28,6 +28,7 @@ func fullPathHelper(t testing.TB, ctx context.Context, expected string) {
 // - Returns nil when context is nil
 // - Returns nil when no path is set in context
 func TestPathNil(t *testing.T) {
+	//lint:ignore SA1012 Testing nil context handling
 	if path := rulecontext.Path(nil); path != nil {
 		t.Errorf("Expected path to be nil, got: %v", path)
 	}

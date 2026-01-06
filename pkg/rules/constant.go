@@ -126,7 +126,7 @@ func (ruleSet *ConstantRuleSet[T]) Conflict(other Rule[T]) bool {
 
 // Any returns the current rule set wrapped as a RuleSet[any].
 func (ruleSet *ConstantRuleSet[T]) Any() RuleSet[any] {
-	return WrapAny[T](ruleSet)
+	return WrapAny(ruleSet)
 }
 
 // String returns a string representation of the rule set suitable for debugging.

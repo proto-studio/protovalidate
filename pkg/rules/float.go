@@ -262,7 +262,7 @@ func (v *FloatRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *FloatRuleSet[T] {
 // Any returns a new RuleSet that wraps the number RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *FloatRuleSet[T]) Any() RuleSet[any] {
-	return WrapAny[T](v)
+	return WrapAny(v)
 }
 
 // typeName returns the name for the target integer type.

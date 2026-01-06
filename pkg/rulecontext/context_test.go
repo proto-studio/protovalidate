@@ -22,6 +22,7 @@ const (
 // - Custom printer is returned when set in context
 // - Context values are preserved when setting printer
 func TestReturnsPrinter(t *testing.T) {
+	//lint:ignore SA1012 Testing nil context handling
 	defaultPrinter := rulecontext.Printer(nil)
 	if defaultPrinter == nil {
 		t.Error("Expected default printer to not be nil")
@@ -77,6 +78,7 @@ func TestWithPrinterNil(t *testing.T) {
 // - Returns nil when no rule set is set in context
 // - Returns rule set when set in context
 func TestReturnsRuleSet(t *testing.T) {
+	//lint:ignore SA1012 Testing nil context handling
 	v := rulecontext.RuleSet(nil)
 	if v != nil {
 		t.Error("Expected rule set to be nil")

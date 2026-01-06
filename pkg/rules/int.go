@@ -348,7 +348,7 @@ func (v *IntRuleSet[T]) WithRuleFunc(rule RuleFunc[T]) *IntRuleSet[T] {
 // Any returns a new RuleSet that wraps the number RuleSet in an Any rule set
 // which can then be used in nested validation.
 func (v *IntRuleSet[T]) Any() RuleSet[any] {
-	return WrapAny[T](v)
+	return WrapAny(v)
 }
 
 // typeName returns the name for the target integer type.
