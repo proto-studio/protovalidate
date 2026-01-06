@@ -65,7 +65,7 @@ func (rule *domainSuffixRule) String() string {
 
 	sb.WriteString(")")
 
-	return fmt.Sprintf(sb.String())
+	return sb.String()
 }
 
 // compareSuffix checks if two slices of strings are equal.

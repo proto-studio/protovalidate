@@ -7,7 +7,6 @@ import (
 	internalTime "time"
 
 	"proto.zip/studio/validate/pkg/errors"
-	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/time"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -113,8 +112,6 @@ func TestTimeRuleSet_Any(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 

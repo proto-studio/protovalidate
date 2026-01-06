@@ -18,7 +18,7 @@ func TestIntRuleSet_WithAllowedValues(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet.Any(), 5)
 	testhelpers.MustNotApply(t, ruleSet.Any(), 10, errors.CodeNotAllowed)
 
-	expected := fmt.Sprintf("IntRuleSet[int].WithAllowedValues(1, 5).WithMax(100)")
+	expected := "IntRuleSet[int].WithAllowedValues(1, 5).WithMax(100)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -27,7 +27,7 @@ func TestIntRuleSet_WithAllowedValues(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet.Any(), 1)
 	testhelpers.MustApply(t, ruleSet.Any(), 10)
 
-	expected = fmt.Sprintf("IntRuleSet[int].WithMax(100).WithAllowedValues(1, 5, 10)")
+	expected = "IntRuleSet[int].WithMax(100).WithAllowedValues(1, 5, 10)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

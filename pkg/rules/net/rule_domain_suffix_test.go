@@ -1,7 +1,6 @@
 package net_test
 
 import (
-	"fmt"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -66,19 +65,19 @@ func TestDomainRuleSet_String_WithSuffix(t *testing.T) {
 	}
 
 	ruleSet := net.Domain().WithSuffix(values[0], values[1]).WithRequired()
-	expected := fmt.Sprintf("DomainRuleSet.WithSuffix(\"STUDIO\", \"COM\").WithRequired()")
+	expected := "DomainRuleSet.WithSuffix(\"STUDIO\", \"COM\").WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	ruleSet = ruleSet.WithSuffix(values[0], values[1:3]...)
-	expected = fmt.Sprintf("DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\")")
+	expected = "DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	ruleSet = ruleSet.WithSuffix(values[0], values[1:]...)
-	expected = fmt.Sprintf("DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\" ... and 2 more)")
+	expected = "DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\" ... and 2 more)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
