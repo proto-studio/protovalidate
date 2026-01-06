@@ -8,6 +8,25 @@ on:
 
 jobs:
 
+  # Lint job uses Go 1.23 because staticcheck v0.6+ requires it.
+  # This is separate from the build job to maintain Go 1.22 compatibility for users.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.23'
+
+    - name: Install staticcheck
+      run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+    - name: Run staticcheck
+      run: staticcheck ./...
+
+  # Build and test using Go 1.22 to ensure backwards compatibility.
   build:
     runs-on: ubuntu-latest
     steps:
@@ -17,12 +36,6 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: '1.22'
-
-    - name: Install staticcheck
-      run: go install honnef.co/go/tools/cmd/staticcheck@latest
-
-    - name: Run staticcheck
-      run: staticcheck ./...
 
     - name: Build
       run: go build -v ./...
