@@ -8,7 +8,7 @@ import (
 
 // WithMinPort returns a new rule set that validates the port number is at least the specified minimum.
 func (ruleSet *URIRuleSet) WithMinPort(min int) *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithMin(min)
 	newRuleSet.label = fmt.Sprintf("WithMinPort(%d)", min)
 	return newRuleSet
@@ -16,7 +16,7 @@ func (ruleSet *URIRuleSet) WithMinPort(min int) *URIRuleSet {
 
 // WithMaxPort returns a new rule set that validates the port number is at most the specified maximum.
 func (ruleSet *URIRuleSet) WithMaxPort(max int) *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithMax(max)
 	newRuleSet.label = fmt.Sprintf("WithMaxPort(%d)", max)
 	return newRuleSet
@@ -27,7 +27,7 @@ func (ruleSet *URIRuleSet) WithMaxPort(max int) *URIRuleSet {
 // This method can be called more than once and the allowed values are cumulative.
 // Allowed values must still pass all other rules.
 func (ruleSet *URIRuleSet) WithAllowedPorts(value int, rest ...int) *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithAllowedValues(value, rest...)
 
 	list := append([]int{value}, rest...)

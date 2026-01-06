@@ -39,15 +39,10 @@ func (r Rounding) String() string {
 // The RuleSet will attempt to convert floating point numbers to integers even if rounding is not enabled.
 // If the number is not within tolerance (1e-9) of a whole number, an error will be returned.
 func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
-	return &IntRuleSet[T]{
-		strict:   v.strict,
-		parent:   v,
-		base:     v.base,
-		required: v.required,
-		withNil:  v.withNil,
-		rounding: rounding,
-		label:    fmt.Sprintf("WithRounding(%s)", rounding.String()),
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rounding = rounding
+	newRuleSet.label = fmt.Sprintf("WithRounding(%s)", rounding.String())
+	return newRuleSet
 }
 
 // WithRounding returns a new child RuleSet that applies the specified rounding method and precision to floating point numbers.
@@ -57,16 +52,11 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 // - Sometimes the rounded result may have additional precision when the rounded number cannot be exactly represented.
 // - For best results, consider using int for your math and data storage/transfer.
 func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          v.strict,
-		parent:          v,
-		required:        v.required,
-		withNil:         v.withNil,
-		rounding:        rounding,
-		precision:       precision,
-		outputPrecision: v.outputPrecision,
-		label:           fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision),
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rounding = rounding
+	newRuleSet.precision = precision
+	newRuleSet.label = fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision)
+	return newRuleSet
 }
 
 // WithFixedOutput returns a new child RuleSet that uses a fixed precision for string output.
@@ -75,14 +65,8 @@ func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatR
 //
 // Example: WithFixedOutput(2) will format 123.4 as "123.40" and 123.456 as "123.46" (after rounding if applicable).
 func (v *FloatRuleSet[T]) WithFixedOutput(precision int) *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          v.strict,
-		parent:          v,
-		required:        v.required,
-		withNil:         v.withNil,
-		rounding:        v.rounding,
-		precision:       v.precision,
-		outputPrecision: precision,
-		label:           fmt.Sprintf("WithFixedOutput(%d)", precision),
-	}
+	newRuleSet := v.clone()
+	newRuleSet.outputPrecision = precision
+	newRuleSet.label = fmt.Sprintf("WithFixedOutput(%d)", precision)
+	return newRuleSet
 }

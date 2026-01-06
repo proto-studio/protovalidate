@@ -39,14 +39,10 @@ func (rule *maxLenRule[TV, T]) String() string {
 // The maxLen is applied proactively during item processing, stopping validation of items after the maximum
 // length is reached. This allows maxLen to be enforced without requiring all items to be buffered in memory.
 func (v *SliceRuleSet[T]) WithMaxLen(max int) *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		maxLen:   max,
-		parent:   v,
-		required: v.required,
-		withNil:  v.withNil,
-		minLen:   v.minLen,
-		label:    fmt.Sprintf("WithMaxLen(%d)", max),
-	}
+	newRuleSet := v.clone()
+	newRuleSet.maxLen = max
+	newRuleSet.label = fmt.Sprintf("WithMaxLen(%d)", max)
+	return newRuleSet
 }
 
 // WithMaxLen returns a new child RuleSet that is constrained to the provided maximum string length.

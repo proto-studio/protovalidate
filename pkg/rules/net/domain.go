@@ -36,6 +36,15 @@ func Domain() *DomainRuleSet {
 	return &baseDomainRuleSet
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (ruleSet *DomainRuleSet) clone() *DomainRuleSet {
+	return &DomainRuleSet{
+		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
+		parent:   ruleSet,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (ruleSet *DomainRuleSet) Required() bool {
 	return ruleSet.required
@@ -44,24 +53,20 @@ func (ruleSet *DomainRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
-	return &DomainRuleSet{
-		required: true,
-		withNil:  ruleSet.withNil,
-		parent:   ruleSet,
-		label:    "WithRequired()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *DomainRuleSet) WithNil() *DomainRuleSet {
-	return &DomainRuleSet{
-		required: ruleSet.required,
-		withNil:  true,
-		parent:   ruleSet,
-		label:    "WithNil()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
@@ -192,13 +197,11 @@ func (ruleSet *DomainRuleSet) noConflict(rule rules.Rule[string]) *DomainRuleSet
 		return ruleSet
 	}
 
-	return &DomainRuleSet{
-		rule:     ruleSet.rule,
-		parent:   newParent,
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
-		label:    ruleSet.label,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
@@ -206,12 +209,10 @@ func (ruleSet *DomainRuleSet) noConflict(rule rules.Rule[string]) *DomainRuleSet
 //
 // Use this when implementing custom rules.
 func (ruleSet *DomainRuleSet) WithRule(rule rules.Rule[string]) *DomainRuleSet {
-	return &DomainRuleSet{
-		rule:     rule,
-		parent:   ruleSet.noConflict(rule),
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = rule
+	newRuleSet.parent = ruleSet.noConflict(rule)
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

@@ -124,7 +124,7 @@ func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
 	return newRuleSet
@@ -134,7 +134,7 @@ func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *URIRuleSet) WithNil() *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.withNil = true
 	newRuleSet.label = "WithNil()"
 	return newRuleSet
@@ -147,7 +147,7 @@ func (ruleSet *URIRuleSet) WithUserRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.userRuleSet = newRuleSet.userRuleSet.WithRequired()
 	newRuleSet.label = "WithUserRequired()"
 	return newRuleSet
@@ -160,7 +160,7 @@ func (ruleSet *URIRuleSet) WithPasswordRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.passwordRuleSet = newRuleSet.passwordRuleSet.WithRequired()
 	newRuleSet.label = "WithPasswordRequired()"
 	return newRuleSet
@@ -173,7 +173,7 @@ func (ruleSet *URIRuleSet) WithHostRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.hostRuleSet = newRuleSet.hostRuleSet.WithRequired()
 	newRuleSet.label = "WithHostRequired()"
 	return newRuleSet
@@ -186,7 +186,7 @@ func (ruleSet *URIRuleSet) WithPortRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.portRuleSet = newRuleSet.portRuleSet.WithRequired()
 	newRuleSet.label = "WithPortRequired()"
 	return newRuleSet
@@ -199,7 +199,7 @@ func (ruleSet *URIRuleSet) WithQueryRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.queryRuleSet = newRuleSet.queryRuleSet.WithRequired()
 	newRuleSet.label = "WithQueryRequired()"
 	return newRuleSet
@@ -212,7 +212,7 @@ func (ruleSet *URIRuleSet) WithFragmentRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.fragmentRuleSet = newRuleSet.fragmentRuleSet.WithRequired()
 	newRuleSet.label = "WithFragmentRequired()"
 	return newRuleSet
@@ -247,7 +247,7 @@ func (ruleSet *URIRuleSet) WithDeepErrors() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.deepErrors = true
 	newRuleSet.label = "WithDeepErrors()"
 	return newRuleSet
@@ -268,7 +268,7 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.relative = true
 	newRuleSet.label = "WithRelative()"
 	return newRuleSet
@@ -654,8 +654,9 @@ func (ruleSet *URIRuleSet) noConflict(rule rules.Rule[string]) *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.copyWithParent(newParent)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
 	return newRuleSet
 }
@@ -677,8 +678,9 @@ func (ruleSet *URIRuleSet) noConflict(rule rules.Rule[string]) *URIRuleSet {
 // - user
 // - password
 func (ruleSet *URIRuleSet) WithRule(rule rules.Rule[string]) *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet.noConflict(rule))
+	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = rule
+	newRuleSet.parent = ruleSet.noConflict(rule)
 	return newRuleSet
 }
 
@@ -718,10 +720,10 @@ func (ruleSet *URIRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[string](ruleSet)
 }
 
-// copy creates a rule set with all the appropriate fields copied and the parent set.
-func (ruleSet *URIRuleSet) copyWithParent(newParent *URIRuleSet) *URIRuleSet {
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (ruleSet *URIRuleSet) clone() *URIRuleSet {
 	return &URIRuleSet{
-		parent:           newParent,
+		parent:           ruleSet,
 		schemeRuleSet:    ruleSet.schemeRuleSet,
 		authorityRuleSet: ruleSet.authorityRuleSet,
 		pathRuleSet:      ruleSet.pathRuleSet,

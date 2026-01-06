@@ -25,7 +25,7 @@ func (c *alwaysErrorContext) Err() error {
 // TestMissingMapping tests:
 // - Panics when trying to use a key that doesn't have a field mapping
 func TestMissingMapping(t *testing.T) {
-	ruleSet := Struct[*testStruct]().withParent()
+	ruleSet := Struct[*testStruct]().clone()
 
 	// Manually create a mapping that is not on the struct
 	ruleSet.key = Constant("A")
@@ -62,7 +62,7 @@ func TestUnexportedField(t *testing.T) {
 		}
 	}()
 
-	ruleSet := Struct[*testStruct]().withParent()
+	ruleSet := Struct[*testStruct]().clone()
 
 	// Manually create a mapping for the unexported field
 	ruleSet.key = Constant("z")

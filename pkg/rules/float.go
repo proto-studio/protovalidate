@@ -47,22 +47,29 @@ func Float64() *FloatRuleSet[float64] {
 	return &baseFloat64
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *FloatRuleSet[T]) clone() *FloatRuleSet[T] {
+	return &FloatRuleSet[T]{
+		strict:          v.strict,
+		required:        v.required,
+		withNil:         v.withNil,
+		rounding:        v.rounding,
+		precision:       v.precision,
+		outputPrecision: v.outputPrecision,
+		parent:          v,
+	}
+}
+
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
 func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          true,
-		parent:          v,
-		required:        v.required,
-		withNil:         v.withNil,
-		rounding:        v.rounding,
-		precision:       v.precision,
-		outputPrecision: v.outputPrecision,
-		label:           "WithStrict()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.strict = true
+	newRuleSet.label = "WithStrict()"
+	return newRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -73,32 +80,20 @@ func (v *FloatRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          v.strict,
-		parent:          v,
-		required:        true,
-		withNil:         v.withNil,
-		rounding:        v.rounding,
-		precision:       v.precision,
-		outputPrecision: v.outputPrecision,
-		label:           "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          v.strict,
-		parent:          v,
-		required:        v.required,
-		withNil:         true,
-		rounding:        v.rounding,
-		precision:       v.precision,
-		outputPrecision: v.outputPrecision,
-		label:           "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
@@ -225,32 +220,20 @@ func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
 		return ruleSet
 	}
 
-	return &FloatRuleSet[T]{
-		strict:          ruleSet.strict,
-		rule:            ruleSet.rule,
-		required:        ruleSet.required,
-		withNil:         ruleSet.withNil,
-		parent:          newParent,
-		rounding:        ruleSet.rounding,
-		precision:       ruleSet.precision,
-		outputPrecision: ruleSet.outputPrecision,
-		label:           ruleSet.label,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *FloatRuleSet[T]) WithRule(rule Rule[T]) *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
-		strict:          ruleSet.strict,
-		parent:          ruleSet.noConflict(rule),
-		rule:            rule,
-		required:        ruleSet.required,
-		withNil:         ruleSet.withNil,
-		rounding:        ruleSet.rounding,
-		precision:       ruleSet.precision,
-		outputPrecision: ruleSet.outputPrecision,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = rule
+	newRuleSet.parent = ruleSet.noConflict(rule)
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

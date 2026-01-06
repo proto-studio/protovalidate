@@ -35,6 +35,16 @@ func WrapAny[T any](inner RuleSet[T]) *WrapAnyRuleSet[T] {
 	}
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *WrapAnyRuleSet[T]) clone() *WrapAnyRuleSet[T] {
+	return &WrapAnyRuleSet[T]{
+		required: v.required,
+		withNil:  v.withNil,
+		inner:    v.inner,
+		parent:   v,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (v *WrapAnyRuleSet[T]) Required() bool {
 	return v.required
@@ -46,26 +56,20 @@ func (v *WrapAnyRuleSet[T]) Required() bool {
 // Required defaults to the value of the wrapped RuleSet so if it is already required then there is
 // no need to call this again.
 func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
-	return &WrapAnyRuleSet[T]{
-		required: true,
-		withNil:  v.withNil,
-		inner:    v.inner,
-		parent:   v,
-		label:    "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *WrapAnyRuleSet[T]) WithNil() *WrapAnyRuleSet[T] {
-	return &WrapAnyRuleSet[T]{
-		required: v.required,
-		withNil:  true,
-		inner:    v.inner,
-		parent:   v,
-		label:    "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // evaluateRules runs all the rules and returns any errors.
@@ -141,13 +145,9 @@ func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) error
 //
 // If you want to add a rule directly to the wrapped RuleSet you must do it before wrapping it.
 func (v *WrapAnyRuleSet[T]) WithRule(rule Rule[any]) *WrapAnyRuleSet[T] {
-	return &WrapAnyRuleSet[T]{
-		required: v.required,
-		withNil:  v.withNil,
-		inner:    v.inner,
-		rule:     rule,
-		parent:   v,
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rule = rule
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

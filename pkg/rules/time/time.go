@@ -33,6 +33,17 @@ func Time() *TimeRuleSet {
 	return &baseTimeRuleSet
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (ruleSet *TimeRuleSet) clone() *TimeRuleSet {
+	return &TimeRuleSet{
+		required:     ruleSet.required,
+		withNil:      ruleSet.withNil,
+		layouts:      ruleSet.layouts,
+		outputLayout: ruleSet.outputLayout,
+		parent:       ruleSet,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (ruleSet *TimeRuleSet) Required() bool {
 	return ruleSet.required
@@ -41,26 +52,20 @@ func (ruleSet *TimeRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
-	return &TimeRuleSet{
-		required:     true,
-		withNil:      ruleSet.withNil,
-		parent:       ruleSet,
-		outputLayout: ruleSet.outputLayout,
-		label:        "WithRequired()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
-	return &TimeRuleSet{
-		required:     ruleSet.required,
-		withNil:      true,
-		parent:       ruleSet,
-		outputLayout: ruleSet.outputLayout,
-		label:        "WithNil()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // WithLayouts returns a new rule set that allows string-to-time conversion using the specified layouts.
@@ -81,14 +86,10 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 	layouts = append(layouts, first)
 	layouts = append(layouts, rest...)
 
-	return &TimeRuleSet{
-		required:     ruleSet.required,
-		withNil:      ruleSet.withNil,
-		layouts:      layouts,
-		parent:       ruleSet,
-		outputLayout: ruleSet.outputLayout,
-		label:        util.StringsToRuleOutput("WithLayouts", layouts),
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.layouts = layouts
+	newRuleSet.label = util.StringsToRuleOutput("WithLayouts", layouts)
+	return newRuleSet
 }
 
 // WithOutputLayout returns a new rule set that formats time values as strings using the specified layout.
@@ -102,13 +103,10 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 		return ruleSet
 	}
 
-	return &TimeRuleSet{
-		required:     ruleSet.required,
-		withNil:      ruleSet.withNil,
-		parent:       ruleSet,
-		outputLayout: layout,
-		label:        util.StringsToRuleOutput("WithOutputLayout", []string{layout}),
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.outputLayout = layout
+	newRuleSet.label = util.StringsToRuleOutput("WithOutputLayout", []string{layout})
+	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
@@ -240,26 +238,20 @@ func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet 
 		return ruleSet
 	}
 
-	return &TimeRuleSet{
-		rule:         ruleSet.rule,
-		layouts:      ruleSet.layouts,
-		outputLayout: ruleSet.outputLayout,
-		parent:       newParent,
-		required:     ruleSet.required,
-		withNil:      ruleSet.withNil,
-		label:        ruleSet.label,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *TimeRuleSet) WithRule(rule rules.Rule[time.Time]) *TimeRuleSet {
-	return &TimeRuleSet{
-		rule:     rule,
-		parent:   ruleSet.noConflict(rule),
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = rule
+	newRuleSet.parent = ruleSet.noConflict(rule)
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.
