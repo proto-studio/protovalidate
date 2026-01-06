@@ -16,6 +16,8 @@ type SliceRuleSet[T any] struct {
 	NoConflict[[]T]
 	itemRules RuleSet[T]
 	rule      Rule[[]T]
+	maxLen    int // maxLen > 0 means max length is set, 0 means no limit
+	minLen    int // minLen > 0 means min length is set, 0 means no limit
 	required  bool
 	withNil   bool
 	parent    *SliceRuleSet[T]
@@ -44,6 +46,8 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 		parent:   v,
 		required: true,
 		withNil:  v.withNil,
+		maxLen:   v.maxLen,
+		minLen:   v.minLen,
 		label:    "WithRequired()",
 	}
 }
@@ -56,6 +60,8 @@ func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
 		parent:   v,
 		required: v.required,
 		withNil:  true,
+		maxLen:   v.maxLen,
+		minLen:   v.minLen,
 		label:    "WithNil()",
 	}
 }
@@ -71,6 +77,8 @@ func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T]
 		parent:    v,
 		required:  v.required,
 		withNil:   v.withNil,
+		maxLen:    v.maxLen,
+		minLen:    v.minLen,
 	}
 }
 
@@ -86,7 +94,19 @@ func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, item
 		}
 	}
 
-	// Apply top-level rules (including maxLen) on collected output
+	// Check minLen - minLen is checked at the end after all items are processed
+	// minLen is copied to clones, so we only need to check the current rule set
+	// outputItems will be non-nil if minLen > 0 (we allocate it in applyChan)
+	if v.minLen > 0 {
+		actualLen := len(outputItems)
+		if actualLen < v.minLen {
+			allErrors = append(allErrors, errors.Errorf(
+				errors.CodeMin, ctx, "list must be at least %d items long", v.minLen,
+			))
+		}
+	}
+
+	// Apply top-level rules on collected output
 	if len(outputItems) > 0 {
 		for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 			if currentRuleSet.rule != nil {
@@ -106,7 +126,7 @@ func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, item
 // newInputChan converts a slice or array to a channel and returns the channel, original items, and coercion errors.
 // originalItems is populated when itemRuleSet exists, allowing it to process items that couldn't be cast to T.
 // coercionErrors is populated when no itemRuleSet exists, tracking items that couldn't be cast.
-func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Value) (<-chan T, []any, []errors.ValidationErrorCollection, errors.ValidationErrorCollection) {
+func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Value) (<-chan T, []any, []errors.ValidationErrorCollection) {
 	// Convert slice/array to channel
 	// Note: maxLen is checked at the end as a top-level rule (after all items are processed)
 	// Send all items - if they can't be cast to T, send zero value
@@ -167,7 +187,7 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 		}
 	}
 
-	return ch, originalItems, coercionErrors, nil
+	return ch, originalItems, coercionErrors
 }
 
 // applyChan performs streaming validation from an input channel to an output channel.
@@ -182,7 +202,11 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 	var outputItems []T
 	var index int
 
-	// Check if we need to collect items for top-level rules
+	// Get maxLen from current rule set (0 means no limit)
+	// maxLen is copied to clones, so we only need to check the current rule set
+	maxLen := v.maxLen
+
+	// Check if we need to collect items for top-level rules or minLen
 	var hasTopLevelRules bool
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
@@ -191,8 +215,9 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 		}
 	}
 
-	// Only allocate outputItems if we have top-level rules
-	if hasTopLevelRules {
+	// Allocate outputItems if we have top-level rules or minLen (minLen needs to check length at the end)
+	// minLen is copied to clones, so we only need to check the current rule set
+	if hasTopLevelRules || v.minLen > 0 {
 		outputItems = make([]T, 0)
 	}
 
@@ -205,7 +230,7 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 		}
 	}
 
-	// Stream process items - process ALL items (no early maxLen check)
+	// Stream process items - stop processing after maxLen if set
 	for {
 		select {
 		case <-ctx.Done():
@@ -218,7 +243,18 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 				return outputItems, allErrors
 			}
 
-			// Validate item
+			// Check maxLen proactively - stop applying item rules after maxLen
+			// Item rules are applied up to maxLen, after which we stop processing items
+			if maxLen > 0 && index >= maxLen {
+				// Max length exceeded - return immediately with error
+				// Don't drain the channel as it may never close (DoS risk)
+				allErrors = append(allErrors, errors.Errorf(
+					errors.CodeMax, ctx, "list must be at most %d items long", maxLen,
+				))
+				return outputItems, allErrors
+			}
+
+			// Validate item (only if we haven't exceeded maxLen)
 			var itemOutput T
 			var itemErr errors.ValidationErrorCollection
 
@@ -246,7 +282,8 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 				allErrors = append(allErrors, contextErrorToValidation(ctx))
 				return outputItems, allErrors
 			case output <- itemOutput:
-				if hasTopLevelRules {
+				// Append to outputItems if we need it for top-level rules or minLen
+				if hasTopLevelRules || v.minLen > 0 {
 					outputItems = append(outputItems, itemOutput)
 				}
 				index++
@@ -284,7 +321,8 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	expectedType := reflect.TypeOf((*T)(nil)).Elem()
 	expectedSliceType := reflect.TypeOf([]T(nil))
 
-	if outputElemKind == reflect.Chan {
+	switch outputElemKind {
+	case reflect.Chan:
 		// Validate channel element type
 		if outputElem.IsNil() {
 			return errors.Collection(errors.Errorf(
@@ -298,7 +336,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 				actualType.String(), expectedType.String(),
 			))
 		}
-	} else if outputElemKind == reflect.Interface {
+	case reflect.Interface:
 		// Interface output: check if []T is assignable to the interface type
 		// If nil, it's valid (we'll set it). If not nil, check assignability.
 		if !outputElem.IsNil() {
@@ -308,14 +346,14 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 				))
 			}
 		}
-	} else if outputElemKind == reflect.Slice {
+	case reflect.Slice:
 		// Validate slice element type - check if []T is assignable to output slice type
 		if !expectedSliceType.AssignableTo(outputElem.Type()) {
 			return errors.Collection(errors.Errorf(
 				errors.CodeInternal, ctx, "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
 			))
 		}
-	} else {
+	default:
 		return errors.Collection(errors.Errorf(
 			errors.CodeInternal, ctx, "Output must be a slice or channel, got %s", outputElemKind,
 		))
@@ -330,7 +368,8 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	var coercionErrors []errors.ValidationErrorCollection
 	var originalItems []any
 
-	if inputKind == reflect.Chan {
+	switch inputKind {
+	case reflect.Chan:
 		// Input is already a channel
 		inputVal := reflect.ValueOf(input)
 		if inputVal.IsNil() {
@@ -355,13 +394,9 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 			))
 		}
 		inputChan = recvChan
-	} else if inputKind == reflect.Slice || inputKind == reflect.Array {
-		var err errors.ValidationErrorCollection
-		inputChan, originalItems, coercionErrors, err = v.newInputChan(ctx, valueOf)
-		if err != nil {
-			return err
-		}
-	} else {
+	case reflect.Slice, reflect.Array:
+		inputChan, originalItems, coercionErrors = v.newInputChan(ctx, valueOf)
+	default:
 		return errors.Collection(errors.NewCoercionError(ctx, "array", inputKind.String()))
 	}
 
@@ -372,7 +407,8 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	var done chan struct{}
 	var closeOutputChan bool
 
-	if outputElemKind == reflect.Chan {
+	switch outputElemKind {
+	case reflect.Chan:
 		// Output is already a channel - convert to send-only
 		// We already validated the channel type earlier
 		var sendChan chan<- T
@@ -389,7 +425,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		}
 		outputChan = sendChan
 		closeOutputChan = false // Caller manages the channel
-	} else if outputElemKind == reflect.Interface {
+	case reflect.Interface:
 		// For interface{} output, create a slice and assign it
 		ch := make(chan T, 100) // Buffered to allow streaming
 		outputChan = ch
@@ -404,7 +440,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 				outputSliceInterface = append(outputSliceInterface, item)
 			}
 		}()
-	} else {
+	case reflect.Slice:
 		// Slice output
 		ch := make(chan T, 100) // Buffered to allow streaming
 		outputChan = ch
@@ -435,7 +471,8 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	}
 
 	// Assign the slice to interface{} if needed
-	if outputElemKind == reflect.Interface {
+	switch outputElemKind {
+	case reflect.Interface:
 		outputElem.Set(reflect.ValueOf(outputSliceInterface))
 	}
 
@@ -477,6 +514,8 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 		parent:    newParent,
 		required:  ruleSet.required,
 		withNil:   ruleSet.withNil,
+		maxLen:    ruleSet.maxLen,
+		minLen:    ruleSet.minLen,
 		itemRules: ruleSet.itemRules,
 		label:     ruleSet.label,
 	}
@@ -494,6 +533,8 @@ func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
 		parent:   v.noConflict(rule),
 		required: v.required,
 		withNil:  v.withNil,
+		maxLen:   v.maxLen,
+		minLen:   v.minLen,
 	}
 }
 

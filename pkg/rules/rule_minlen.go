@@ -36,11 +36,16 @@ func (rule *minLenRule[TV, T]) String() string {
 }
 
 // WithMinLen returns a new child RuleSet that is constrained to the provided minimum array/slice length.
+// The minLen is checked after all items are processed, ensuring the final output meets the minimum length requirement.
 func (v *SliceRuleSet[T]) WithMinLen(min int) *SliceRuleSet[T] {
-	return v.WithRule(&minLenRule[T, []T]{
-		min,
-		"list must be at least %d items long",
-	})
+	return &SliceRuleSet[T]{
+		minLen:   min,
+		parent:   v,
+		required: v.required,
+		withNil:  v.withNil,
+		maxLen:   v.maxLen,
+		label:    fmt.Sprintf("WithMinLen(%d)", min),
+	}
 }
 
 // WithMinLen returns a new child RuleSet that is constrained to the provided minimum string length.
