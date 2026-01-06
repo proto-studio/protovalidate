@@ -47,9 +47,10 @@ func TestReturnsPrinter(t *testing.T) {
 
 	ctx = rulecontext.WithPrinter(ctx, message.NewPrinter(language.Spanish))
 	p = rulecontext.Printer(ctx)
-	if p == nil {
+	switch p {
+	case nil:
 		t.Error("Expected printer to not be nil")
-	} else if p == defaultPrinter {
+	case defaultPrinter:
 		t.Error("Expected non-default printer")
 	}
 
