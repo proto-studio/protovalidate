@@ -33,6 +33,18 @@ func Slice[T any]() *SliceRuleSet[T] {
 	}
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *SliceRuleSet[T]) clone() *SliceRuleSet[T] {
+	return &SliceRuleSet[T]{
+		itemRules: v.itemRules,
+		maxLen:    v.maxLen,
+		minLen:    v.minLen,
+		required:  v.required,
+		withNil:   v.withNil,
+		parent:    v,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (v *SliceRuleSet[T]) Required() bool {
 	return v.required
@@ -42,28 +54,20 @@ func (v *SliceRuleSet[T]) Required() bool {
 // When a required field is missing from the input, validation fails with an error.
 // WithRequired has no effect on slices if the RuleSet is strict since nil is not a valid slice.
 func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		parent:   v,
-		required: true,
-		withNil:  v.withNil,
-		maxLen:   v.maxLen,
-		minLen:   v.minLen,
-		label:    "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		parent:   v,
-		required: v.required,
-		withNil:  true,
-		maxLen:   v.maxLen,
-		minLen:   v.minLen,
-		label:    "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // WithItemRuleSet takes a new rule set to use to validate array items and returns a new child rule set.
@@ -72,14 +76,9 @@ func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
 // If you don't set an item rule set then the validator will attempt to cast the items to the correct type
 // and perform no additional validation.
 func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		itemRules: itemRules,
-		parent:    v,
-		required:  v.required,
-		withNil:   v.withNil,
-		maxLen:    v.maxLen,
-		minLen:    v.minLen,
-	}
+	newRuleSet := v.clone()
+	newRuleSet.itemRules = itemRules
+	return newRuleSet
 }
 
 // finishApply merges coercion errors, applies top-level rules, and returns the final error collection.
@@ -509,16 +508,11 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 		return ruleSet
 	}
 
-	return &SliceRuleSet[T]{
-		rule:      ruleSet.rule,
-		parent:    newParent,
-		required:  ruleSet.required,
-		withNil:   ruleSet.withNil,
-		maxLen:    ruleSet.maxLen,
-		minLen:    ruleSet.minLen,
-		itemRules: ruleSet.itemRules,
-		label:     ruleSet.label,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
@@ -528,14 +522,10 @@ func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
 // which could have performance implications on larger slices. Top-level rules are applied after
 // all items are processed, requiring all validated items to be collected before rule evaluation.
 func (v *SliceRuleSet[T]) WithRule(rule Rule[[]T]) *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		rule:     rule,
-		parent:   v.noConflict(rule),
-		required: v.required,
-		withNil:  v.withNil,
-		maxLen:   v.maxLen,
-		minLen:   v.minLen,
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rule = rule
+	newRuleSet.parent = v.noConflict(rule)
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

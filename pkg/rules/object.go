@@ -126,8 +126,8 @@ func Map[TK comparable, TV any]() *ObjectRuleSet[map[TK]TV, TK, TV] {
 	}
 }
 
-// withParent is a helper function to assist in cloning object RuleSets.
-func (v *ObjectRuleSet[T, TK, TV]) withParent() *ObjectRuleSet[T, TK, TV] {
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *ObjectRuleSet[T, TK, TV]) clone() *ObjectRuleSet[T, TK, TV] {
 	return &ObjectRuleSet[T, TK, TV]{
 		allowUnknown: v.allowUnknown,
 		required:     v.required,
@@ -150,7 +150,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithUnknown() *ObjectRuleSet[T, TK, TV] {
 		return v
 	}
 
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 	newRuleSet.allowUnknown = true
 	newRuleSet.label = "WithUnknown()"
 	return newRuleSet
@@ -253,7 +253,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithDynamicBucket(keyRule Rule[TK], bucket TK
 //
 // If the only dynamic rules are conditional, the key will be considered unknown if no conditions match.
 func (v *ObjectRuleSet[T, TK, TV]) WithConditionalDynamicBucket(keyRule Rule[TK], condition Conditional[T, TK], bucket TK) *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 
 	newRuleSet.key = keyRule
 	newRuleSet.condition = condition
@@ -344,7 +344,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithConditionalKey(key TK, condition Conditio
 
 // withKeyHelper returns a new rule set with the appropriate keys, conditions, and mappings set.
 func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key Rule[TK], destKey TK, condition Conditional[T, TK], ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 
 	newRuleSet.mapping = destKey
 	newRuleSet.key = key
@@ -385,7 +385,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 		return v
 	}
 
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
 	return newRuleSet
@@ -395,7 +395,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithRequired() *ObjectRuleSet[T, TK, TV] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *ObjectRuleSet[T, TK, TV]) WithNil() *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 	newRuleSet.withNil = true
 	newRuleSet.label = "WithNil()"
 	return newRuleSet
@@ -871,7 +871,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 		return v
 	}
 
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 	newRuleSet.json = true
 	return newRuleSet
 }
@@ -879,7 +879,7 @@ func (v *ObjectRuleSet[T, TK, TV]) WithJson() *ObjectRuleSet[T, TK, TV] {
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (v *ObjectRuleSet[T, TK, TV]) WithRule(rule Rule[T]) *ObjectRuleSet[T, TK, TV] {
-	newRuleSet := v.withParent()
+	newRuleSet := v.clone()
 	newRuleSet.objRule = rule
 	return newRuleSet
 }

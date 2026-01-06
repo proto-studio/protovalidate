@@ -31,16 +31,23 @@ func String() *StringRuleSet {
 	return &baseStringRuleSet
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *StringRuleSet) clone() *StringRuleSet {
+	return &StringRuleSet{
+		strict:   v.strict,
+		required: v.required,
+		withNil:  v.withNil,
+		parent:   v,
+	}
+}
+
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already a string.
 func (v *StringRuleSet) WithStrict() *StringRuleSet {
-	return &StringRuleSet{
-		strict:   true,
-		parent:   v,
-		required: v.required,
-		withNil:  v.withNil,
-		label:    "WithStrict()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.strict = true
+	newRuleSet.label = "WithStrict()"
+	return newRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -51,26 +58,20 @@ func (v *StringRuleSet) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *StringRuleSet) WithRequired() *StringRuleSet {
-	return &StringRuleSet{
-		strict:   v.strict,
-		parent:   v,
-		required: true,
-		withNil:  v.withNil,
-		label:    "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *StringRuleSet) WithNil() *StringRuleSet {
-	return &StringRuleSet{
-		strict:   v.strict,
-		parent:   v,
-		required: v.required,
-		withNil:  true,
-		label:    "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the resulting string to the output pointer.
@@ -168,26 +169,20 @@ func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
 		return ruleSet
 	}
 
-	return &StringRuleSet{
-		rule:     ruleSet.rule,
-		parent:   newParent,
-		required: ruleSet.required,
-		strict:   ruleSet.strict,
-		withNil:  ruleSet.withNil,
-		label:    ruleSet.label,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (ruleSet *StringRuleSet) WithRule(rule Rule[string]) *StringRuleSet {
-	return &StringRuleSet{
-		strict:   ruleSet.strict,
-		rule:     rule,
-		parent:   ruleSet.noConflict(rule),
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = rule
+	newRuleSet.parent = ruleSet.noConflict(rule)
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

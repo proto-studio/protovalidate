@@ -34,6 +34,16 @@ func Any() *AnyRuleSet {
 	return &backgroundAnyRuleSet
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *AnyRuleSet) clone() *AnyRuleSet {
+	return &AnyRuleSet{
+		required:  v.required,
+		forbidden: v.forbidden,
+		withNil:   v.withNil,
+		parent:    v,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (v *AnyRuleSet) Required() bool {
 	return v.required
@@ -42,38 +52,29 @@ func (v *AnyRuleSet) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
-	return &AnyRuleSet{
-		required:  true,
-		forbidden: v.forbidden,
-		withNil:   v.withNil,
-		parent:    v,
-		label:     "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithForbidden returns a new child rule set that requires values to be nil or omitted.
 // When a value is present, validation fails with an error.
 func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
-	return &AnyRuleSet{
-		required:  v.required,
-		forbidden: true,
-		withNil:   v.withNil,
-		parent:    v,
-		label:     "WithForbidden()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.forbidden = true
+	newRuleSet.label = "WithForbidden()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *AnyRuleSet) WithNil() *AnyRuleSet {
-	return &AnyRuleSet{
-		required:  v.required,
-		forbidden: v.forbidden,
-		withNil:   true,
-		parent:    v,
-		label:     "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the value to the output.
@@ -147,13 +148,9 @@ func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationE
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 func (v *AnyRuleSet) WithRule(rule Rule[any]) *AnyRuleSet {
-	return &AnyRuleSet{
-		required:  v.required,
-		forbidden: v.forbidden,
-		withNil:   v.withNil,
-		rule:      rule,
-		parent:    v,
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rule = rule
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

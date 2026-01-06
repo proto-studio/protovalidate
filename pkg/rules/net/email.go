@@ -32,6 +32,16 @@ func Email() *EmailRuleSet {
 	return &baseEmailRuleSet
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (ruleSet *EmailRuleSet) clone() *EmailRuleSet {
+	return &EmailRuleSet{
+		required:      ruleSet.required,
+		withNil:       ruleSet.withNil,
+		domainRuleSet: ruleSet.domainRuleSet,
+		parent:        ruleSet,
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (ruleSet *EmailRuleSet) Required() bool {
 	return ruleSet.required
@@ -40,26 +50,20 @@ func (ruleSet *EmailRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
-	return &EmailRuleSet{
-		required:      true,
-		withNil:       ruleSet.withNil,
-		parent:        ruleSet,
-		domainRuleSet: ruleSet.domainRuleSet,
-		label:         "WithRequired()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *EmailRuleSet) WithNil() *EmailRuleSet {
-	return &EmailRuleSet{
-		required:      ruleSet.required,
-		withNil:       true,
-		parent:        ruleSet,
-		domainRuleSet: ruleSet.domainRuleSet,
-		label:         "WithNil()",
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
@@ -194,12 +198,9 @@ func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.
 //
 //	NewDomain().WithTLD()
 func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *EmailRuleSet {
-	return &EmailRuleSet{
-		parent:        ruleSet,
-		required:      ruleSet.required,
-		withNil:       ruleSet.withNil,
-		domainRuleSet: domainRuleSet,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.domainRuleSet = domainRuleSet
+	return newRuleSet
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.
@@ -207,13 +208,9 @@ func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *Em
 //
 // Use this when implementing custom rules.
 func (ruleSet *EmailRuleSet) WithRule(rule rules.Rule[string]) *EmailRuleSet {
-	return &EmailRuleSet{
-		rule:          rule,
-		parent:        ruleSet,
-		required:      ruleSet.required,
-		withNil:       ruleSet.withNil,
-		domainRuleSet: ruleSet.domainRuleSet,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = rule
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.

@@ -9,7 +9,7 @@ import (
 // This method can be called more than once and the allowed values are cumulative.
 // Allowed values must still pass all other rules.
 func (ruleSet *URIRuleSet) WithAllowedSchemes(value string, rest ...string) *URIRuleSet {
-	newRuleSet := ruleSet.copyWithParent(ruleSet)
+	newRuleSet := ruleSet.clone()
 	newRuleSet.schemeRuleSet = newRuleSet.schemeRuleSet.WithAllowedValues(value, rest...)
 
 	list := append([]string{value}, rest...)

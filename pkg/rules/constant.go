@@ -57,6 +57,15 @@ func (ruleSet *ConstantRuleSet[T]) Required() bool {
 	return ruleSet.required
 }
 
+// clone returns a shallow copy of the rule set.
+func (ruleSet *ConstantRuleSet[T]) clone() *ConstantRuleSet[T] {
+	return &ConstantRuleSet[T]{
+		value:    ruleSet.value,
+		required: ruleSet.required,
+		withNil:  ruleSet.withNil,
+	}
+}
+
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
@@ -64,22 +73,18 @@ func (ruleSet *ConstantRuleSet[T]) WithRequired() *ConstantRuleSet[T] {
 		return ruleSet
 	}
 
-	return &ConstantRuleSet[T]{
-		value:    ruleSet.value,
-		required: true,
-		withNil:  ruleSet.withNil,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.required = true
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
-	return &ConstantRuleSet[T]{
-		value:    ruleSet.value,
-		required: ruleSet.required,
-		withNil:  true,
-	}
+	newRuleSet := ruleSet.clone()
+	newRuleSet.withNil = true
+	return newRuleSet
 }
 
 // Apply validates a RuleSet against an input value and assigns the validated value to output.

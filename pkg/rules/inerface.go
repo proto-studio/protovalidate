@@ -28,6 +28,16 @@ func Interface[T any]() *InterfaceRuleSet[T] {
 	}
 }
 
+// clone returns a shallow copy of the rule set with parent set to the current instance.
+func (v *InterfaceRuleSet[T]) clone() *InterfaceRuleSet[T] {
+	return &InterfaceRuleSet[T]{
+		required: v.required,
+		withNil:  v.withNil,
+		cast:     v.cast,
+		parent:   v,
+	}
+}
+
 // WithCast creates a new Interface rule set that has the set cast function.
 // The cast function should take "any" and return a value of the appropriate interface type.
 // Run will always try to directly cast the value. Adding a function is useful for when the
@@ -40,13 +50,10 @@ func Interface[T any]() *InterfaceRuleSet[T] {
 // A third boolean return value is added to differentiate between a successful cast to a nil value
 // and
 func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)) *InterfaceRuleSet[T] {
-	return &InterfaceRuleSet[T]{
-		required: v.required,
-		withNil:  v.withNil,
-		parent:   v,
-		cast:     fn,
-		label:    "WithCast(...)",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.cast = fn
+	newRuleSet.label = "WithCast(...)"
+	return newRuleSet
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -61,25 +68,20 @@ func (v *InterfaceRuleSet[T]) WithRequired() *InterfaceRuleSet[T] {
 		return v
 	}
 
-	return &InterfaceRuleSet[T]{
-		required: true,
-		withNil:  v.withNil,
-		parent:   v,
-		label:    "WithRequired()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.required = true
+	newRuleSet.label = "WithRequired()"
+	return newRuleSet
 }
 
 // WithNil returns a new child rule set that allows nil input values.
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *InterfaceRuleSet[T]) WithNil() *InterfaceRuleSet[T] {
-	return &InterfaceRuleSet[T]{
-		required: v.required,
-		withNil:  true,
-		cast:     v.cast,
-		parent:   v,
-		label:    "WithNil()",
-	}
+	newRuleSet := v.clone()
+	newRuleSet.withNil = true
+	newRuleSet.label = "WithNil()"
+	return newRuleSet
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
@@ -163,13 +165,9 @@ func (v *InterfaceRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Vali
 //
 // Use this when implementing custom rules.
 func (v *InterfaceRuleSet[T]) WithRule(rule Rule[T]) *InterfaceRuleSet[T] {
-	return &InterfaceRuleSet[T]{
-		required: v.required,
-		withNil:  v.withNil,
-		cast:     v.cast,
-		rule:     rule,
-		parent:   v,
-	}
+	newRuleSet := v.clone()
+	newRuleSet.rule = rule
+	return newRuleSet
 }
 
 // WithRuleFunc returns a new child rule set that applies a custom validation function.
