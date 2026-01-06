@@ -56,7 +56,7 @@ func TestStringRuleSet_Apply_TypeError(t *testing.T) {
 	// Use Apply instead of Validate
 	err := rules.String().WithStrict().Apply(context.TODO(), 123, &str)
 
-	if err == nil || len(err) == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 	}
 }
@@ -174,8 +174,6 @@ func TestStringRuleSet_Any(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 

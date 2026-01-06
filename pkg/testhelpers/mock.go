@@ -45,7 +45,7 @@ func NewMockRuleWithErrors[T any](count int) *MockRule[T] {
 
 // defaultErrors returns a collection of the default errors or nil depending on how the mock is configured
 func (rule *MockRule[T]) defaultErrors() errors.ValidationErrorCollection {
-	if rule.Errors != nil && len(rule.Errors) > 0 {
+	if len(rule.Errors) > 0 {
 		return errors.Collection(rule.Errors...)
 	}
 	return nil

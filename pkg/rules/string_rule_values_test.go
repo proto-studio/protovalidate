@@ -18,7 +18,7 @@ func TestStringRuleSet_WithAllowedValues(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet.Any(), "b")
 	testhelpers.MustNotApply(t, ruleSet.Any(), "c", errors.CodeNotAllowed)
 
-	expected := fmt.Sprintf("StringRuleSet.WithAllowedValues(\"a\", \"b\").WithMaxLen(1)")
+	expected := "StringRuleSet.WithAllowedValues(\"a\", \"b\").WithMaxLen(1)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -27,7 +27,7 @@ func TestStringRuleSet_WithAllowedValues(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet.Any(), "a")
 	testhelpers.MustApply(t, ruleSet.Any(), "c")
 
-	expected = fmt.Sprintf("StringRuleSet.WithMaxLen(1).WithAllowedValues(\"a\", \"b\", \"c\")")
+	expected = "StringRuleSet.WithMaxLen(1).WithAllowedValues(\"a\", \"b\", \"c\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -75,7 +75,7 @@ func TestStringRuleSet_WithRejectedValues(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet.Any(), "b", errors.CodeForbidden)
 	testhelpers.MustApply(t, ruleSet.Any(), "c")
 
-	expected := fmt.Sprintf("StringRuleSet.WithRejectedValues(\"a\", \"b\")")
+	expected := "StringRuleSet.WithRejectedValues(\"a\", \"b\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
@@ -84,7 +84,7 @@ func TestStringRuleSet_WithRejectedValues(t *testing.T) {
 	testhelpers.MustNotApply(t, ruleSet.Any(), "a", errors.CodeForbidden)
 	testhelpers.MustNotApply(t, ruleSet.Any(), "c", errors.CodeForbidden)
 
-	expected = fmt.Sprintf("StringRuleSet.WithRejectedValues(\"a\", \"b\").WithRejectedValues(\"c\")")
+	expected = "StringRuleSet.WithRejectedValues(\"a\", \"b\").WithRejectedValues(\"c\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

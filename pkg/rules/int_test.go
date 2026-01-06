@@ -43,7 +43,7 @@ func TestIntRuleSet_Apply_StrictError(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
 
-	if err == nil || len(err) == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -163,8 +163,6 @@ func TestIntRuleSet_Any(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 

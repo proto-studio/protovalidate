@@ -61,7 +61,7 @@ func MustApplyFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutp
 			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
 		}
 
-		t.Errorf(str)
+		t.Error(str)
 		return actualOutput, err
 	} else if err := fn(expectedOutput, actualOutput); err != nil {
 		t.Error(err)
@@ -198,7 +198,7 @@ func MustEvaluate[T any](t testing.TB, rule rules.Rule[T], input T) error {
 			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
 		}
 
-		t.Errorf(str)
+		t.Error(str)
 		return err
 	}
 

@@ -41,7 +41,7 @@ func TestFloatRuleSet_Apply_StrictError(t *testing.T) {
 	var out float64
 	err := rules.Float64().WithStrict().Apply(context.Background(), "123.0", &out)
 
-	if err == nil || len(err) == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -95,7 +95,7 @@ func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
 		Apply(context.Background(), "123.0", &out)
 
-	if err == nil || len(err) == 0 {
+	if len(err) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -124,8 +124,6 @@ func TestFloatRuleSet_Any(t *testing.T) {
 
 	if ruleSet == nil {
 		t.Error("Expected Any not be nil")
-	} else if _, ok := ruleSet.(rules.RuleSet[any]); !ok {
-		t.Error("Expected Any not implement RuleSet[any]")
 	}
 }
 

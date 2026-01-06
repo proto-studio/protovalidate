@@ -17,7 +17,7 @@ type maxDiffRule struct {
 // Evaluate takes a context and integer value and returns an error if the difference between the current server time and
 // the time.Time value is less than than than the specified value.
 func (rule *maxDiffRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
-	if value.Sub(time.Now()) > rule.max {
+	if time.Until(value) > rule.max {
 		return errors.Collection(
 			errors.Errorf(errors.CodeMax, ctx, "field must be on or before %s from now", rule.max),
 		)

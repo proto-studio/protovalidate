@@ -38,7 +38,7 @@ func percentEncodingRule(ctx context.Context, value string) errors.ValidationErr
 	runes := []rune(value)
 
 	l := len(runes)
-	for i, _ := range runes {
+	for i := range runes {
 		if runes[i] != '%' {
 			continue
 		}
