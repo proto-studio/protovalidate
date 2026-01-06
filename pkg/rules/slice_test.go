@@ -311,8 +311,8 @@ func TestSliceRuleSet_Apply_ChannelInputOutput(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelWithMaxLen tests:
-// - MaxLen is checked as a top-level rule after all items are processed
-// - All items are processed before maxLen validation
+// - MaxLen is applied proactively during item processing
+// - Item rules are applied up to maxLen, then processing stops
 // - Error is returned when maxLen is exceeded
 func TestSliceRuleSet_Apply_ChannelWithMaxLen(t *testing.T) {
 	// Create input channel with more values than max
@@ -333,9 +333,9 @@ func TestSliceRuleSet_Apply_ChannelWithMaxLen(t *testing.T) {
 		t.Fatalf("Expected error when maxLen is exceeded, got nil")
 	}
 
-	// All items should be processed (maxLen is checked at the end)
-	if len(output) != 5 {
-		t.Fatalf("Expected all 5 items to be processed, got %d", len(output))
+	// Only items up to maxLen should be processed (maxLen is applied proactively)
+	if len(output) != 2 {
+		t.Fatalf("Expected 2 items to be processed (maxLen), got %d", len(output))
 	}
 
 	if output[0] != "a" || output[1] != "b" {
@@ -1478,58 +1478,46 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeExtendWithinCapacity(t *t
 }
 
 // TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim tests:
-// - sliceOutputAdapter finalize when length < output.Len() (line 273 - trimming)
-// - Triggered when context cancelled during concurrent processing
+// - sliceOutputAdapter finalize when length < output.Len() (trimming scenario)
+// - Tests cancellation during item validation with slice output
+// - Items are validated sequentially, so cancellation on first item should always occur
 func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim(t *testing.T) {
-	// To hit line 273: length < output.Len()
-	// At line 516, when context is cancelled during concurrent processing,
-	// finalize is called with len(items) (items read from input)
-	// But results might have been partially written via putIndex
-	// If output.Len() > len(items), we hit line 273
-
-	// However, items are read before processing starts, so len(items) is the full input
-	// Results are written in the loop at line 551, after items are all read
-	// So output.Len() should never be > len(items) in this scenario
-
-	// Actually, wait - if we cancel during concurrent processing:
-	// - Items are read first (all of them, len(items) = full input)
-	// - Then processing happens concurrently
-	// - Results are written via putIndex sequentially
-	// - If we cancel after some results are written, output.Len() > 0
-	// - But len(items) is still the full input length
-	// - So output.Len() < len(items), not >
-
-	// This branch might be unreachable, but let's test the error path anyway
 	input := []string{"a", "b"}
 
 	var output []string
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go func() {
-		time.Sleep(1 * time.Millisecond)
-		cancel()
-	}()
-
+	// Use closure-based cancellation - items are validated sequentially
+	// so cancellation on first item ("a") should always be detected
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
 		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationErrorCollection {
-			time.Sleep(10 * time.Millisecond)
+			// Cancel after first item is processed
+			if s == "a" {
+				cancel()
+			}
 			return nil
 		}),
 	)
 
 	err := ruleSet.Apply(ctx, input, &output)
 
+	// Cancellation should always occur since items are validated sequentially
+	// and we cancel on the first item
 	if err == nil {
 		t.Error("Expected cancellation error, got nil")
 		return
 	}
 
-	// At line 516, finalize is called with len(items) = 2
-	// If results were partially written, output.Len() might be 1
-	// So len(items) = 2 > output.Len() = 1, which doesn't hit line 273
-	// Line 273 requires length < output.Len(), which seems unreachable
-	// This branch is defensive code
+	// Verify it's a cancellation error
+	firstErr := err.First()
+	if firstErr == nil {
+		t.Error("Expected at least one error")
+		return
+	}
+	if firstErr.Code() != errors.CodeCancelled {
+		t.Errorf("Expected cancellation error code, got %s", firstErr.Code())
+	}
 }
 
 // TestSliceRuleSet_Apply_PutIndexErrorFinalizeError tests:

@@ -78,7 +78,9 @@ func TestSlice_MinLen_Conflict(t *testing.T) {
 	}
 
 	// Verify that the new rule set's string representation is correct
-	expected = "SliceRuleSet[int].WithMaxLen(10).WithMinLen(2)"
+	// Note: Built-ins like minLen don't do conflict deduplication, so both minLen values remain in the chain
+	// The most recent minLen value (2) is used since it's copied to clones
+	expected = "SliceRuleSet[int].WithMinLen(3).WithMaxLen(10).WithMinLen(2)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
