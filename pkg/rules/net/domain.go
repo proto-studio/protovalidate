@@ -24,11 +24,12 @@ var domainLabelPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]{0,61}[a-zA-Z0
 // DomainRuleSet implements the RuleSet interface for the domain names.
 type DomainRuleSet struct {
 	rules.NoConflict[string]
-	required bool
-	withNil  bool
-	parent   *DomainRuleSet
-	rule     rules.Rule[string]
-	label    string
+	required    bool
+	withNil     bool
+	parent      *DomainRuleSet
+	rule        rules.Rule[string]
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // Domain returns the base domain RuleSet.
@@ -37,12 +38,28 @@ func Domain() *DomainRuleSet {
 }
 
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (ruleSet *DomainRuleSet) clone() *DomainRuleSet {
-	return &DomainRuleSet{
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
-		parent:   ruleSet,
+// domainCloneOption is a functional option for cloning DomainRuleSet.
+type domainCloneOption func(*DomainRuleSet)
+
+func (ruleSet *DomainRuleSet) clone(options ...domainCloneOption) *DomainRuleSet {
+	newRuleSet := &DomainRuleSet{
+		required:    ruleSet.required,
+		withNil:     ruleSet.withNil,
+		parent:      ruleSet,
+		errorConfig: ruleSet.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func domainWithLabel(label string) domainCloneOption {
+	return func(rs *DomainRuleSet) { rs.label = label }
+}
+
+func domainWithErrorConfig(config *errors.ErrorConfig) domainCloneOption {
+	return func(rs *DomainRuleSet) { rs.errorConfig = config }
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -53,9 +70,8 @@ func (ruleSet *DomainRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.clone(domainWithLabel("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -63,15 +79,17 @@ func (ruleSet *DomainRuleSet) WithRequired() *DomainRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *DomainRuleSet) WithNil() *DomainRuleSet {
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.clone(domainWithLabel("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
 		return err
@@ -80,7 +98,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
+		return errors.Collection(errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String()))
 	}
 
 	// Perform the validation
@@ -93,7 +111,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
 		))
 	}
 
@@ -107,7 +125,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+			errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output,
 		))
 	}
 
@@ -123,13 +141,13 @@ func validateBasicDomain(ctx context.Context, value string) errors.ValidationErr
 	punycode, err := idna.ToASCII(value)
 
 	if err != nil {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "domain contains invalid unicode"))
+		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain contains invalid characters"))
 		return allErrors
 	}
 
 	// Check total length
 	if len(punycode) >= 256 {
-		allErrors = append(allErrors, errors.Errorf(errors.CodeMax, ctx, "domain exceeds maximum length"))
+		allErrors = append(allErrors, errors.Errorf(errors.CodeMaxLen, ctx, "too long", "domain exceeds maximum length"))
 		return allErrors
 	}
 
@@ -138,7 +156,7 @@ func validateBasicDomain(ctx context.Context, value string) errors.ValidationErr
 
 	for _, part := range parts {
 		if !domainLabelPattern.MatchString(part) {
-			allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "domain segment is invalid"))
+			allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain segment is invalid"))
 			break
 		}
 	}
@@ -243,4 +261,34 @@ func (ruleSet *DomainRuleSet) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (ruleSet *DomainRuleSet) WithErrorMessage(short, long string) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithErrorMessage(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (ruleSet *DomainRuleSet) WithDocsURI(uri string) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithDocsURI(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (ruleSet *DomainRuleSet) WithTraceURI(uri string) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithTraceURI(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (ruleSet *DomainRuleSet) WithErrorCode(code errors.ErrorCode) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithErrorCode(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (ruleSet *DomainRuleSet) WithErrorMeta(key string, value any) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithErrorMeta(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (ruleSet *DomainRuleSet) WithErrorCallback(fn errors.ErrorCallback) *DomainRuleSet {
+	return ruleSet.clone(domainWithLabel("WithErrorCallback(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

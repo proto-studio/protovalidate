@@ -96,7 +96,7 @@ func TestString_WithMaxLen(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet, "a")
 	testhelpers.MustApply(t, ruleSet, "ab")
-	testhelpers.MustNotApply(t, ruleSet, "abc", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "abc", errors.CodeMaxLen)
 
 }
 

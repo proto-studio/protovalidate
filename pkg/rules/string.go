@@ -12,12 +12,13 @@ import (
 // Implementation of RuleSet for strings.
 type StringRuleSet struct {
 	NoConflict[string]
-	strict   bool
-	rule     Rule[string]
-	required bool
-	withNil  bool
-	parent   *StringRuleSet
-	label    string
+	strict      bool
+	rule        Rule[string]
+	required    bool
+	withNil     bool
+	parent      *StringRuleSet
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // baseStringRuleSet is the main RuleSet.
@@ -31,22 +32,37 @@ func String() *StringRuleSet {
 	return &baseStringRuleSet
 }
 
+// stringCloneOption is a functional option for cloning StringRuleSet.
+type stringCloneOption func(*StringRuleSet)
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *StringRuleSet) clone() *StringRuleSet {
-	return &StringRuleSet{
-		strict:   v.strict,
-		required: v.required,
-		withNil:  v.withNil,
-		parent:   v,
+func (v *StringRuleSet) clone(options ...stringCloneOption) *StringRuleSet {
+	newRuleSet := &StringRuleSet{
+		strict:      v.strict,
+		required:    v.required,
+		withNil:     v.withNil,
+		parent:      v,
+		errorConfig: v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func stringWithLabel(label string) stringCloneOption {
+	return func(rs *StringRuleSet) { rs.label = label }
+}
+
+func stringWithErrorConfig(config *errors.ErrorConfig) stringCloneOption {
+	return func(rs *StringRuleSet) { rs.errorConfig = config }
 }
 
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already a string.
 func (v *StringRuleSet) WithStrict() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(stringWithLabel("WithStrict()"))
 	newRuleSet.strict = true
-	newRuleSet.label = "WithStrict()"
 	return newRuleSet
 }
 
@@ -58,9 +74,8 @@ func (v *StringRuleSet) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *StringRuleSet) WithRequired() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(stringWithLabel("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -68,15 +83,17 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *StringRuleSet) WithNil() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(stringWithLabel("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the resulting string to the output pointer.
 // Apply returns a ValidationErrorCollection.
 func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and value is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
 		return err
@@ -86,7 +103,7 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.Collection(
-			errors.Errorf(errors.CodeInternal, ctx, "Output must be a non-nil pointer"),
+			errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"),
 		)
 	}
 
@@ -119,7 +136,7 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 	}
 
 	return errors.Collection(
-		errors.Errorf(errors.CodeInternal, ctx, "Cannot assign string to %T", output),
+		errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign string to %T", output),
 	)
 }
 
@@ -209,4 +226,34 @@ func (ruleSet *StringRuleSet) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *StringRuleSet) WithErrorMessage(short, long string) *StringRuleSet {
+	return v.clone(stringWithLabel("WithErrorMessage(...)"), stringWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *StringRuleSet) WithDocsURI(uri string) *StringRuleSet {
+	return v.clone(stringWithLabel("WithDocsURI(...)"), stringWithErrorConfig(v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *StringRuleSet) WithTraceURI(uri string) *StringRuleSet {
+	return v.clone(stringWithLabel("WithTraceURI(...)"), stringWithErrorConfig(v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *StringRuleSet) WithErrorCode(code errors.ErrorCode) *StringRuleSet {
+	return v.clone(stringWithLabel("WithErrorCode(...)"), stringWithErrorConfig(v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *StringRuleSet) WithErrorMeta(key string, value any) *StringRuleSet {
+	return v.clone(stringWithLabel("WithErrorMeta(...)"), stringWithErrorConfig(v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *StringRuleSet) WithErrorCallback(fn errors.ErrorCallback) *StringRuleSet {
+	return v.clone(stringWithLabel("WithErrorCallback(...)"), stringWithErrorConfig(v.errorConfig.WithCallback(fn)))
 }

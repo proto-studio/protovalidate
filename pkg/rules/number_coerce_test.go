@@ -108,8 +108,8 @@ func TestStringToInt(t *testing.T) {
 
 	err := testhelpers.MustNotApply(t, ruleSetBase10, "7B", errors.CodeType)
 
-	if !strings.Contains(err.Error(), "string to int") {
-		t.Errorf("Expected error to contain 'string to int', got: %s", err)
+	if !strings.Contains(err.Error(), "expected int") {
+		t.Errorf("Expected error to contain 'expected int', got: %s", err)
 	}
 
 	ruleSetBase16 := rules.Int().WithBase(16).Any()
@@ -117,8 +117,8 @@ func TestStringToInt(t *testing.T) {
 
 	err = testhelpers.MustNotApply(t, ruleSetBase10, "7x", errors.CodeType)
 
-	if !strings.Contains(err.Error(), "string to int") {
-		t.Errorf("Expected error to contain 'string to int', got: %s", err)
+	if !strings.Contains(err.Error(), "expected int") {
+		t.Errorf("Expected error to contain 'expected int', got: %s", err)
 	}
 }
 

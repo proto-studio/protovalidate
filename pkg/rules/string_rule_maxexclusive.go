@@ -16,7 +16,7 @@ type stringMaxExclusiveRule struct {
 func (rule *stringMaxExclusiveRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if value >= rule.max {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "value must be less than %q", truncateString(rule.max)),
+			errors.Error(errors.CodeMaxExclusive, ctx, truncateString(rule.max)),
 		)
 	}
 

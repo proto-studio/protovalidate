@@ -17,7 +17,7 @@ type maxExclusiveRule[T integer | floating] struct {
 func (rule *maxExclusiveRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if value >= rule.max {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "field must be less than %d", rule.max),
+			errors.Error(errors.CodeMaxExclusive, ctx, rule.max),
 		)
 	}
 

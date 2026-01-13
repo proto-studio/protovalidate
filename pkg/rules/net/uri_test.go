@@ -585,3 +585,9 @@ func TestURIRuleSet_WithRuleFunc_Conflict(t *testing.T) {
 func TestURIRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, net.URI())
 }
+
+// TestURIRuleSet_ErrorConfig tests:
+// - URIRuleSet implements error configuration methods
+func TestURIRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[string, *net.URIRuleSet](t, net.URI())
+}

@@ -114,3 +114,11 @@ func TestWithPathCombined(t *testing.T) {
 	ctx = rulecontext.WithPathString(ctx, "pathc")
 	fullPathHelper(t, ctx, "/patha/pathb/1/2/pathc")
 }
+
+// TestPathIndexFullStringNilParent tests:
+// - pathSegmentIndex.FullString() with nil parent returns just the index
+func TestPathIndexFullStringNilParent(t *testing.T) {
+	// Create a context with only an index path (no parent string path)
+	ctx := rulecontext.WithPathIndex(context.Background(), 5)
+	fullPathHelper(t, ctx, "5")
+}

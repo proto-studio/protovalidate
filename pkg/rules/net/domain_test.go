@@ -67,12 +67,12 @@ func TestDomainRuleSet_Apply_PunycodeError(t *testing.T) {
 
 // TestDomainRuleSet_Apply_Length tests:
 // - Errors when domain is too long
-// - errors.CodeMax is returned
+// - errors.CodeMaxLen is returned
 func TestDomainRuleSet_Apply_Length(t *testing.T) {
 	ruleSet := net.Domain().Any()
 
 	str := strings.Repeat(strings.Repeat("a", 32), 9)
-	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, str+".com", errors.CodeMaxLen)
 }
 
 // TestDomainRuleSet_Apply_Type tests:
@@ -149,4 +149,10 @@ func TestDomainRuleSet_String_WithRequired(t *testing.T) {
 // - Does not error when nil is provided and WithNil is used
 func TestDomainRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, net.Domain())
+}
+
+// TestDomainRuleSet_ErrorConfig tests:
+// - DomainRuleSet implements error configuration methods
+func TestDomainRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[string, *net.DomainRuleSet](t, net.Domain())
 }

@@ -20,13 +20,13 @@ func TestStringRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, "x")
 
 	// "y" is equal to "y", should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, "y", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "y", errors.CodeMaxExclusive)
 
 	// "z" is lexicographically greater than "y", should fail
-	testhelpers.MustNotApply(t, ruleSet, "z", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "z", errors.CodeMaxExclusive)
 
 	// "ya" is lexicographically greater than "y", should fail
-	testhelpers.MustNotApply(t, ruleSet, "ya", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "ya", errors.CodeMaxExclusive)
 }
 
 // TestStringRuleSet_WithMaxExclusive_Conflict tests:
@@ -94,11 +94,11 @@ func TestStringRuleSet_WithMaxExclusive_Lexicographical(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, "apple")
 
 	// "banana" is equal, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, "banana", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "banana", errors.CodeMaxExclusive)
 
 	// "bananas" is lexicographically greater, should fail
-	testhelpers.MustNotApply(t, ruleSet, "bananas", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "bananas", errors.CodeMaxExclusive)
 
 	// "cherry" is lexicographically greater, should fail
-	testhelpers.MustNotApply(t, ruleSet, "cherry", errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, "cherry", errors.CodeMaxExclusive)
 }

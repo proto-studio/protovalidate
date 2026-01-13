@@ -66,14 +66,15 @@ type integer interface {
 // Implementation of RuleSet for integers.
 type IntRuleSet[T integer] struct {
 	NoConflict[T]
-	strict   bool
-	base     int
-	rule     Rule[T]
-	required bool
-	withNil  bool
-	parent   *IntRuleSet[T]
-	rounding Rounding
-	label    string
+	strict      bool
+	base        int
+	rule        Rule[T]
+	required    bool
+	withNil     bool
+	parent      *IntRuleSet[T]
+	rounding    Rounding
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // Int creates a new integer RuleSet.
@@ -126,16 +127,32 @@ func Uint64() *IntRuleSet[uint64] {
 	return &baseUint64
 }
 
+// intCloneOption is a functional option for cloning IntRuleSet.
+type intCloneOption[T integer] func(*IntRuleSet[T])
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *IntRuleSet[T]) clone() *IntRuleSet[T] {
-	return &IntRuleSet[T]{
-		strict:   v.strict,
-		base:     v.base,
-		required: v.required,
-		withNil:  v.withNil,
-		rounding: v.rounding,
-		parent:   v,
+func (v *IntRuleSet[T]) clone(options ...intCloneOption[T]) *IntRuleSet[T] {
+	newRuleSet := &IntRuleSet[T]{
+		strict:      v.strict,
+		base:        v.base,
+		required:    v.required,
+		withNil:     v.withNil,
+		rounding:    v.rounding,
+		parent:      v,
+		errorConfig: v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func intWithLabel[T integer](label string) intCloneOption[T] {
+	return func(rs *IntRuleSet[T]) { rs.label = label }
+}
+
+func intWithErrorConfig[T integer](config *errors.ErrorConfig) intCloneOption[T] {
+	return func(rs *IntRuleSet[T]) { rs.errorConfig = config }
 }
 
 // WithStrict returns a new child RuleSet that disables type coercion.
@@ -144,9 +161,8 @@ func (v *IntRuleSet[T]) clone() *IntRuleSet[T] {
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
 func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(intWithLabel[T]("WithStrict()"))
 	newRuleSet.strict = true
-	newRuleSet.label = "WithStrict()"
 	return newRuleSet
 }
 
@@ -157,9 +173,8 @@ func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 //
 // The default is base 10.
 func (v *IntRuleSet[T]) WithBase(base int) *IntRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(intWithLabel[T](fmt.Sprintf("WithBase(%d)", base)))
 	newRuleSet.base = base
-	newRuleSet.label = fmt.Sprintf("WithBase(%d)", base)
 	return newRuleSet
 }
 
@@ -171,9 +186,8 @@ func (v *IntRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(intWithLabel[T]("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -181,15 +195,17 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(intWithLabel[T]("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
 // Apply returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
 		return err
@@ -199,7 +215,7 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
 		))
 	}
 
@@ -244,7 +260,7 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 	// If the types are incompatible, return an error
 	if !assignable {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign %T to %T", intval, outputElem.Interface(),
+			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", intval, outputElem.Interface(),
 		))
 	}
 
@@ -351,4 +367,34 @@ func (ruleSet *IntRuleSet[T]) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *IntRuleSet[T]) WithErrorMessage(short, long string) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithErrorMessage(...)"), intWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *IntRuleSet[T]) WithDocsURI(uri string) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithDocsURI(...)"), intWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *IntRuleSet[T]) WithTraceURI(uri string) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithTraceURI(...)"), intWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *IntRuleSet[T]) WithErrorCode(code errors.ErrorCode) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithErrorCode(...)"), intWithErrorConfig[T](v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *IntRuleSet[T]) WithErrorMeta(key string, value any) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithErrorMeta(...)"), intWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *IntRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *IntRuleSet[T] {
+	return v.clone(intWithLabel[T]("WithErrorCallback(...)"), intWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

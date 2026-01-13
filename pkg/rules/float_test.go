@@ -531,3 +531,9 @@ func TestFloatRuleSet_WithFixedOutput_PointerToString(t *testing.T) {
 		t.Errorf("Expected string %q, got %q", "123.40", *out)
 	}
 }
+
+// TestFloatRuleSet_ErrorConfig tests:
+// - FloatRuleSet implements error configuration methods
+func TestFloatRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[float64, *rules.FloatRuleSet[float64]](t, rules.Float64())
+}

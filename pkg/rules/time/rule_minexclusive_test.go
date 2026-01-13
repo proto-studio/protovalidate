@@ -23,10 +23,10 @@ func TestTimeRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := time.Time().WithMinExclusive(now).Any()
 
 	// before is before now, should fail
-	testhelpers.MustNotApply(t, ruleSet, before, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, before, errors.CodeMinExclusive)
 
 	// now is equal to now, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeMinExclusive)
 
 	// after is after now, should pass
 	testhelpers.MustApply(t, ruleSet, after)

@@ -26,10 +26,10 @@ func TestTimeRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, before)
 
 	// now is equal to now, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, now, errors.CodeMaxExclusive)
 
 	// after is after now, should fail
-	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, after, errors.CodeMaxExclusive)
 }
 
 // TestTimeRuleSet_WithMaxExclusive_Conflict tests:

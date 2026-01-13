@@ -19,8 +19,8 @@ func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (h
 	// Input is nil - check if nil is allowed
 	if !withNil {
 		// Nil is not allowed, return error
-		return true, errors.Collection(errors.Errorf(
-			errors.CodeNull, ctx, "value cannot be null",
+		return true, errors.Collection(errors.Error(
+			errors.CodeNull, ctx,
 		))
 	}
 
@@ -28,7 +28,7 @@ func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (h
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return false, errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
 		))
 	}
 

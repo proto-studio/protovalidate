@@ -15,12 +15,13 @@ import (
 // See also: WrapAny which also implements the "any" interface and wraps another RuleSet.
 type AnyRuleSet struct {
 	NoConflict[any]
-	required  bool
-	forbidden bool
-	withNil   bool
-	rule      Rule[any]
-	parent    *AnyRuleSet
-	label     string
+	required    bool
+	forbidden   bool
+	withNil     bool
+	rule        Rule[any]
+	parent      *AnyRuleSet
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // backgroundAnyRUleSet is the main AnyRuleSet.
@@ -34,14 +35,30 @@ func Any() *AnyRuleSet {
 	return &backgroundAnyRuleSet
 }
 
+// anyCloneOption is a functional option for cloning AnyRuleSet.
+type anyCloneOption func(*AnyRuleSet)
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *AnyRuleSet) clone() *AnyRuleSet {
-	return &AnyRuleSet{
-		required:  v.required,
-		forbidden: v.forbidden,
-		withNil:   v.withNil,
-		parent:    v,
+func (v *AnyRuleSet) clone(options ...anyCloneOption) *AnyRuleSet {
+	newRuleSet := &AnyRuleSet{
+		required:    v.required,
+		forbidden:   v.forbidden,
+		withNil:     v.withNil,
+		parent:      v,
+		errorConfig: v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func anyWithLabel(label string) anyCloneOption {
+	return func(rs *AnyRuleSet) { rs.label = label }
+}
+
+func anyWithErrorConfig(config *errors.ErrorConfig) anyCloneOption {
+	return func(rs *AnyRuleSet) { rs.errorConfig = config }
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -52,18 +69,16 @@ func (v *AnyRuleSet) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *AnyRuleSet) WithRequired() *AnyRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(anyWithLabel("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
 // WithForbidden returns a new child rule set that requires values to be nil or omitted.
 // When a value is present, validation fails with an error.
 func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(anyWithLabel("WithForbidden()"))
 	newRuleSet.forbidden = true
-	newRuleSet.label = "WithForbidden()"
 	return newRuleSet
 }
 
@@ -71,15 +86,17 @@ func (v *AnyRuleSet) WithForbidden() *AnyRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *AnyRuleSet) WithNil() *AnyRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(anyWithLabel("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the value to the output.
 // Apply returns a ValidationErrorCollection.
 func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
 		return err
@@ -94,7 +111,7 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.Collection(
-			errors.Errorf(errors.CodeInternal, ctx, "Output must be a non-nil pointer"),
+			errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"),
 		)
 	}
 
@@ -111,7 +128,7 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 	}
 
 	return errors.Collection(
-		errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output),
+		errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output),
 	)
 }
 
@@ -119,7 +136,7 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 // Evaluate calls wrapped rules before any rules added directly to the AnyRuleSet.
 func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
 	if v.forbidden {
-		return errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "value is not allowed"))
+		return errors.Collection(errors.Error(errors.CodeForbidden, ctx))
 	}
 
 	allErrors := errors.Collection()
@@ -178,4 +195,34 @@ func (ruleSet *AnyRuleSet) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *AnyRuleSet) WithErrorMessage(short, long string) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithErrorMessage(...)"), anyWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *AnyRuleSet) WithDocsURI(uri string) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithDocsURI(...)"), anyWithErrorConfig(v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *AnyRuleSet) WithTraceURI(uri string) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithTraceURI(...)"), anyWithErrorConfig(v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *AnyRuleSet) WithErrorCode(code errors.ErrorCode) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithErrorCode(...)"), anyWithErrorConfig(v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *AnyRuleSet) WithErrorMeta(key string, value any) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithErrorMeta(...)"), anyWithErrorConfig(v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *AnyRuleSet) WithErrorCallback(fn errors.ErrorCallback) *AnyRuleSet {
+	return v.clone(anyWithLabel("WithErrorCallback(...)"), anyWithErrorConfig(v.errorConfig.WithCallback(fn)))
 }

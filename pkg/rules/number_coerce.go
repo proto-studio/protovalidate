@@ -43,7 +43,7 @@ func tryCoerceFloatToInt[From floating, To integer](ruleSet *IntRuleSet[To], val
 		int64val = int64(math.Round(float64val))
 
 		if math.Abs(float64(int64val)-float64val) > tolerance {
-			return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+			return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
 		}
 	}
 
@@ -150,7 +150,7 @@ func trimTrailingZeros(s string) string {
 // tryCoerceIntDefault attempts to convert to an int from a non-float and non-int type
 func tryCoerceIntDefault[To integer](ruleSet *IntRuleSet[To], value any, ctx context.Context) (To, errors.ValidationError) {
 	if ruleSet.strict {
-		return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+		return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
 	}
 
 	if str, ok := value.(string); ok {
@@ -162,12 +162,12 @@ func tryCoerceIntDefault[To integer](ruleSet *IntRuleSet[To], value any, ctx con
 				return 0, errors.NewRangeError(ctx, ruleSet.typeName())
 			}
 
-			return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), "string")
+			return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), "string")
 		}
 		return To(intval), nil
 	}
 
-	return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+	return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
 }
 
 // coerceInt arrempts to convert the value to the appropriate number type and returns a validation error collection if it can't.
@@ -248,7 +248,7 @@ func tryCoerceIntToFloat[From integer, To floating](ruleSet *FloatRuleSet[To], v
 // tryCoerceFloatDefault attempts to convert to a floar from a non-float and non-int type
 func tryCoerceFloatDefault[To floating](ruleSet *FloatRuleSet[To], value any, ctx context.Context) (To, errors.ValidationError) {
 	if ruleSet.strict {
-		return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+		return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
 	}
 
 	if str, ok := value.(string); ok {
@@ -262,13 +262,13 @@ func tryCoerceFloatDefault[To floating](ruleSet *FloatRuleSet[To], value any, ct
 				return 0, errors.NewRangeError(ctx, ruleSet.typeName())
 			}
 
-			return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), "string")
+			return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), "string")
 		}
 
 		return To(floatval), nil
 	}
 
-	return 0, errors.NewCoercionError(ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+	return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
 }
 
 // coerceInt arrempts to convert the value to the appropriate number type and returns a validation error collection if it can't.
