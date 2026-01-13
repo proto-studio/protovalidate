@@ -105,6 +105,29 @@ func TestDictReturnsDefaultWhenNotSet(t *testing.T) {
 	}
 }
 
+// TestDictReturnsDefaultWhenContextNil tests:
+// - Dict returns DefaultDict when context is nil
+func TestDictReturnsDefaultWhenContextNil(t *testing.T) {
+	//lint:ignore SA1012 intentionally testing nil context behavior
+	dict := errors.Dict(nil)
+
+	if dict != errors.DefaultDict() {
+		t.Error("Expected DefaultDict when context is nil")
+	}
+}
+
+// TestWithDictPanicsOnNil tests:
+// - WithDict panics when dict is nil
+func TestWithDictPanicsOnNil(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic when dict is nil")
+		}
+	}()
+
+	errors.WithDict(context.Background(), nil)
+}
+
 // TestDictEntryForUnknownCode tests:
 // - Entry returns default unknown entry for unknown codes
 func TestDictEntryForUnknownCode(t *testing.T) {
