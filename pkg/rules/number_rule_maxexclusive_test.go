@@ -20,10 +20,10 @@ func TestIntRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 9)
 
 	// 10 is equal to 10, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, 10, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, 10, errors.CodeMaxExclusive)
 
 	// 11 is greater than 10, should fail
-	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, 11, errors.CodeMaxExclusive)
 }
 
 // TestFloatRuleSet_WithMaxExclusive tests:
@@ -37,10 +37,10 @@ func TestFloatRuleSet_WithMaxExclusive(t *testing.T) {
 	testhelpers.MustApply(t, ruleSet, 9.9)
 
 	// 10.0 is equal to 10.0, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, 10.0, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, 10.0, errors.CodeMaxExclusive)
 
 	// 10.1 is greater than 10.0, should fail
-	testhelpers.MustNotApply(t, ruleSet, 10.1, errors.CodeMax)
+	testhelpers.MustNotApply(t, ruleSet, 10.1, errors.CodeMaxExclusive)
 }
 
 // TestIntRuleSet_WithMaxExclusive_Conflict tests:

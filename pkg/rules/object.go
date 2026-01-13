@@ -32,6 +32,7 @@ type ObjectRuleSet[T any, TK comparable, TV any] struct {
 	refs         *refTracker[TK]
 	bucket       TK
 	json         bool
+	errorConfig  *errors.ErrorConfig
 }
 
 // Struct returns a RuleSet that can be used to validate a struct of an
@@ -126,9 +127,12 @@ func Map[TK comparable, TV any]() *ObjectRuleSet[map[TK]TV, TK, TV] {
 	}
 }
 
+// objectCloneOption is a functional option for cloning ObjectRuleSet.
+type objectCloneOption[T any, TK comparable, TV any] func(*ObjectRuleSet[T, TK, TV])
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *ObjectRuleSet[T, TK, TV]) clone() *ObjectRuleSet[T, TK, TV] {
-	return &ObjectRuleSet[T, TK, TV]{
+func (v *ObjectRuleSet[T, TK, TV]) clone(options ...objectCloneOption[T, TK, TV]) *ObjectRuleSet[T, TK, TV] {
+	newRuleSet := &ObjectRuleSet[T, TK, TV]{
 		allowUnknown: v.allowUnknown,
 		required:     v.required,
 		withNil:      v.withNil,
@@ -137,7 +141,20 @@ func (v *ObjectRuleSet[T, TK, TV]) clone() *ObjectRuleSet[T, TK, TV] {
 		parent:       v,
 		refs:         v.refs,
 		json:         v.json,
+		errorConfig:  v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func objectWithLabel[T any, TK comparable, TV any](label string) objectCloneOption[T, TK, TV] {
+	return func(rs *ObjectRuleSet[T, TK, TV]) { rs.label = label }
+}
+
+func objectWithErrorConfig[T any, TK comparable, TV any](config *errors.ErrorConfig) objectCloneOption[T, TK, TV] {
+	return func(rs *ObjectRuleSet[T, TK, TV]) { rs.errorConfig = config }
 }
 
 // WithUnknown returns a new RuleSet that allows unknown keys in maps and objects.
@@ -150,9 +167,8 @@ func (v *ObjectRuleSet[T, TK, TV]) WithUnknown() *ObjectRuleSet[T, TK, TV] {
 		return v
 	}
 
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(objectWithLabel[T, TK, TV]("WithUnknown()"))
 	newRuleSet.allowUnknown = true
-	newRuleSet.label = "WithUnknown()"
 	return newRuleSet
 }
 
@@ -407,11 +423,11 @@ func contextErrorToValidation(ctx context.Context) errors.ValidationError {
 	case nil:
 		return nil
 	case context.DeadlineExceeded:
-		return errors.Errorf(errors.CodeTimeout, ctx, "validation timed out before completing")
+		return errors.Error(errors.CodeTimeout, ctx)
 	case context.Canceled:
-		return errors.Errorf(errors.CodeCancelled, ctx, "validation was cancelled")
+		return errors.Error(errors.CodeCancelled, ctx)
 	default:
-		return errors.Errorf(errors.CodeInternal, ctx, "unknown context error: %v", ctx.Err())
+		return errors.Error(errors.CodeInternal, ctx)
 	}
 }
 
@@ -482,7 +498,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 	if inFieldValue.Kind() == reflect.Invalid {
 		if ruleSet.rule.Required() {
 			errorsCh <- errors.Collection(
-				errors.Errorf(errors.CodeRequired, ctx, "field is required"),
+				errors.Error(errors.CodeRequired, ctx),
 			)
 		}
 		return
@@ -692,6 +708,9 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
 // Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and value is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
 		return err
@@ -701,7 +720,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
 		))
 	}
 
@@ -760,7 +779,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		// We're pointing to a nil interface{}
 		// We can't set up the pointer now so we'll need to deal with it later
 		if !reflect.ValueOf(out).Type().AssignableTo(elem.Type()) {
-			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", out, output))
+			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output))
 		}
 
 		assignLater = true
@@ -780,7 +799,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		}
 
 	} else {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", out, output))
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output))
 	}
 
 	var outValue reflect.Value
@@ -815,7 +834,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 
 		if !coerced && attempted {
 			return errors.Collection(
-				errors.NewCoercionError(ctx, "object, map, or JSON string", inKind.String()),
+				errors.Error(errors.CodeType, ctx, "object, map, or JSON string", inKind.String()),
 			)
 		}
 
@@ -830,7 +849,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 
 	if !fromMap && inKind != reflect.Struct {
 		return errors.Collection(
-			errors.NewCoercionError(ctx, "object or map", inKind.String()),
+			errors.Error(errors.CodeType, ctx, "object or map", inKind.String()),
 		)
 	}
 
@@ -928,4 +947,34 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *ObjectRuleSet[T, TK, TV]) WithErrorMessage(short, long string) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithErrorMessage(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *ObjectRuleSet[T, TK, TV]) WithDocsURI(uri string) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithDocsURI(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *ObjectRuleSet[T, TK, TV]) WithTraceURI(uri string) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithTraceURI(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *ObjectRuleSet[T, TK, TV]) WithErrorCode(code errors.ErrorCode) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithErrorCode(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *ObjectRuleSet[T, TK, TV]) WithErrorMeta(key string, value any) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithErrorMeta(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *ObjectRuleSet[T, TK, TV]) WithErrorCallback(fn errors.ErrorCallback) *ObjectRuleSet[T, TK, TV] {
+	return v.clone(objectWithLabel[T, TK, TV]("WithErrorCallback(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCallback(fn)))
 }

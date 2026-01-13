@@ -66,7 +66,7 @@ func TestMustApplyFunc(t *testing.T) {
 
 	checkInvalid := func(a, b any) error {
 		callCount++
-		return errors.New(errors.CodeUnknown, "", "")
+		return errors.Errorf(errors.CodeUnknown, context.Background(), "unknown", "check failed")
 	}
 
 	mockT := &MockT{}
@@ -213,7 +213,7 @@ func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) error
 	// Replace all CodeInternal errors
 	for idx := range errs {
 		if errs[idx].Code() == errors.CodeInternal {
-			errs[idx] = errors.Errorf(errors.CodeUnknown, ctx, "")
+			errs[idx] = errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "")
 		}
 	}
 
@@ -231,7 +231,7 @@ func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.V
 		return errs
 	}
 
-	return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, ""))
+	return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", ""))
 }
 
 // TestMustApplyTypes tests:

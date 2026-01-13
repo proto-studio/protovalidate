@@ -399,3 +399,9 @@ func TestIntRuleSet_Apply_StringOutput_VariousTypes(t *testing.T) {
 		})
 	}
 }
+
+// TestIntRuleSet_ErrorConfig tests:
+// - IntRuleSet implements error configuration methods
+func TestIntRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[int, *rules.IntRuleSet[int]](t, rules.Int())
+}

@@ -19,10 +19,11 @@ var constCacheMap map[any]any
 // This is primarily used for conditional validation. To test a constant of a specific
 // type it is usually best to use that type.
 type ConstantRuleSet[T comparable] struct {
-	required bool
-	withNil  bool
-	value    T
-	empty    T // Leave this empty
+	required    bool
+	withNil     bool
+	value       T
+	empty       T // Leave this empty
+	errorConfig *errors.ErrorConfig
 }
 
 // Constant creates a new Constant rule set for the specified value.
@@ -57,13 +58,25 @@ func (ruleSet *ConstantRuleSet[T]) Required() bool {
 	return ruleSet.required
 }
 
+// constantCloneOption is a functional option for cloning ConstantRuleSet.
+type constantCloneOption[T comparable] func(*ConstantRuleSet[T])
+
 // clone returns a shallow copy of the rule set.
-func (ruleSet *ConstantRuleSet[T]) clone() *ConstantRuleSet[T] {
-	return &ConstantRuleSet[T]{
-		value:    ruleSet.value,
-		required: ruleSet.required,
-		withNil:  ruleSet.withNil,
+func (ruleSet *ConstantRuleSet[T]) clone(options ...constantCloneOption[T]) *ConstantRuleSet[T] {
+	newRuleSet := &ConstantRuleSet[T]{
+		value:       ruleSet.value,
+		required:    ruleSet.required,
+		withNil:     ruleSet.withNil,
+		errorConfig: ruleSet.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func constantWithErrorConfig[T comparable](config *errors.ErrorConfig) constantCloneOption[T] {
+	return func(rs *ConstantRuleSet[T]) { rs.errorConfig = config }
 }
 
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
@@ -90,6 +103,9 @@ func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
 // Apply validates a RuleSet against an input value and assigns the validated value to output.
 // Apply returns a ValidationErrorCollection.
 func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
 		return err
@@ -99,14 +115,14 @@ func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any)
 	v, ok := input.(T)
 	if !ok {
 		// Return a coercion error if input is not of type T.
-		return errors.Collection(errors.NewCoercionError(ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String()))
+		return errors.Collection(errors.Error(errors.CodeType, ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String()))
 	}
 
 	// Ensure the output is assignable to the coerced value.
 	outVal := reflect.ValueOf(output)
 	if outVal.Kind() != reflect.Ptr || outVal.IsNil() || !reflect.ValueOf(v).Type().AssignableTo(outVal.Elem().Type()) {
 		// Return an error if the output is not assignable.
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output))
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output))
 	}
 
 	// Assign the validated value to the output.
@@ -119,7 +135,7 @@ func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any)
 // Evaluate performs validation of a RuleSet against a value and returns any errors.
 func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if value != ruleSet.value {
-		return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value does not match"))
+		return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value mismatch", "value does not match"))
 	}
 	return nil
 }
@@ -146,4 +162,34 @@ func (ruleSet *ConstantRuleSet[T]) String() string {
 // Value returns the constant value in the correct type.
 func (ruleSet *ConstantRuleSet[T]) Value() T {
 	return ruleSet.value
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (ruleSet *ConstantRuleSet[T]) WithErrorMessage(short, long string) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (ruleSet *ConstantRuleSet[T]) WithDocsURI(uri string) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (ruleSet *ConstantRuleSet[T]) WithTraceURI(uri string) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (ruleSet *ConstantRuleSet[T]) WithErrorCode(code errors.ErrorCode) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (ruleSet *ConstantRuleSet[T]) WithErrorMeta(key string, value any) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (ruleSet *ConstantRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *ConstantRuleSet[T] {
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithCallback(fn)))
 }

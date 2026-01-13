@@ -7,6 +7,8 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
+
+	"proto.zip/studio/validate/internal/util"
 )
 
 // MockRule is a mock implementation of the Rule interface that can be used for testing.
@@ -105,7 +107,7 @@ func NewMockErrors(count int) []errors.ValidationError {
 	out := make([]errors.ValidationError, 0, count)
 
 	for i := 0; i < count; i++ {
-		out = append(out, errors.Errorf(errors.CodeUnknown, context.Background(), "test"))
+		out = append(out, errors.Errorf(errors.CodeUnknown, context.Background(), "unknown error", "test"))
 	}
 
 	return out
@@ -127,6 +129,12 @@ type MockRuleSet[T any] struct {
 
 	// Use int64 for atomic operations compatibility
 	applyCallCount int64
+
+	// errorConfig is the error configuration for this RuleSet
+	errorConfig *errors.ErrorConfig
+
+	// withNil indicates whether nil input values are allowed
+	withNil bool
 }
 
 // NewMockRule creates a new MockRule.
@@ -148,6 +156,14 @@ func (mockRuleSet *MockRuleSet[T]) Required() bool {
 	return false
 }
 
+// WithNil returns a new MockRuleSet that allows nil input values.
+// By default, nil input values return a CodeNull error.
+func (mockRuleSet *MockRuleSet[T]) WithNil() *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.withNil = true
+	return &newRuleSet
+}
+
 // Reset resets the evaluate and apply call counts to 0.
 func (ruleSet *MockRuleSet[T]) Reset() {
 	atomic.StoreInt64(&ruleSet.evaluateCallCount, 0)
@@ -164,16 +180,24 @@ func (mockRuleSet *MockRuleSet[T]) ApplyCallCount() int64 {
 func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
 	atomic.AddInt64(&mockRuleSet.applyCallCount, 1)
 
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, mockRuleSet.errorConfig)
+
+	// Check if withNil is enabled and input is nil
+	if handled, err := util.TrySetNilIfAllowed(ctx, mockRuleSet.withNil, input, output); handled {
+		return err
+	}
+
 	// Check if the output is a nil pointer, handle error case
 	if output == nil {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output cannot be nil"))
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "output cannot be nil"))
 	}
 
 	outputVal := reflect.ValueOf(output)
 
 	// Check if output is a pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "output must be a non-nil pointer, got %T", output))
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer, got %T", output))
 	}
 
 	outputElem := outputVal.Elem()
@@ -184,7 +208,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 
 		// Ensure the mockRuleSet.OutputValue is assignable to the output's pointed type
 		if !mockValue.Type().AssignableTo(outputElem.Type()) {
-			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", mockRuleSet.OutputValue, output))
+			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", mockRuleSet.OutputValue, output))
 		}
 
 		// Set the mockRuleSet.OutputValue to the output
@@ -196,7 +220,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 	inputVal := reflect.ValueOf(input)
 
 	if !inputVal.Type().AssignableTo(outputElem.Type()) {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "Cannot assign %T to %T", input, output))
+		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", input, output))
 	}
 
 	// Set the input value to output
@@ -207,4 +231,46 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 // Any returns a rule set that matches the any interface.
 func (mockRuleSet *MockRuleSet[T]) Any() rules.RuleSet[any] {
 	return rules.WrapAny[T](mockRuleSet)
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (mockRuleSet *MockRuleSet[T]) WithErrorMessage(short, long string) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithMessage(short, long)
+	return &newRuleSet
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (mockRuleSet *MockRuleSet[T]) WithDocsURI(uri string) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithDocs(uri)
+	return &newRuleSet
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (mockRuleSet *MockRuleSet[T]) WithTraceURI(uri string) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithTrace(uri)
+	return &newRuleSet
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (mockRuleSet *MockRuleSet[T]) WithErrorCode(code errors.ErrorCode) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithCode(code)
+	return &newRuleSet
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (mockRuleSet *MockRuleSet[T]) WithErrorMeta(key string, value any) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithMeta(key, value)
+	return &newRuleSet
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (mockRuleSet *MockRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *MockRuleSet[T] {
+	newRuleSet := *mockRuleSet
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithCallback(fn)
+	return &newRuleSet
 }

@@ -2,14 +2,34 @@
 
 This is an example app demonstrating translating rule sets for internationalization (i18n).
 
-It uses the `text/messages` package to perform the translations.
+It uses the `text/messages` package to perform the translations and demonstrates:
 
-Some things you may want to improve when using in your production application:
+1. **Standard Messages** - Built-in error messages from the error dictionary (e.g., `WithMinLen`, `WithMaxLen`)
+2. **Custom Messages** - User-defined messages using `WithErrorMessage`
 
-- Customize the default (US English / `en-US`) error messages to fit your product voice.
-- Update translations to support plural messages. For example: `1 characters` may become `1 character`.
+Both types of messages are translatable via i18n when you pass a `message.Printer` through the context using `rulecontext.WithPrinter`.
 
+## How It Works
 
+### Standard Messages
+Standard validation errors (like min/max length) use messages defined in the error dictionary. These are automatically picked up by `gotext` for translation:
+
+```go
+var standardRuleSet = rules.String().
+    WithMinLen(3).
+    WithMaxLen(7)
+```
+
+### Custom Messages
+You can define custom error messages using `WithErrorMessage`. These are also translatable:
+
+```go
+var customRuleSet = rules.String().
+    WithMinLen(5).
+    WithErrorMessage("too short", "username must be at least %d characters")
+```
+
+The long message (second argument) supports format specifiers like `%d` for dynamic values.
 
 ## Getting Started
 
@@ -43,7 +63,17 @@ Don't worry, this will not overwrite your existing translations.
 
 Now you can run the example:
 ```bash
-go run app.go -locale es-ES a ab abc abcd abcde abcdef abcdefg
+# English (default)
+go run app.go a ab abc abcd abcde
+
+# Spanish
+go run app.go -locale es-ES a ab abc abcd abcde
 ```
 
 If the `text/messages` library can't find a translation it will default to the `en-US` (US English) locale.
+
+## Tips for Production
+
+- Customize the default (US English / `en-US`) error messages to fit your product voice.
+- Update translations to support plural messages. For example: `1 characters` may become `1 character`.
+- Use `WithErrorMessage` for domain-specific error messages that need custom wording.

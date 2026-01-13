@@ -17,10 +17,10 @@ func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("b").Any()
 
 	// "a" is lexicographically less than "b", should fail
-	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMinExclusive)
 
 	// "b" is equal to "b", should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, "b", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "b", errors.CodeMinExclusive)
 
 	// "c" is lexicographically greater than "b", should pass
 	testhelpers.MustApply(t, ruleSet, "c")
@@ -91,10 +91,10 @@ func TestStringRuleSet_WithMinExclusive_Lexicographical(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("apple").Any()
 
 	// "ap" is lexicographically less than "apple", should fail
-	testhelpers.MustNotApply(t, ruleSet, "ap", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "ap", errors.CodeMinExclusive)
 
 	// "apple" is equal, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, "apple", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "apple", errors.CodeMinExclusive)
 
 	// "apples" is lexicographically greater, should pass
 	testhelpers.MustApply(t, ruleSet, "apples")

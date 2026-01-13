@@ -19,7 +19,7 @@ type minDiffRule struct {
 func (rule *minDiffRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	if time.Until(value) < rule.min {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "field must be on or after %s from now", rule.min),
+			errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s from now", rule.min),
 		)
 	}
 

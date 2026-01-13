@@ -18,7 +18,7 @@ type maxTimeRule struct {
 func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	if value.After(rule.max) {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "field must be on or before %s", rule.max),
+			errors.Errorf(errors.CodeMax, ctx, "above maximum", "must be on or before %s", rule.max),
 		)
 	}
 

@@ -15,12 +15,13 @@ import (
 // itself instead, which usually returns this interface.
 type WrapAnyRuleSet[T any] struct {
 	NoConflict[any]
-	required bool
-	withNil  bool
-	inner    RuleSet[T]
-	rule     Rule[any]
-	parent   *WrapAnyRuleSet[T]
-	label    string
+	required    bool
+	withNil     bool
+	inner       RuleSet[T]
+	rule        Rule[any]
+	parent      *WrapAnyRuleSet[T]
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // WrapAny wraps an existing RuleSet in an "Any" rule set which can then be used to pass into nested validators
@@ -35,14 +36,30 @@ func WrapAny[T any](inner RuleSet[T]) *WrapAnyRuleSet[T] {
 	}
 }
 
+// wrapAnyCloneOption is a functional option for cloning WrapAnyRuleSet.
+type wrapAnyCloneOption[T any] func(*WrapAnyRuleSet[T])
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *WrapAnyRuleSet[T]) clone() *WrapAnyRuleSet[T] {
-	return &WrapAnyRuleSet[T]{
-		required: v.required,
-		withNil:  v.withNil,
-		inner:    v.inner,
-		parent:   v,
+func (v *WrapAnyRuleSet[T]) clone(options ...wrapAnyCloneOption[T]) *WrapAnyRuleSet[T] {
+	newRuleSet := &WrapAnyRuleSet[T]{
+		required:    v.required,
+		withNil:     v.withNil,
+		inner:       v.inner,
+		parent:      v,
+		errorConfig: v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func wrapAnyWithLabel[T any](label string) wrapAnyCloneOption[T] {
+	return func(rs *WrapAnyRuleSet[T]) { rs.label = label }
+}
+
+func wrapAnyWithErrorConfig[T any](config *errors.ErrorConfig) wrapAnyCloneOption[T] {
+	return func(rs *WrapAnyRuleSet[T]) { rs.errorConfig = config }
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -56,9 +73,8 @@ func (v *WrapAnyRuleSet[T]) Required() bool {
 // Required defaults to the value of the wrapped RuleSet so if it is already required then there is
 // no need to call this again.
 func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(wrapAnyWithLabel[T]("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -66,9 +82,8 @@ func (v *WrapAnyRuleSet[T]) WithRequired() *WrapAnyRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *WrapAnyRuleSet[T]) WithNil() *WrapAnyRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(wrapAnyWithLabel[T]("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
@@ -97,6 +112,9 @@ func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors
 // Apply calls wrapped rules before any rules added directly to the WrapAnyRuleSet.
 // Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
 		return err
@@ -178,4 +196,34 @@ func (ruleSet *WrapAnyRuleSet[T]) String() string {
 	}
 
 	return ruleSet.inner.String() + ".Any()"
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *WrapAnyRuleSet[T]) WithErrorMessage(short, long string) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithErrorMessage(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *WrapAnyRuleSet[T]) WithDocsURI(uri string) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithDocsURI(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *WrapAnyRuleSet[T]) WithTraceURI(uri string) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithTraceURI(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *WrapAnyRuleSet[T]) WithErrorCode(code errors.ErrorCode) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithErrorCode(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *WrapAnyRuleSet[T]) WithErrorMeta(key string, value any) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithErrorMeta(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *WrapAnyRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *WrapAnyRuleSet[T] {
+	return v.clone(wrapAnyWithLabel[T]("WithErrorCallback(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

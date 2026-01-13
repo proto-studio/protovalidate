@@ -57,7 +57,7 @@ func (k *knownKeys[TK]) Check(ctx context.Context, inValue reflect.Value) errors
 	unk := k.Unknown(inValue)
 	for _, key := range unk {
 		subContext := rulecontext.WithPathString(ctx, toPath(key))
-		errs = append(errs, errors.Errorf(errors.CodeUnexpected, subContext, "unexpected field"))
+		errs = append(errs, errors.Error(errors.CodeUnexpected, subContext))
 	}
 	return errs
 }

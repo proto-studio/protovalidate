@@ -45,7 +45,7 @@ func percentEncodingRule(ctx context.Context, value string) errors.ValidationErr
 
 		if i >= l-2 || !isHex(runes[i+1]) || !isHex(runes[i+2]) {
 			return errors.Collection(
-				errors.Errorf(errors.CodeEncoding, ctx, "field is not URI encoded %d >= %d - 2", i, l),
+				errors.Errorf(errors.CodeEncoding, ctx, "invalid encoding", "value is not properly URI encoded"),
 			)
 		}
 	}
@@ -103,8 +103,9 @@ type URIRuleSet struct {
 	passwordRuleSet  *rules.StringRuleSet
 	portRuleSet      *rules.IntRuleSet[int]
 
-	rule  rules.Rule[string]
-	label string
+	rule        rules.Rule[string]
+	label       string
+	errorConfig *errors.ErrorConfig
 }
 
 // URI returns the base URI RuleSet.
@@ -277,6 +278,9 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
 // It returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
 		return err
@@ -285,7 +289,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Collection(errors.NewCoercionError(ctx, "string", reflect.ValueOf(input).Kind().String()))
+		return errors.Collection(errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String()))
 	}
 
 	// Perform the validation
@@ -298,7 +302,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
 		))
 	}
 
@@ -312,7 +316,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign string to %T", output,
+			errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output,
 		))
 	}
 
@@ -326,7 +330,7 @@ func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (co
 
 	if value == "" {
 		if !ruleSet.relative {
-			return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "Scheme is required."))
+			return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "required", "scheme is required"))
 		}
 		return newCtx, nil
 	}
@@ -380,11 +384,11 @@ func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (
 
 		if ruleSet.passwordRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "password")
-			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "Password is required."))
+			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 		}
 		if ruleSet.userRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "user")
-			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "User is required."))
+			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
 		}
 
 		if len(verr) > 0 {
@@ -406,7 +410,7 @@ func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (
 		if name == "password" && match[i-1] == "" {
 			if ruleSet.passwordRuleSet.Required() {
 				subContext := ruleSet.deepErrorContext(newCtx, "password")
-				return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "Password is required."))
+				return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 			}
 		}
 
@@ -470,19 +474,19 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 	if missing {
 		if ruleSet.userRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "user")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "User is required."))
+			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
 		}
 		if ruleSet.passwordRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "password")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "Password is required."))
+			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 		}
 		if ruleSet.hostRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "host")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "Host is required."))
+			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "host is required"))
 		}
 		if ruleSet.portRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "port")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "Port is required."))
+			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
 		}
 
 		// These are usually set in evaluateURIPart but we are skipping that
@@ -511,7 +515,7 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 		if name == "port" && match[i-1] == "" {
 			if ruleSet.portRuleSet.Required() {
 				subContext := ruleSet.deepErrorContext(newCtx, "port")
-				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "Port is required."))
+				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
 				continue
 			}
 		}
@@ -543,7 +547,7 @@ func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, miss
 	if missing {
 		if ruleSet.queryRuleSet.Required() {
 			return newCtx, errors.Collection(
-				errors.Errorf(errors.CodeRequired, subContext, "Query is required."),
+				errors.Errorf(errors.CodeRequired, subContext, "required", "query is required"),
 			)
 		}
 		return newCtx, nil
@@ -560,7 +564,7 @@ func (ruleSet *URIRuleSet) evaluateFragment(ctx context.Context, value string, m
 	if missing {
 		if ruleSet.fragmentRuleSet.Required() {
 			return newCtx, errors.Collection(
-				errors.Errorf(errors.CodeRequired, subContext, "Fragment is required."),
+				errors.Errorf(errors.CodeRequired, subContext, "required", "fragment is required"),
 			)
 		}
 		return newCtx, nil
@@ -720,9 +724,12 @@ func (ruleSet *URIRuleSet) Any() rules.RuleSet[any] {
 	return rules.WrapAny[string](ruleSet)
 }
 
+// uriCloneOption is a functional option for cloning URIRuleSet.
+type uriCloneOption func(*URIRuleSet)
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (ruleSet *URIRuleSet) clone() *URIRuleSet {
-	return &URIRuleSet{
+func (ruleSet *URIRuleSet) clone(options ...uriCloneOption) *URIRuleSet {
+	newRuleSet := &URIRuleSet{
 		parent:           ruleSet,
 		schemeRuleSet:    ruleSet.schemeRuleSet,
 		authorityRuleSet: ruleSet.authorityRuleSet,
@@ -738,5 +745,48 @@ func (ruleSet *URIRuleSet) clone() *URIRuleSet {
 		withNil:          ruleSet.withNil,
 		deepErrors:       ruleSet.deepErrors,
 		relative:         ruleSet.relative,
+		errorConfig:      ruleSet.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func uriWithLabel(label string) uriCloneOption {
+	return func(rs *URIRuleSet) { rs.label = label }
+}
+
+func uriWithErrorConfig(config *errors.ErrorConfig) uriCloneOption {
+	return func(rs *URIRuleSet) { rs.errorConfig = config }
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (ruleSet *URIRuleSet) WithErrorMessage(short, long string) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithErrorMessage(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (ruleSet *URIRuleSet) WithDocsURI(uri string) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithDocsURI(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (ruleSet *URIRuleSet) WithTraceURI(uri string) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithTraceURI(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (ruleSet *URIRuleSet) WithErrorCode(code errors.ErrorCode) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithErrorCode(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (ruleSet *URIRuleSet) WithErrorMeta(key string, value any) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithErrorMeta(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (ruleSet *URIRuleSet) WithErrorCallback(fn errors.ErrorCallback) *URIRuleSet {
+	return ruleSet.clone(uriWithLabel("WithErrorCallback(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

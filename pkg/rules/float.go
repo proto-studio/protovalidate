@@ -35,6 +35,7 @@ type FloatRuleSet[T floating] struct {
 	precision       int // Precision for rounding (used with WithRounding)
 	outputPrecision int // Precision for string output (-1 means not set, >= 0 means fixed output)
 	label           string
+	errorConfig     *errors.ErrorConfig
 }
 
 // Float32 creates a new float32 RuleSet.
@@ -47,9 +48,12 @@ func Float64() *FloatRuleSet[float64] {
 	return &baseFloat64
 }
 
+// floatCloneOption is a functional option for cloning FloatRuleSet.
+type floatCloneOption[T floating] func(*FloatRuleSet[T])
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *FloatRuleSet[T]) clone() *FloatRuleSet[T] {
-	return &FloatRuleSet[T]{
+func (v *FloatRuleSet[T]) clone(options ...floatCloneOption[T]) *FloatRuleSet[T] {
+	newRuleSet := &FloatRuleSet[T]{
 		strict:          v.strict,
 		required:        v.required,
 		withNil:         v.withNil,
@@ -57,7 +61,20 @@ func (v *FloatRuleSet[T]) clone() *FloatRuleSet[T] {
 		precision:       v.precision,
 		outputPrecision: v.outputPrecision,
 		parent:          v,
+		errorConfig:     v.errorConfig,
 	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func floatWithLabel[T floating](label string) floatCloneOption[T] {
+	return func(rs *FloatRuleSet[T]) { rs.label = label }
+}
+
+func floatWithErrorConfig[T floating](config *errors.ErrorConfig) floatCloneOption[T] {
+	return func(rs *FloatRuleSet[T]) { rs.errorConfig = config }
 }
 
 // WithStrict returns a new child RuleSet that disables type coercion.
@@ -66,9 +83,8 @@ func (v *FloatRuleSet[T]) clone() *FloatRuleSet[T] {
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
 func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(floatWithLabel[T]("WithStrict()"))
 	newRuleSet.strict = true
-	newRuleSet.label = "WithStrict()"
 	return newRuleSet
 }
 
@@ -80,9 +96,8 @@ func (v *FloatRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(floatWithLabel[T]("WithRequired()"))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -90,15 +105,17 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(floatWithLabel[T]("WithNil()"))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
 // Apply returns a ValidationErrorCollection if any validation errors occur.
 func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
 		return err
@@ -108,7 +125,7 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
 		))
 	}
 
@@ -172,7 +189,7 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	// If the types are incompatible, return an error
 	if !assignable {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign %T to %T", floatval, outputElem.Interface(),
+			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", floatval, outputElem.Interface(),
 		))
 	}
 
@@ -266,4 +283,34 @@ func (ruleSet *FloatRuleSet[T]) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *FloatRuleSet[T]) WithErrorMessage(short, long string) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithErrorMessage(...)"), floatWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *FloatRuleSet[T]) WithDocsURI(uri string) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithDocsURI(...)"), floatWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *FloatRuleSet[T]) WithTraceURI(uri string) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithTraceURI(...)"), floatWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *FloatRuleSet[T]) WithErrorCode(code errors.ErrorCode) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithErrorCode(...)"), floatWithErrorConfig[T](v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *FloatRuleSet[T]) WithErrorMeta(key string, value any) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithErrorMeta(...)"), floatWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *FloatRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *FloatRuleSet[T] {
+	return v.clone(floatWithLabel[T]("WithErrorCallback(...)"), floatWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

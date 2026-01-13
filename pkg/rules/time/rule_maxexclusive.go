@@ -19,7 +19,7 @@ func (rule *maxExclusiveTimeRule) Evaluate(ctx context.Context, value time.Time)
 	// Exclusive: value must be < max, so reject if value >= max
 	if !value.Before(rule.max) {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "field must be before %s", rule.max),
+			errors.Errorf(errors.CodeMaxExclusive, ctx, "above maximum", "must be before %s", rule.max),
 		)
 	}
 

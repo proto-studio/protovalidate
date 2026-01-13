@@ -7,6 +7,14 @@ import (
 )
 
 // RuleSet interface is used to define a collection of Rules that logically apply to the same value.
+//
+// RuleSet implementations should also implement these error customization methods (not on interface for chaining):
+//   - WithErrorMessage(short, long string) <ConcreteType>
+//   - WithDocsURI(uri string) <ConcreteType>
+//   - WithTraceURI(uri string) <ConcreteType>
+//   - WithErrorCode(code errors.ErrorCode) <ConcreteType>
+//   - WithErrorMeta(key string, value any) <ConcreteType>
+//   - WithErrorCallback(fn errors.ErrorCallback) <ConcreteType>
 type RuleSet[T any] interface {
 	Rule[T]
 	Apply(ctx context.Context, value any, out any) errors.ValidationErrorCollection // Apply attempts to coerce the value into the correct type and evaluates all rules in the rule set, then assigns the results to an interface.

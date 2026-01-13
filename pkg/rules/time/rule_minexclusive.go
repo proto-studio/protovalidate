@@ -19,7 +19,7 @@ func (rule *minExclusiveTimeRule) Evaluate(ctx context.Context, value time.Time)
 	// Exclusive: value must be > min, so reject if value <= min
 	if !value.After(rule.min) {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "field must be after %s", rule.min),
+			errors.Errorf(errors.CodeMinExclusive, ctx, "below minimum", "must be after %s", rule.min),
 		)
 	}
 
