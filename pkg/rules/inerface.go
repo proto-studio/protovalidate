@@ -218,30 +218,30 @@ func (ruleSet *InterfaceRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *InterfaceRuleSet[T]) WithErrorMessage(short, long string) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithErrorMessage(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(interfaceWithLabel[T](util.FormatErrorMessageLabel(short, long)), interfaceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *InterfaceRuleSet[T]) WithDocsURI(uri string) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithDocsURI(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(interfaceWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), interfaceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *InterfaceRuleSet[T]) WithTraceURI(uri string) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithTraceURI(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(interfaceWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), interfaceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *InterfaceRuleSet[T]) WithErrorCode(code errors.ErrorCode) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithErrorCode(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithCode(code)))
+	return v.clone(interfaceWithLabel[T](util.FormatErrorCodeLabel(code)), interfaceWithErrorConfig[T](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *InterfaceRuleSet[T]) WithErrorMeta(key string, value any) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithErrorMeta(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+	return v.clone(interfaceWithLabel[T](util.FormatErrorMetaLabel(key, value)), interfaceWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *InterfaceRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *InterfaceRuleSet[T] {
-	return v.clone(interfaceWithLabel[T]("WithErrorCallback(...)"), interfaceWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
+	return v.clone(interfaceWithLabel[T](util.FormatErrorCallbackLabel()), interfaceWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

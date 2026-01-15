@@ -434,30 +434,30 @@ func (ruleSet *IntRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *IntRuleSet[T]) WithErrorMessage(short, long string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithErrorMessage(...)"), intWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(intWithLabel[T](util.FormatErrorMessageLabel(short, long)), intWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *IntRuleSet[T]) WithDocsURI(uri string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithDocsURI(...)"), intWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), intWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *IntRuleSet[T]) WithTraceURI(uri string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithTraceURI(...)"), intWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), intWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *IntRuleSet[T]) WithErrorCode(code errors.ErrorCode) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithErrorCode(...)"), intWithErrorConfig[T](v.errorConfig.WithCode(code)))
+	return v.clone(intWithLabel[T](util.FormatErrorCodeLabel(code)), intWithErrorConfig[T](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *IntRuleSet[T]) WithErrorMeta(key string, value any) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithErrorMeta(...)"), intWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+	return v.clone(intWithLabel[T](util.FormatErrorMetaLabel(key, value)), intWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *IntRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T]("WithErrorCallback(...)"), intWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
+	return v.clone(intWithLabel[T](util.FormatErrorCallbackLabel()), intWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

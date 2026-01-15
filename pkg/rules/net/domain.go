@@ -312,30 +312,30 @@ func (ruleSet *DomainRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *DomainRuleSet) WithErrorMessage(short, long string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithErrorMessage(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(domainWithLabel(util.FormatErrorMessageLabel(short, long)), domainWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *DomainRuleSet) WithDocsURI(uri string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithDocsURI(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *DomainRuleSet) WithTraceURI(uri string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithTraceURI(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (ruleSet *DomainRuleSet) WithErrorCode(code errors.ErrorCode) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithErrorCode(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+	return ruleSet.clone(domainWithLabel(util.FormatErrorCodeLabel(code)), domainWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (ruleSet *DomainRuleSet) WithErrorMeta(key string, value any) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithErrorMeta(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+	return ruleSet.clone(domainWithLabel(util.FormatErrorMetaLabel(key, value)), domainWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (ruleSet *DomainRuleSet) WithErrorCallback(fn errors.ErrorCallback) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel("WithErrorCallback(...)"), domainWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
+	return ruleSet.clone(domainWithLabel(util.FormatErrorCallbackLabel()), domainWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

@@ -334,30 +334,30 @@ func (ruleSet *IPRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *IPRuleSet) WithErrorMessage(short, long string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithErrorMessage(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(ipWithLabel(util.FormatErrorMessageLabel(short, long)), ipWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *IPRuleSet) WithDocsURI(uri string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithDocsURI(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *IPRuleSet) WithTraceURI(uri string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithTraceURI(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (ruleSet *IPRuleSet) WithErrorCode(code errors.ErrorCode) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithErrorCode(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+	return ruleSet.clone(ipWithLabel(util.FormatErrorCodeLabel(code)), ipWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (ruleSet *IPRuleSet) WithErrorMeta(key string, value any) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithErrorMeta(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+	return ruleSet.clone(ipWithLabel(util.FormatErrorMetaLabel(key, value)), ipWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (ruleSet *IPRuleSet) WithErrorCallback(fn errors.ErrorCallback) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel("WithErrorCallback(...)"), ipWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
+	return ruleSet.clone(ipWithLabel(util.FormatErrorCallbackLabel()), ipWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

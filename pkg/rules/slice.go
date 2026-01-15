@@ -650,30 +650,30 @@ func (ruleSet *SliceRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *SliceRuleSet[T]) WithErrorMessage(short, long string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithErrorMessage(...)"), sliceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(sliceWithLabel[T](util.FormatErrorMessageLabel(short, long)), sliceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *SliceRuleSet[T]) WithDocsURI(uri string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithDocsURI(...)"), sliceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *SliceRuleSet[T]) WithTraceURI(uri string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithTraceURI(...)"), sliceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *SliceRuleSet[T]) WithErrorCode(code errors.ErrorCode) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithErrorCode(...)"), sliceWithErrorConfig[T](v.errorConfig.WithCode(code)))
+	return v.clone(sliceWithLabel[T](util.FormatErrorCodeLabel(code)), sliceWithErrorConfig[T](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *SliceRuleSet[T]) WithErrorMeta(key string, value any) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithErrorMeta(...)"), sliceWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+	return v.clone(sliceWithLabel[T](util.FormatErrorMetaLabel(key, value)), sliceWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *SliceRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T]("WithErrorCallback(...)"), sliceWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
+	return v.clone(sliceWithLabel[T](util.FormatErrorCallbackLabel()), sliceWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }
