@@ -200,30 +200,30 @@ func (ruleSet *WrapAnyRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *WrapAnyRuleSet[T]) WithErrorMessage(short, long string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithErrorMessage(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatErrorMessageLabel(short, long)), wrapAnyWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *WrapAnyRuleSet[T]) WithDocsURI(uri string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithDocsURI(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *WrapAnyRuleSet[T]) WithTraceURI(uri string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithTraceURI(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *WrapAnyRuleSet[T]) WithErrorCode(code errors.ErrorCode) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithErrorCode(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithCode(code)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatErrorCodeLabel(code)), wrapAnyWithErrorConfig[T](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *WrapAnyRuleSet[T]) WithErrorMeta(key string, value any) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithErrorMeta(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatErrorMetaLabel(key, value)), wrapAnyWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *WrapAnyRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T]("WithErrorCallback(...)"), wrapAnyWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatErrorCallbackLabel()), wrapAnyWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

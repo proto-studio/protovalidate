@@ -951,30 +951,30 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *ObjectRuleSet[T, TK, TV]) WithErrorMessage(short, long string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithErrorMessage(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMessage(short, long)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorMessageLabel(short, long)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *ObjectRuleSet[T, TK, TV]) WithDocsURI(uri string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithDocsURI(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithDocs(uri)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithDocsURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *ObjectRuleSet[T, TK, TV]) WithTraceURI(uri string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithTraceURI(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithTrace(uri)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithTraceURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *ObjectRuleSet[T, TK, TV]) WithErrorCode(code errors.ErrorCode) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithErrorCode(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCode(code)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorCodeLabel(code)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *ObjectRuleSet[T, TK, TV]) WithErrorMeta(key string, value any) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithErrorMeta(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMeta(key, value)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorMetaLabel(key, value)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *ObjectRuleSet[T, TK, TV]) WithErrorCallback(fn errors.ErrorCallback) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV]("WithErrorCallback(...)"), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCallback(fn)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorCallbackLabel()), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithCallback(fn)))
 }

@@ -341,30 +341,30 @@ func (ruleSet *EmailRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *EmailRuleSet) WithErrorMessage(short, long string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithErrorMessage(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(emailWithLabel(util.FormatErrorMessageLabel(short, long)), emailWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *EmailRuleSet) WithDocsURI(uri string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithDocsURI(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *EmailRuleSet) WithTraceURI(uri string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithTraceURI(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (ruleSet *EmailRuleSet) WithErrorCode(code errors.ErrorCode) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithErrorCode(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+	return ruleSet.clone(emailWithLabel(util.FormatErrorCodeLabel(code)), emailWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (ruleSet *EmailRuleSet) WithErrorMeta(key string, value any) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithErrorMeta(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+	return ruleSet.clone(emailWithLabel(util.FormatErrorMetaLabel(key, value)), emailWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (ruleSet *EmailRuleSet) WithErrorCallback(fn errors.ErrorCallback) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel("WithErrorCallback(...)"), emailWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
+	return ruleSet.clone(emailWithLabel(util.FormatErrorCallbackLabel()), emailWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

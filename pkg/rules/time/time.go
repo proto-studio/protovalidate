@@ -357,30 +357,30 @@ func (ruleSet *TimeRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *TimeRuleSet) WithErrorMessage(short, long string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithErrorMessage(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(timeWithLabel(util.FormatErrorMessageLabel(short, long)), timeWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *TimeRuleSet) WithDocsURI(uri string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithDocsURI(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *TimeRuleSet) WithTraceURI(uri string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithTraceURI(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (ruleSet *TimeRuleSet) WithErrorCode(code errors.ErrorCode) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithErrorCode(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+	return ruleSet.clone(timeWithLabel(util.FormatErrorCodeLabel(code)), timeWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (ruleSet *TimeRuleSet) WithErrorMeta(key string, value any) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithErrorMeta(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+	return ruleSet.clone(timeWithLabel(util.FormatErrorMetaLabel(key, value)), timeWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (ruleSet *TimeRuleSet) WithErrorCallback(fn errors.ErrorCallback) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel("WithErrorCallback(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
+	return ruleSet.clone(timeWithLabel(util.FormatErrorCallbackLabel()), timeWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

@@ -199,30 +199,30 @@ func (ruleSet *AnyRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *AnyRuleSet) WithErrorMessage(short, long string) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithErrorMessage(...)"), anyWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+	return v.clone(anyWithLabel(util.FormatErrorMessageLabel(short, long)), anyWithErrorConfig(v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *AnyRuleSet) WithDocsURI(uri string) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithDocsURI(...)"), anyWithErrorConfig(v.errorConfig.WithDocs(uri)))
+	return v.clone(anyWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), anyWithErrorConfig(v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *AnyRuleSet) WithTraceURI(uri string) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithTraceURI(...)"), anyWithErrorConfig(v.errorConfig.WithTrace(uri)))
+	return v.clone(anyWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), anyWithErrorConfig(v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *AnyRuleSet) WithErrorCode(code errors.ErrorCode) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithErrorCode(...)"), anyWithErrorConfig(v.errorConfig.WithCode(code)))
+	return v.clone(anyWithLabel(util.FormatErrorCodeLabel(code)), anyWithErrorConfig(v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *AnyRuleSet) WithErrorMeta(key string, value any) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithErrorMeta(...)"), anyWithErrorConfig(v.errorConfig.WithMeta(key, value)))
+	return v.clone(anyWithLabel(util.FormatErrorMetaLabel(key, value)), anyWithErrorConfig(v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *AnyRuleSet) WithErrorCallback(fn errors.ErrorCallback) *AnyRuleSet {
-	return v.clone(anyWithLabel("WithErrorCallback(...)"), anyWithErrorConfig(v.errorConfig.WithCallback(fn)))
+	return v.clone(anyWithLabel(util.FormatErrorCallbackLabel()), anyWithErrorConfig(v.errorConfig.WithCallback(fn)))
 }
