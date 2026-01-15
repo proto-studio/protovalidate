@@ -547,3 +547,56 @@ func TestFloatRuleSet_WithFixedOutput_PointerToString(t *testing.T) {
 func TestFloatRuleSet_ErrorConfig(t *testing.T) {
 	testhelpers.MustImplementErrorConfig[float64, *rules.FloatRuleSet[float64]](t, rules.Float64())
 }
+
+// TestFloatRuleSet_Apply_CoerceFromBool tests:
+// - Coerces bool values to floats (true -> 1.0, false -> 0.0)
+func TestFloatRuleSet_Apply_CoerceFromBool(t *testing.T) {
+	tryFloatCoercion(t, true, 1.0)
+	tryFloatCoercion(t, false, 0.0)
+}
+
+// TestFloatRuleSet_Apply_CoerceFromBool_Strict tests:
+// - Strict mode rejects bool values
+func TestFloatRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
+	var out float64
+	err := rules.Float64().WithStrict().Apply(context.Background(), true, &out)
+
+	if len(err) == 0 {
+		t.Error("Expected errors to not be empty")
+		return
+	}
+}
+
+// TestFloatRuleSet_Apply_BoolOutput tests:
+// - Outputs bool values when output is a bool type (non-zero = true, zero = false)
+func TestFloatRuleSet_Apply_BoolOutput(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.FloatRuleSet[float64]
+		input    interface{}
+		expected bool
+	}{
+		{"NonZero", rules.Float64(), 42.5, true},
+		{"Zero", rules.Float64(), 0.0, false},
+		{"Negative", rules.Float64(), -1.0, true},
+		{"One", rules.Float64(), 1.0, true},
+		{"SmallPositive", rules.Float64(), 0.001, true},
+		{"SmallNegative", rules.Float64(), -0.001, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bool
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out != tt.expected {
+				t.Errorf("Expected bool %v, got %v", tt.expected, out)
+			}
+		})
+	}
+}

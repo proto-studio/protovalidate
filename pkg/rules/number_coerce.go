@@ -147,6 +147,17 @@ func trimTrailingZeros(s string) string {
 	return s[:lastNonZero+1]
 }
 
+// tryCoerceBoolToInt attempts to coerce a bool to an int (true -> 1, false -> 0).
+func tryCoerceBoolToInt[To integer](ruleSet *IntRuleSet[To], value bool, ctx context.Context) (To, errors.ValidationError) {
+	var intval int64
+	if value {
+		intval = 1
+	} else {
+		intval = 0
+	}
+	return To(intval), nil
+}
+
 // tryCoerceIntDefault attempts to convert to an int from a non-float and non-int type
 func tryCoerceIntDefault[To integer](ruleSet *IntRuleSet[To], value any, ctx context.Context) (To, errors.ValidationError) {
 	if ruleSet.strict {
@@ -199,6 +210,11 @@ func (ruleSet *IntRuleSet[T]) coerceInt(value any, ctx context.Context) (T, erro
 		return tryCoerceFloatToInt(ruleSet, x, ctx)
 	case float64:
 		return tryCoerceFloatToInt(ruleSet, x, ctx)
+	case bool:
+		if ruleSet.strict {
+			return 0, errors.Error(errors.CodeType, ctx, ruleSet.typeName(), reflect.ValueOf(value).Kind().String())
+		}
+		return tryCoerceBoolToInt(ruleSet, x, ctx)
 	default:
 		return tryCoerceIntDefault(ruleSet, value, ctx)
 	}
@@ -243,6 +259,17 @@ func tryCoerceIntToFloat[From integer, To floating](ruleSet *FloatRuleSet[To], v
 	}
 
 	return floatval, nil
+}
+
+// tryCoerceBoolToFloat attempts to coerce a bool to a float (true -> 1.0, false -> 0.0).
+func tryCoerceBoolToFloat[To floating](ruleSet *FloatRuleSet[To], value bool, ctx context.Context) (To, errors.ValidationError) {
+	var floatval float64
+	if value {
+		floatval = 1.0
+	} else {
+		floatval = 0.0
+	}
+	return To(floatval), nil
 }
 
 // tryCoerceFloatDefault attempts to convert to a floar from a non-float and non-int type
@@ -300,6 +327,11 @@ func (v *FloatRuleSet[T]) coerceFloat(value any, ctx context.Context) (T, errors
 		return tryCoerceFloatToFloat[float32, T](x, ctx)
 	case float64:
 		return tryCoerceFloatToFloat[float64, T](x, ctx)
+	case bool:
+		if v.strict {
+			return 0, errors.Error(errors.CodeType, ctx, v.typeName(), reflect.ValueOf(value).Kind().String())
+		}
+		return tryCoerceBoolToFloat(v, x, ctx)
 	default:
 		return tryCoerceFloatDefault(v, value, ctx)
 	}
