@@ -178,7 +178,7 @@ func TestDomainConflictType_Replaces(t *testing.T) {
 	// Test conflict resolution with WithRequired
 	rs1 := rulesnet.Domain().WithRequired()
 	rs2 := rs1.WithRequired()
-	// Since DomainRuleSet uses cloneWithConflictType, the second WithRequired should replace the first
+	// Since DomainRuleSet uses conflict resolution, the second WithRequired should replace the first
 	if rs2.String() != "DomainRuleSet.WithRequired()" {
 		t.Errorf("Expected conflict resolution, got %s", rs2.String())
 	}
