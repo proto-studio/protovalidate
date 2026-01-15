@@ -16,7 +16,7 @@ func (v *StringRuleSet) coerce(value any, ctx context.Context) (string, errors.V
 		return str, nil
 	}
 	if v.strict {
-		return "", errors.NewCoercionError(ctx, "string", reflect.TypeOf(value).String())
+		return "", errors.Error(errors.CodeType, ctx, "string", reflect.TypeOf(value).String())
 	}
 
 	switch x := value.(type) {
@@ -36,5 +36,5 @@ func (v *StringRuleSet) coerce(value any, ctx context.Context) (string, errors.V
 		return *x, nil
 	}
 
-	return "", errors.NewCoercionError(ctx, "string", reflect.TypeOf(value).String())
+	return "", errors.Error(errors.CodeType, ctx, "string", reflect.TypeOf(value).String())
 }

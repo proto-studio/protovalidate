@@ -39,11 +39,11 @@ func (r Rounding) String() string {
 // The RuleSet will attempt to convert floating point numbers to integers even if rounding is not enabled.
 // If the number is not within tolerance (1e-9) of a whole number, an error will be returned.
 func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
-	newParent := v.noConflict(conflictTypeReplacesWrapper[T]{ct: intConflictTypeRounding})
-	newRuleSet := newParent.clone()
-	newRuleSet.conflictType = intConflictTypeRounding
+	newRuleSet := v.clone(
+		intWithLabel[T](fmt.Sprintf("WithRounding(%s)", rounding.String())),
+		intWithConflictType[T](intConflictTypeRounding),
+	)
 	newRuleSet.rounding = rounding
-	newRuleSet.label = fmt.Sprintf("WithRounding(%s)", rounding.String())
 	return newRuleSet
 }
 
@@ -54,12 +54,12 @@ func (v *IntRuleSet[T]) WithRounding(rounding Rounding) *IntRuleSet[T] {
 // - Sometimes the rounded result may have additional precision when the rounded number cannot be exactly represented.
 // - For best results, consider using int for your math and data storage/transfer.
 func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatRuleSet[T] {
-	newParent := v.noConflict(floatConflictTypeReplacesWrapper[T]{ct: floatConflictTypeRounding})
-	newRuleSet := newParent.clone()
-	newRuleSet.conflictType = floatConflictTypeRounding
+	newRuleSet := v.clone(
+		floatWithLabel[T](fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision)),
+		floatWithConflictType[T](floatConflictTypeRounding),
+	)
 	newRuleSet.rounding = rounding
 	newRuleSet.precision = precision
-	newRuleSet.label = fmt.Sprintf("WithRounding(%s, %d)", rounding.String(), precision)
 	return newRuleSet
 }
 
@@ -69,10 +69,10 @@ func (v *FloatRuleSet[T]) WithRounding(rounding Rounding, precision int) *FloatR
 //
 // Example: WithFixedOutput(2) will format 123.4 as "123.40" and 123.456 as "123.46" (after rounding if applicable).
 func (v *FloatRuleSet[T]) WithFixedOutput(precision int) *FloatRuleSet[T] {
-	newParent := v.noConflict(floatConflictTypeReplacesWrapper[T]{ct: floatConflictTypeFixedOutput})
-	newRuleSet := newParent.clone()
-	newRuleSet.conflictType = floatConflictTypeFixedOutput
+	newRuleSet := v.clone(
+		floatWithLabel[T](fmt.Sprintf("WithFixedOutput(%d)", precision)),
+		floatWithConflictType[T](floatConflictTypeFixedOutput),
+	)
 	newRuleSet.outputPrecision = precision
-	newRuleSet.label = fmt.Sprintf("WithFixedOutput(%d)", precision)
 	return newRuleSet
 }

@@ -49,7 +49,8 @@ type TimeRuleSet struct {
 	parent       *TimeRuleSet
 	rule         rules.Rule[time.Time]
 	label        string
-	conflictType conflictType // New unexported field for fast conflict checking
+	conflictType conflictType
+	errorConfig  *errors.ErrorConfig
 }
 
 // baseTimeRuleSet is the base time rule set. Since rule sets are immutable.
@@ -62,15 +63,40 @@ func Time() *TimeRuleSet {
 	return &baseTimeRuleSet
 }
 
+// timeCloneOption is a functional option for cloning TimeRuleSet.
+type timeCloneOption func(*TimeRuleSet)
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (ruleSet *TimeRuleSet) clone() *TimeRuleSet {
-	return &TimeRuleSet{
+func (ruleSet *TimeRuleSet) clone(options ...timeCloneOption) *TimeRuleSet {
+	newRuleSet := &TimeRuleSet{
 		required:     ruleSet.required,
 		withNil:      ruleSet.withNil,
 		layouts:      ruleSet.layouts,
 		outputLayout: ruleSet.outputLayout,
 		parent:       ruleSet,
-		conflictType: ruleSet.conflictType,
+		errorConfig:  ruleSet.errorConfig,
+	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func timeWithLabel(label string) timeCloneOption {
+	return func(rs *TimeRuleSet) { rs.label = label }
+}
+
+func timeWithErrorConfig(config *errors.ErrorConfig) timeCloneOption {
+	return func(rs *TimeRuleSet) { rs.errorConfig = config }
+}
+
+func timeWithConflictType(ct conflictType) timeCloneOption {
+	return func(rs *TimeRuleSet) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(ct)
+		}
+		rs.conflictType = ct
 	}
 }
 
@@ -82,9 +108,8 @@ func (ruleSet *TimeRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
-	newRuleSet := ruleSet.cloneWithConflictType(conflictTypeRequired)
+	newRuleSet := ruleSet.clone(timeWithLabel("WithRequired()"), timeWithConflictType(conflictTypeRequired))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -92,9 +117,8 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
-	newRuleSet := ruleSet.cloneWithConflictType(conflictTypeNil)
+	newRuleSet := ruleSet.clone(timeWithLabel("WithNil()"), timeWithConflictType(conflictTypeNil))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
@@ -116,9 +140,11 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 	layouts = append(layouts, first)
 	layouts = append(layouts, rest...)
 
-	newRuleSet := ruleSet.cloneWithConflictType(conflictTypeLayouts)
+	newRuleSet := ruleSet.clone(
+		timeWithLabel(util.StringsToRuleOutput("WithLayouts", layouts)),
+		timeWithConflictType(conflictTypeLayouts),
+	)
 	newRuleSet.layouts = layouts
-	newRuleSet.label = util.StringsToRuleOutput("WithLayouts", layouts)
 	return newRuleSet
 }
 
@@ -133,15 +159,20 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.cloneWithConflictType(conflictTypeOutputLayout)
+	newRuleSet := ruleSet.clone(
+		timeWithLabel(util.StringsToRuleOutput("WithOutputLayout", []string{layout})),
+		timeWithConflictType(conflictTypeOutputLayout),
+	)
 	newRuleSet.outputLayout = layout
-	newRuleSet.label = util.StringsToRuleOutput("WithOutputLayout", []string{layout})
 	return newRuleSet
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
 // Apply returns a ValidationErrorCollection if any validation errors occur.
 func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
 		return err
@@ -151,7 +182,7 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
 		))
 	}
 
@@ -189,10 +220,10 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 			}
 		}
 		if !ok {
-			return errors.Collection(errors.NewCoercionError(ctx, "date time", "string"))
+			return errors.Collection(errors.Error(errors.CodeType, ctx, "date time", "string"))
 		}
 	default:
-		return errors.Collection(errors.NewCoercionError(ctx, "date time", reflect.TypeOf(input).String()))
+		return errors.Collection(errors.Error(errors.CodeType, ctx, "date time", reflect.TypeOf(input).String()))
 	}
 
 	// Overwrite layout if outputLayout is set
@@ -214,7 +245,7 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 		outputElem.Set(reflect.ValueOf(formattedTime))
 	} else {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Cannot assign %T to %T", t, outputElem.Interface(),
+			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", t, outputElem.Interface(),
 		))
 	}
 
@@ -244,14 +275,6 @@ func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) error
 	} else {
 		return nil
 	}
-}
-
-// cloneWithConflictType clones the rule set and removes any previous entries with the same conflict type.
-func (ruleSet *TimeRuleSet) cloneWithConflictType(conflictType conflictType) *TimeRuleSet {
-	newParent := ruleSet.noConflict(conflictType)
-	newRuleSet := newParent.clone()
-	newRuleSet.conflictType = conflictType
-	return newRuleSet
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.
@@ -330,4 +353,34 @@ func (ruleSet *TimeRuleSet) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (ruleSet *TimeRuleSet) WithErrorMessage(short, long string) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithErrorMessage(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (ruleSet *TimeRuleSet) WithDocsURI(uri string) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithDocsURI(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (ruleSet *TimeRuleSet) WithTraceURI(uri string) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithTraceURI(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (ruleSet *TimeRuleSet) WithErrorCode(code errors.ErrorCode) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithErrorCode(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (ruleSet *TimeRuleSet) WithErrorMeta(key string, value any) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithErrorMeta(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (ruleSet *TimeRuleSet) WithErrorCallback(fn errors.ErrorCallback) *TimeRuleSet {
+	return ruleSet.clone(timeWithLabel("WithErrorCallback(...)"), timeWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

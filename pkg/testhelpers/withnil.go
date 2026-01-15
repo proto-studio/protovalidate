@@ -81,10 +81,6 @@ func MustImplementWithNil[T any](t testing.TB, ruleSet rules.RuleSet[T]) {
 		// Now call WithNil on the rule set that has WithRequired
 		ruleSetWithRequiredValue := reflect.ValueOf(ruleSetWithRequired)
 		withNilMethodOnRequired := ruleSetWithRequiredValue.MethodByName("WithNil")
-		if !withNilMethodOnRequired.IsValid() {
-			// If WithRequired rule set doesn't have WithNil, skip this test
-			return
-		}
 
 		withNilOnRequiredResult := withNilMethodOnRequired.Call(nil)
 		if len(withNilOnRequiredResult) != 1 {

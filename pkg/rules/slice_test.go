@@ -1774,3 +1774,9 @@ func TestSliceRuleSet_Apply_ContextCancelledBetweenItems_NonChanInput(t *testing
 		t.Errorf("Expected first result to be 'a', got %s", results[0])
 	}
 }
+
+// TestSliceRuleSet_ErrorConfig tests:
+// - SliceRuleSet implements error configuration methods
+func TestSliceRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[[]string, *rules.SliceRuleSet[string]](t, rules.Slice[string]())
+}

@@ -234,3 +234,9 @@ func TestTimeRuleSet_Apply_String(t *testing.T) {
 func TestTimeRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[internalTime.Time](t, time.Time())
 }
+
+// TestTimeRuleSet_ErrorConfig tests:
+// - TimeRuleSet implements error configuration methods
+func TestTimeRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[internalTime.Time, *time.TimeRuleSet](t, time.Time())
+}

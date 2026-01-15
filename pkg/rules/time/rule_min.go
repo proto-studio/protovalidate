@@ -18,7 +18,7 @@ type minTimeRule struct {
 func (rule *minTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	if value.Before(rule.min) {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "field must be on or after %s", rule.min),
+			errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s", rule.min),
 		)
 	}
 

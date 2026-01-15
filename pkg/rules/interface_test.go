@@ -148,7 +148,7 @@ func TestInterfaceRuleSet_WithCast(t *testing.T) {
 	ruleSetWithError := ruleSet.WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
 		if _, ok := v.(string); ok {
 			return nil, errors.Collection(
-				errors.Errorf(errors.CodeUnexpected, ctx, "test"),
+				errors.Errorf(errors.CodeUnexpected, ctx, "unexpected", "test"),
 			)
 		}
 		return nil, nil
@@ -162,4 +162,10 @@ func TestInterfaceRuleSet_WithCast(t *testing.T) {
 // - Does not error when nil is provided and WithNil is used
 func TestInterfaceRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[MyTestInterface](t, rules.Interface[MyTestInterface]())
+}
+
+// TestInterfaceRuleSet_ErrorConfig tests:
+// - InterfaceRuleSet implements error configuration methods
+func TestInterfaceRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[MyTestInterface, *rules.InterfaceRuleSet[MyTestInterface]](t, rules.Interface[MyTestInterface]())
 }

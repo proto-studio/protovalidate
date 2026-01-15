@@ -183,3 +183,9 @@ func TestWrapAnyEvaluate(t *testing.T) {
 func TestWrapAnyWithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[any](t, rules.WrapAny[any](rules.Any()))
 }
+
+// TestWrapAnyRuleSet_ErrorConfig tests:
+// - WrapAnyRuleSet implements error configuration methods
+func TestWrapAnyRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[any, *rules.WrapAnyRuleSet[any]](t, rules.WrapAny[any](rules.Any()))
+}

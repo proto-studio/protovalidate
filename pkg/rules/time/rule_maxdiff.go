@@ -19,7 +19,7 @@ type maxDiffRule struct {
 func (rule *maxDiffRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
 	if time.Until(value) > rule.max {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "field must be on or before %s from now", rule.max),
+			errors.Errorf(errors.CodeMax, ctx, "above maximum", "must be on or before %s from now", rule.max),
 		)
 	}
 

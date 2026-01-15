@@ -33,7 +33,7 @@ func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors
 	}
 
 	return errors.Collection(
-		errors.Errorf(errors.CodePattern, ctx, "domain suffix does not match any valid suffixes"),
+		errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain suffix is not valid"),
 	)
 }
 

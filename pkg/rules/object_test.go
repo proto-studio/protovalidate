@@ -1894,7 +1894,7 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 
 	finalValueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationErrorCollection {
 		if count := atomic.LoadInt32(&callCount); count != 2 {
-			return errors.Collection(errors.Errorf(errors.CodeCancelled, ctx, "Expected count of %d, got %d", 2, count))
+			return errors.Collection(errors.Errorf(errors.CodeCancelled, ctx, "cancelled", "Expected count of %d, got %d", 2, count))
 		}
 		return nil
 	})
@@ -2049,4 +2049,13 @@ func TestObjectMapWithNilKeyValue(t *testing.T) {
 	if err.First().Code() != errors.CodeNull {
 		t.Errorf("Expected error code to be CodeNull, got: %s", err.First().Code())
 	}
+}
+
+// TestObjectRuleSet_ErrorConfig tests:
+// - ObjectRuleSet implements error configuration methods
+func TestObjectRuleSet_ErrorConfig(t *testing.T) {
+	type TestStruct struct {
+		Name string `validate:"name"`
+	}
+	testhelpers.MustImplementErrorConfig[TestStruct, *rules.ObjectRuleSet[TestStruct, string, any]](t, rules.Struct[TestStruct]())
 }

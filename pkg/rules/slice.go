@@ -51,7 +51,8 @@ type SliceRuleSet[T any] struct {
 	withNil      bool
 	parent       *SliceRuleSet[T]
 	label        string
-	conflictType conflictType // New unexported field for fast conflict checking
+	conflictType conflictType
+	errorConfig  *errors.ErrorConfig
 }
 
 // Slice creates a new slice RuleSet.
@@ -63,16 +64,41 @@ func Slice[T any]() *SliceRuleSet[T] {
 	}
 }
 
+// sliceCloneOption is a functional option for cloning SliceRuleSet.
+type sliceCloneOption[T any] func(*SliceRuleSet[T])
+
 // clone returns a shallow copy of the rule set with parent set to the current instance.
-func (v *SliceRuleSet[T]) clone() *SliceRuleSet[T] {
-	return &SliceRuleSet[T]{
-		itemRules:    v.itemRules,
-		maxLen:       v.maxLen,
-		minLen:       v.minLen,
-		required:     v.required,
-		withNil:      v.withNil,
-		parent:       v,
-		conflictType: v.conflictType,
+func (v *SliceRuleSet[T]) clone(options ...sliceCloneOption[T]) *SliceRuleSet[T] {
+	newRuleSet := &SliceRuleSet[T]{
+		itemRules:   v.itemRules,
+		maxLen:      v.maxLen,
+		minLen:      v.minLen,
+		required:    v.required,
+		withNil:     v.withNil,
+		parent:      v,
+		errorConfig: v.errorConfig,
+	}
+	for _, opt := range options {
+		opt(newRuleSet)
+	}
+	return newRuleSet
+}
+
+func sliceWithLabel[T any](label string) sliceCloneOption[T] {
+	return func(rs *SliceRuleSet[T]) { rs.label = label }
+}
+
+func sliceWithErrorConfig[T any](config *errors.ErrorConfig) sliceCloneOption[T] {
+	return func(rs *SliceRuleSet[T]) { rs.errorConfig = config }
+}
+
+func sliceWithConflictType[T any](ct conflictType) sliceCloneOption[T] {
+	return func(rs *SliceRuleSet[T]) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(sliceConflictTypeReplacesWrapper[T]{ct: ct})
+		}
+		rs.conflictType = ct
 	}
 }
 
@@ -85,9 +111,8 @@ func (v *SliceRuleSet[T]) Required() bool {
 // When a required field is missing from the input, validation fails with an error.
 // WithRequired has no effect on slices if the RuleSet is strict since nil is not a valid slice.
 func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
-	newRuleSet := v.cloneWithConflictType(conflictTypeRequired)
+	newRuleSet := v.clone(sliceWithLabel[T]("WithRequired()"), sliceWithConflictType[T](conflictTypeRequired))
 	newRuleSet.required = true
-	newRuleSet.label = "WithRequired()"
 	return newRuleSet
 }
 
@@ -95,9 +120,8 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
-	newRuleSet := v.cloneWithConflictType(conflictTypeNil)
+	newRuleSet := v.clone(sliceWithLabel[T]("WithNil()"), sliceWithConflictType[T](conflictTypeNil))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
@@ -130,8 +154,8 @@ func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, item
 	if v.minLen > 0 {
 		actualLen := len(outputItems)
 		if actualLen < v.minLen {
-			allErrors = append(allErrors, errors.Errorf(
-				errors.CodeMin, ctx, "list must be at least %d items long", v.minLen,
+			allErrors = append(allErrors, errors.Error(
+				errors.CodeMinLen, ctx, v.minLen,
 			))
 		}
 	}
@@ -212,7 +236,7 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 			if _, ok := itemInterface.(T); !ok {
 				subContext := rulecontext.WithPathString(ctx, strconv.Itoa(i))
 				actual := item.Kind().String()
-				coercionErrors = append(coercionErrors, errors.Collection(errors.NewCoercionError(subContext, expectedType.Name(), actual)))
+				coercionErrors = append(coercionErrors, errors.Collection(errors.Error(errors.CodeType, subContext, expectedType.Name(), actual)))
 			}
 		}
 	}
@@ -278,8 +302,8 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 			if maxLen > 0 && index >= maxLen {
 				// Max length exceeded - return immediately with error
 				// Don't drain the channel as it may never close (DoS risk)
-				allErrors = append(allErrors, errors.Errorf(
-					errors.CodeMax, ctx, "list must be at most %d items long", maxLen,
+				allErrors = append(allErrors, errors.Error(
+					errors.CodeMaxLen, ctx, maxLen,
 				))
 				return outputItems, allErrors
 			}
@@ -331,6 +355,9 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 // - All errors are collected and returned at once
 // - Items are streamed (validated and written immediately, not collected upfront)
 func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+	// Add error config to context for error customization
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
 	// Check if withNil is enabled and input is nil
 	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
 		return err
@@ -340,7 +367,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a non-nil pointer",
+			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
 		))
 	}
 
@@ -356,13 +383,13 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		// Validate channel element type
 		if outputElem.IsNil() {
 			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "Output channel cannot be nil",
+				errors.CodeInternal, ctx, "internal error", "Output channel cannot be nil",
 			))
 		}
 		actualType := outputElem.Type().Elem()
 		if !actualType.AssignableTo(expectedType) {
 			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "Output channel element type %s is not compatible with %s",
+				errors.CodeInternal, ctx, "internal error", "Output channel element type %s is not compatible with %s",
 				actualType.String(), expectedType.String(),
 			))
 		}
@@ -372,7 +399,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		if !outputElem.IsNil() {
 			if !expectedSliceType.AssignableTo(outputElem.Type()) {
 				return errors.Collection(errors.Errorf(
-					errors.CodeInternal, ctx, "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
+					errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
 				))
 			}
 		}
@@ -380,12 +407,12 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		// Validate slice element type - check if []T is assignable to output slice type
 		if !expectedSliceType.AssignableTo(outputElem.Type()) {
 			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
+				errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
 			))
 		}
 	default:
 		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "Output must be a slice or channel, got %s", outputElemKind,
+			errors.CodeInternal, ctx, "internal error", "Output must be a slice or channel, got %s", outputElemKind,
 		))
 	}
 
@@ -404,7 +431,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		inputVal := reflect.ValueOf(input)
 		if inputVal.IsNil() {
 			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "Input channel cannot be nil",
+				errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil",
 			))
 		}
 
@@ -419,7 +446,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 			// Type assertion failed
 			expectedType := reflect.TypeOf((*T)(nil)).Elem()
 			actualType := inputVal.Type().Elem()
-			return errors.Collection(errors.NewCoercionError(
+			return errors.Collection(errors.Error(errors.CodeType,
 				ctx, expectedType.String(), actualType.String(),
 			))
 		}
@@ -427,7 +454,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	case reflect.Slice, reflect.Array:
 		inputChan, originalItems, coercionErrors = v.newInputChan(ctx, valueOf)
 	default:
-		return errors.Collection(errors.NewCoercionError(ctx, "array", inputKind.String()))
+		return errors.Collection(errors.Error(errors.CodeType, ctx, "array", inputKind.String()))
 	}
 
 	// Determine output channel and setup
@@ -450,7 +477,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		default:
 			// Should not happen - we validated earlier, but handle gracefully
 			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "Output channel type assertion failed",
+				errors.CodeInternal, ctx, "internal error", "Output channel type assertion failed",
 			))
 		}
 		outputChan = sendChan
@@ -514,14 +541,6 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
 	var out any
 	return ruleSet.Apply(ctx, value, &out)
-}
-
-// cloneWithConflictType clones the rule set and removes any previous entries with the same conflict type.
-func (v *SliceRuleSet[T]) cloneWithConflictType(conflictType conflictType) *SliceRuleSet[T] {
-	newParent := v.noConflict(sliceConflictTypeReplacesWrapper[T]{ct: conflictType})
-	newRuleSet := newParent.clone()
-	newRuleSet.conflictType = conflictType
-	return newRuleSet
 }
 
 // sliceConflictTypeReplacesWrapper wraps a conflict type to implement Replaces[[]T]
@@ -627,4 +646,34 @@ func (ruleSet *SliceRuleSet[T]) String() string {
 		return ruleSet.parent.String() + "." + label
 	}
 	return label
+}
+
+// WithErrorMessage returns a new RuleSet with custom short and long error messages.
+func (v *SliceRuleSet[T]) WithErrorMessage(short, long string) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithErrorMessage(...)"), sliceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+}
+
+// WithDocsURI returns a new RuleSet with a custom documentation URI.
+func (v *SliceRuleSet[T]) WithDocsURI(uri string) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithDocsURI(...)"), sliceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+}
+
+// WithTraceURI returns a new RuleSet with a custom trace/debug URI.
+func (v *SliceRuleSet[T]) WithTraceURI(uri string) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithTraceURI(...)"), sliceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+}
+
+// WithErrorCode returns a new RuleSet with a custom error code.
+func (v *SliceRuleSet[T]) WithErrorCode(code errors.ErrorCode) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithErrorCode(...)"), sliceWithErrorConfig[T](v.errorConfig.WithCode(code)))
+}
+
+// WithErrorMeta returns a new RuleSet with additional error metadata.
+func (v *SliceRuleSet[T]) WithErrorMeta(key string, value any) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithErrorMeta(...)"), sliceWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+}
+
+// WithErrorCallback returns a new RuleSet with an error callback for customization.
+func (v *SliceRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *SliceRuleSet[T] {
+	return v.clone(sliceWithLabel[T]("WithErrorCallback(...)"), sliceWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }

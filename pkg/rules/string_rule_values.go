@@ -43,12 +43,12 @@ func (rule *stringValuesRule) Evaluate(ctx context.Context, value string) errors
 	if rule.allow {
 		if !exists {
 			return errors.Collection(
-				errors.Errorf(errors.CodeNotAllowed, ctx, "field value is not allowed"),
+				errors.Error(errors.CodeNotAllowed, ctx),
 			)
 		}
 	} else if exists {
 		return errors.Collection(
-			errors.Errorf(errors.CodeForbidden, ctx, "field value is not allowed"),
+			errors.Error(errors.CodeForbidden, ctx),
 		)
 	}
 

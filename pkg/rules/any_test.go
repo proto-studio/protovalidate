@@ -124,3 +124,9 @@ func TestAnyRuleSet_Composition(t *testing.T) {
 func TestAnyRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[any](t, rules.Any())
 }
+
+// TestAnyRuleSet_ErrorConfig tests:
+// - AnyRuleSet implements error configuration methods
+func TestAnyRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[any, *rules.AnyRuleSet](t, rules.Any())
+}

@@ -94,3 +94,42 @@ func (collection ValidationErrorCollection) For(path string) ValidationErrorColl
 
 	return Collection(filteredErrors...)
 }
+
+// Internal returns true if any error in the collection is an internal error.
+// Internal errors are the most general classification and take precedence.
+// Returns false for empty collections.
+func (collection ValidationErrorCollection) Internal() bool {
+	for _, err := range collection {
+		if err.Internal() {
+			return true
+		}
+	}
+	return false
+}
+
+// Permission returns true if the most general error classification is permission.
+// Permission errors are more general than validation errors but less general than internal errors.
+// Returns true if any error is a permission error and no errors are internal.
+// Returns false for empty collections.
+func (collection ValidationErrorCollection) Permission() bool {
+	if collection.Internal() {
+		return false
+	}
+	for _, err := range collection {
+		if err.Permission() {
+			return true
+		}
+	}
+	return false
+}
+
+// Validation returns true if all errors are validation errors.
+// Validation errors are the most specific classification.
+// Returns true only if no errors are internal or permission errors.
+// Returns false for empty collections.
+func (collection ValidationErrorCollection) Validation() bool {
+	if len(collection) == 0 {
+		return false
+	}
+	return !collection.Internal() && !collection.Permission()
+}

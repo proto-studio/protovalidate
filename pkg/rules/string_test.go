@@ -33,7 +33,7 @@ func TestStringRuleSet_Apply(t *testing.T) {
 		t.Fatal("Expected rule set to be implemented")
 	}
 
-	testhelpers.MustApplyTypes[string](t, rules.String(), "abc")
+	testhelpers.MustApplyTypes(t, rules.String(), "abc")
 }
 
 // TestStringRuleSet_RuleInterface tests:
@@ -127,7 +127,7 @@ func TestStringRuleSet_Apply_CoerceFromUnknown(t *testing.T) {
 // - Required flag can be read.
 // - Required flag defaults to false.
 func TestStringRuleSet_WithRequired(t *testing.T) {
-	testhelpers.MustImplementWithRequired[string](t, rules.String())
+	testhelpers.MustImplementWithRequired(t, rules.String())
 }
 
 // TestStringRuleSet_WithRuleFunc tests:
@@ -216,5 +216,69 @@ func TestStringRuleSet_String(t *testing.T) {
 // - Returns error with CodeNull when nil is provided and WithNil is not used
 // - Does not error when nil is provided and WithNil is used
 func TestStringRuleSet_WithNil(t *testing.T) {
-	testhelpers.MustImplementWithNil[string](t, rules.String())
+	testhelpers.MustImplementWithNil(t, rules.String())
+}
+
+// TestStringRuleSet_ErrorConfig tests:
+// - All error customization methods work correctly
+func TestStringRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[string, *rules.StringRuleSet](t, rules.String())
+}
+
+// TestStringRuleSet_ErrorConfig_WithRule tests:
+// - ErrorConfig is applied to errors from custom rules added via WithRule
+func TestStringRuleSet_ErrorConfig_WithRule(t *testing.T) {
+	ruleSet := rules.String().
+		WithRule(&testhelpers.ErrorConfigTestRule[string]{}).
+		WithDocsURI("https://example.com/rule-error")
+
+	testhelpers.MustApplyErrorConfigWithCustomRule(t, ruleSet, "test", "https://example.com/rule-error")
+}
+
+// TestStringRuleSet_ErrorConfig_WithRuleFunc tests:
+// - ErrorConfig is applied to errors from custom rules added via WithRuleFunc
+func TestStringRuleSet_ErrorConfig_WithRuleFunc(t *testing.T) {
+	ruleSet := rules.String().
+		WithRuleFunc(testhelpers.ErrorConfigTestRuleFunc[string]()).
+		WithErrorMeta("source", "rulefunc")
+
+	testhelpers.MustApplyErrorConfigWithMetaOnInput(t, ruleSet, "test", "source", "rulefunc")
+}
+
+// TestStringRuleSet_ErrorConfig_CoercionError tests:
+// - ErrorConfig is applied to coercion errors
+func TestStringRuleSet_ErrorConfig_CoercionError(t *testing.T) {
+	var out string
+	ruleSet := rules.String().
+		WithStrict(). // Strict mode disables coercion
+		WithErrorMessage("type error", "expected a string")
+
+	errs := ruleSet.Apply(context.Background(), 123, &out)
+
+	if len(errs) == 0 {
+		t.Fatal("Expected coercion error")
+	}
+
+	if errs[0].ShortError() != "type error" {
+		t.Errorf("Expected short error 'type error', got: %s", errs[0].ShortError())
+	}
+}
+
+// TestStringRuleSet_ErrorConfig_WithMinLen tests:
+// - ErrorConfig is applied to errors from built-in WithMinLen rule
+func TestStringRuleSet_ErrorConfig_WithMinLen(t *testing.T) {
+	var out string
+	ruleSet := rules.String().
+		WithMinLen(5).
+		WithErrorMessage("custom short", "custom long")
+
+	errs := ruleSet.Apply(context.Background(), "ab", &out)
+
+	if len(errs) == 0 {
+		t.Fatal("Expected validation error")
+	}
+
+	if errs[0].ShortError() != "custom short" {
+		t.Errorf("Expected short error 'custom short', got: %s", errs[0].ShortError())
+	}
 }

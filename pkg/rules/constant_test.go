@@ -82,3 +82,9 @@ func TestConstantRuleSet_Conflict(t *testing.T) {
 func TestConstantRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, rules.Constant[string]("abc"))
 }
+
+// TestConstantRuleSet_ErrorConfig tests:
+// - ConstantRuleSet implements error configuration methods
+func TestConstantRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[string, *rules.ConstantRuleSet[string]](t, rules.Constant[string]("test"))
+}

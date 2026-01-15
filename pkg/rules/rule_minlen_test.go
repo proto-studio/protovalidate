@@ -94,7 +94,7 @@ func TestString_WithMinLen(t *testing.T) {
 
 	testhelpers.MustApply(t, ruleSet, "abc")
 	testhelpers.MustApply(t, ruleSet, "ab")
-	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, "a", errors.CodeMinLen)
 }
 
 // TestString_WithMinLen_Conflict tests:

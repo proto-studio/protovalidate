@@ -10,14 +10,13 @@ import (
 // Implements the Rule interface for minimum length
 type minLenRule[TV any, T lengthy[TV]] struct {
 	min int
-	msg string
 }
 
 // Evaluate takes a context and array/slice value and returns an error if it is not equal or lower in length than the specified value.
 func (rule *minLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
 	if len(value) < rule.min {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, rule.msg, rule.min),
+			errors.Error(errors.CodeMinLen, ctx, rule.min),
 		)
 	}
 	return nil
@@ -38,16 +37,17 @@ func (rule *minLenRule[TV, T]) String() string {
 // WithMinLen returns a new child RuleSet that is constrained to the provided minimum array/slice length.
 // The minLen is checked after all items are processed, ensuring the final output meets the minimum length requirement.
 func (v *SliceRuleSet[T]) WithMinLen(min int) *SliceRuleSet[T] {
-	newRuleSet := v.cloneWithConflictType(conflictTypeMinLen)
+	newRuleSet := v.clone(
+		sliceWithLabel[T](fmt.Sprintf("WithMinLen(%d)", min)),
+		sliceWithConflictType[T](conflictTypeMinLen),
+	)
 	newRuleSet.minLen = min
-	newRuleSet.label = fmt.Sprintf("WithMinLen(%d)", min)
 	return newRuleSet
 }
 
 // WithMinLen returns a new child RuleSet that is constrained to the provided minimum string length.
 func (v *StringRuleSet) WithMinLen(min int) *StringRuleSet {
 	return v.WithRule(&minLenRule[any, string]{
-		min,
-		"value must be at least %d characters long",
+		min: min,
 	})
 }

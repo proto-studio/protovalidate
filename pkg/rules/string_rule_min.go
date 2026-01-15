@@ -17,7 +17,7 @@ type stringMinRule struct {
 func (rule *stringMinRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if value < rule.min {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "value must be greater than or equal to %q", util.TruncateString(rule.min)),
+			errors.Error(errors.CodeMin, ctx, util.TruncateString(rule.min)),
 		)
 	}
 

@@ -15,8 +15,8 @@ func TestCollectionWrapper(t *testing.T) {
 	ctx := context.Background()
 
 	err := errors.Collection(
-		errors.Errorf(errors.CodeMax, ctx, "error1"),
-		errors.Errorf(errors.CodeMax, ctx, "error2"),
+		errors.Errorf(errors.CodeMax, ctx, "above maximum", "error1"),
+		errors.Errorf(errors.CodeMax, ctx, "above maximum", "error2"),
 	)
 
 	if err == nil {
@@ -30,8 +30,8 @@ func TestCollectionWrapper(t *testing.T) {
 func TestCollectionAll(t *testing.T) {
 	ctx := context.Background()
 
-	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
-	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+	err1 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error2")
 
 	colErr := errors.Collection(
 		err1,
@@ -60,8 +60,8 @@ func TestCollectionAll(t *testing.T) {
 func TestCollectionUnwrap(t *testing.T) {
 	ctx := context.Background()
 
-	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
-	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+	err1 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error2")
 
 	colErr := errors.Collection(
 		err1,
@@ -89,8 +89,8 @@ func TestCollectionUnwrap(t *testing.T) {
 func TestCollectionSize(t *testing.T) {
 	ctx := context.Background()
 
-	err1 := errors.Errorf(errors.CodeMax, ctx, "error1")
-	err2 := errors.Errorf(errors.CodeMax, ctx, "error2")
+	err1 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error1")
+	err2 := errors.Errorf(errors.CodeMax, ctx, "above maximum", "error2")
 
 	colErr := errors.Collection(err1)
 
@@ -110,8 +110,8 @@ func TestCollectionSize(t *testing.T) {
 // - Returns one of the errors when multiple errors exist
 func TestCollectionFirst(t *testing.T) {
 	ctx := context.Background()
-	err1 := errors.NewCoercionError(ctx, "int", "float32")
-	err2 := errors.NewCoercionError(ctx, "int", "float32")
+	err1 := errors.Error(errors.CodeType, ctx, "int", "float32")
+	err2 := errors.Error(errors.CodeType, ctx, "int", "float32")
 
 	colErr := errors.Collection(
 		err1,
@@ -148,11 +148,11 @@ func TestCollectionFirstEmpty(t *testing.T) {
 // - Correctly filters errors by path
 func TestCollectionFor(t *testing.T) {
 	ctx1 := rulecontext.WithPathString(context.Background(), "path1")
-	err1 := errors.Errorf(errors.CodeMax, ctx1, "error1")
+	err1 := errors.Errorf(errors.CodeMax, ctx1, "above maximum", "error1")
 
 	ctx2 := rulecontext.WithPathString(context.Background(), "path2a")
 	ctx2 = rulecontext.WithPathString(ctx2, "b")
-	err2 := errors.Errorf(errors.CodeMax, ctx2, "error2")
+	err2 := errors.Errorf(errors.CodeMax, ctx2, "above maximum", "error2")
 
 	colErr := errors.Collection(
 		err1,
@@ -205,7 +205,7 @@ func TestCollectionForEmpty(t *testing.T) {
 // - Error message is correctly formatted for single error
 // - Error message includes count for multiple errors
 func TestCollectionMessage(t *testing.T) {
-	err := errors.Errorf(errors.CodeUnknown, context.Background(), "error123")
+	err := errors.Errorf(errors.CodeUnknown, context.Background(), "unknown error", "error123")
 
 	col := errors.Collection(err)
 
@@ -213,7 +213,7 @@ func TestCollectionMessage(t *testing.T) {
 		t.Errorf("Expected error message to be %s, got: %s", "error123", msg)
 	}
 
-	col = append(col, errors.Errorf(errors.CodeUnknown, context.Background(), "error123"))
+	col = append(col, errors.Errorf(errors.CodeUnknown, context.Background(), "unknown error", "error123"))
 
 	if msg := col.Error(); !strings.Contains(msg, "(and 1 more)") {
 		t.Errorf("Expected error message to contain the string '(and 1 more)', got: %s", msg)
@@ -230,4 +230,191 @@ func TestPanicCollectionMessageEmpty(t *testing.T) {
 	}()
 
 	_ = errors.Collection().Error()
+}
+
+// TestValidationErrorInternal tests:
+// - Internal() returns true for internal error codes
+// - Internal() returns false for validation error codes
+func TestValidationErrorInternal(t *testing.T) {
+	ctx := context.Background()
+
+	// Internal errors
+	internalErr := errors.Error(errors.CodeInternal, ctx)
+	if !internalErr.Internal() {
+		t.Error("Expected CodeInternal to be classified as internal")
+	}
+
+	timeoutErr := errors.Error(errors.CodeTimeout, ctx)
+	if !timeoutErr.Internal() {
+		t.Error("Expected CodeTimeout to be classified as internal")
+	}
+
+	// Non-internal errors
+	validationErr := errors.Error(errors.CodeMin, ctx, 10)
+	if validationErr.Internal() {
+		t.Error("Expected CodeMin to not be classified as internal")
+	}
+}
+
+// TestValidationErrorValidation tests:
+// - Validation() returns true for validation error codes
+// - Validation() returns false for internal/permission error codes
+func TestValidationErrorValidation(t *testing.T) {
+	ctx := context.Background()
+
+	// Validation errors
+	minErr := errors.Error(errors.CodeMin, ctx, 10)
+	if !minErr.Validation() {
+		t.Error("Expected CodeMin to be classified as validation")
+	}
+
+	rangeErr := errors.Error(errors.CodeRange, ctx, "int")
+	if !rangeErr.Validation() {
+		t.Error("Expected CodeRange to be classified as validation")
+	}
+
+	// Non-validation errors
+	internalErr := errors.Error(errors.CodeInternal, ctx)
+	if internalErr.Validation() {
+		t.Error("Expected CodeInternal to not be classified as validation")
+	}
+}
+
+// TestValidationErrorPermission tests:
+// - Permission() returns true for permission error codes
+// - Permission() returns false for validation/internal error codes
+func TestValidationErrorPermission(t *testing.T) {
+	ctx := context.Background()
+
+	// Permission errors
+	forbiddenErr := errors.Error(errors.CodeForbidden, ctx)
+	if !forbiddenErr.Permission() {
+		t.Error("Expected CodeForbidden to be classified as permission")
+	}
+
+	notAllowedErr := errors.Error(errors.CodeNotAllowed, ctx)
+	if !notAllowedErr.Permission() {
+		t.Error("Expected CodeNotAllowed to be classified as permission")
+	}
+
+	// Non-permission errors
+	validationErr := errors.Error(errors.CodeMin, ctx, 10)
+	if validationErr.Permission() {
+		t.Error("Expected CodeMin to not be classified as permission")
+	}
+}
+
+// TestCollectionInternal tests:
+// - Internal() returns true if any error is internal
+// - Internal() returns false if no errors are internal
+// - Internal() returns false for empty collections
+func TestCollectionInternal(t *testing.T) {
+	ctx := context.Background()
+
+	// Empty collection
+	emptyCol := errors.Collection()
+	if emptyCol.Internal() {
+		t.Error("Expected empty collection Internal() to return false")
+	}
+
+	// Collection with only validation errors
+	validationCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeMax, ctx, 100),
+	)
+	if validationCol.Internal() {
+		t.Error("Expected validation-only collection Internal() to return false")
+	}
+
+	// Collection with one internal error
+	mixedCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeInternal, ctx),
+	)
+	if !mixedCol.Internal() {
+		t.Error("Expected mixed collection with internal error Internal() to return true")
+	}
+}
+
+// TestCollectionPermission tests:
+// - Permission() returns true if any error is permission and none are internal
+// - Permission() returns false if any error is internal
+// - Permission() returns false if all errors are validation
+// - Permission() returns false for empty collections
+func TestCollectionPermission(t *testing.T) {
+	ctx := context.Background()
+
+	// Empty collection
+	emptyCol := errors.Collection()
+	if emptyCol.Permission() {
+		t.Error("Expected empty collection Permission() to return false")
+	}
+
+	// Collection with only validation errors
+	validationCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeMax, ctx, 100),
+	)
+	if validationCol.Permission() {
+		t.Error("Expected validation-only collection Permission() to return false")
+	}
+
+	// Collection with permission error
+	permissionCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeForbidden, ctx),
+	)
+	if !permissionCol.Permission() {
+		t.Error("Expected collection with permission error Permission() to return true")
+	}
+
+	// Collection with internal and permission errors - internal takes precedence
+	internalAndPermissionCol := errors.Collection(
+		errors.Error(errors.CodeInternal, ctx),
+		errors.Error(errors.CodeForbidden, ctx),
+	)
+	if internalAndPermissionCol.Permission() {
+		t.Error("Expected collection with internal error Permission() to return false (internal takes precedence)")
+	}
+}
+
+// TestCollectionValidation tests:
+// - Validation() returns true if all errors are validation
+// - Validation() returns false if any error is internal or permission
+// - Validation() returns false for empty collections
+func TestCollectionValidation(t *testing.T) {
+	ctx := context.Background()
+
+	// Empty collection
+	emptyCol := errors.Collection()
+	if emptyCol.Validation() {
+		t.Error("Expected empty collection Validation() to return false")
+	}
+
+	// Collection with only validation errors
+	validationCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeMax, ctx, 100),
+	)
+	if !validationCol.Validation() {
+		t.Error("Expected validation-only collection Validation() to return true")
+	}
+
+	// Collection with internal error
+	internalCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeInternal, ctx),
+	)
+	if internalCol.Validation() {
+		t.Error("Expected collection with internal error Validation() to return false")
+	}
+
+	// Collection with permission error
+	permissionCol := errors.Collection(
+		errors.Error(errors.CodeMin, ctx, 10),
+		errors.Error(errors.CodeForbidden, ctx),
+	)
+	if permissionCol.Validation() {
+		t.Error("Expected collection with permission error Validation() to return false")
+	}
 }

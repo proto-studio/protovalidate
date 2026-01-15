@@ -198,3 +198,9 @@ func TestEmailRuleSet_DomainContext(t *testing.T) {
 func TestEmailRuleSet_WithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[string](t, net.Email())
 }
+
+// TestEmailRuleSet_ErrorConfig tests:
+// - EmailRuleSet implements error configuration methods
+func TestEmailRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[string, *net.EmailRuleSet](t, net.Email())
+}

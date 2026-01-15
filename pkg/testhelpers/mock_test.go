@@ -162,3 +162,9 @@ func TestMockRuleSet_Apply(t *testing.T) {
 		t.Errorf("expected non-nil error")
 	}
 }
+
+// TestMockRuleSet_ErrorConfig tests:
+// - MockRuleSet implements error configuration methods
+func TestMockRuleSet_ErrorConfig(t *testing.T) {
+	testhelpers.MustImplementErrorConfig[any, *testhelpers.MockRuleSet[any]](t, testhelpers.NewMockRuleSet[any]())
+}

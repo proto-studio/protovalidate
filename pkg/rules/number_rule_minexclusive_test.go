@@ -17,10 +17,10 @@ func TestIntRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Int().WithMinExclusive(10).Any()
 
 	// 9 is less than 10, should fail
-	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, 9, errors.CodeMinExclusive)
 
 	// 10 is equal to 10, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, 10, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, 10, errors.CodeMinExclusive)
 
 	// 11 is greater than 10, should pass
 	testhelpers.MustApply(t, ruleSet, 11)
@@ -34,10 +34,10 @@ func TestFloatRuleSet_WithMinExclusive(t *testing.T) {
 	ruleSet := rules.Float64().WithMinExclusive(10.0).Any()
 
 	// 9.9 is less than 10.0, should fail
-	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, 9.9, errors.CodeMinExclusive)
 
 	// 10.0 is equal to 10.0, should fail (exclusive)
-	testhelpers.MustNotApply(t, ruleSet, 10.0, errors.CodeMin)
+	testhelpers.MustNotApply(t, ruleSet, 10.0, errors.CodeMinExclusive)
 
 	// 10.1 is greater than 10.0, should pass
 	testhelpers.MustApply(t, ruleSet, 10.1)
