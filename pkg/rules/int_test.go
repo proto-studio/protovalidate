@@ -404,3 +404,54 @@ func TestIntRuleSet_Apply_StringOutput_VariousTypes(t *testing.T) {
 func TestIntRuleSet_ErrorConfig(t *testing.T) {
 	testhelpers.MustImplementErrorConfig[int, *rules.IntRuleSet[int]](t, rules.Int())
 }
+
+// TestIntRuleSet_Apply_CoerceFromBool tests:
+// - Coerces bool values to integers (true -> 1, false -> 0)
+func TestIntRuleSet_Apply_CoerceFromBool(t *testing.T) {
+	tryIntCoercion(t, true, 1)
+	tryIntCoercion(t, false, 0)
+}
+
+// TestIntRuleSet_Apply_CoerceFromBool_Strict tests:
+// - Strict mode rejects bool values
+func TestIntRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
+	var out int
+	err := rules.Int().WithStrict().Apply(context.Background(), true, &out)
+
+	if len(err) == 0 {
+		t.Error("Expected errors to not be empty")
+		return
+	}
+}
+
+// TestIntRuleSet_Apply_BoolOutput tests:
+// - Outputs bool values when output is a bool type (non-zero = true, zero = false)
+func TestIntRuleSet_Apply_BoolOutput(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.IntRuleSet[int]
+		input    interface{}
+		expected bool
+	}{
+		{"NonZero", rules.Int(), 42, true},
+		{"Zero", rules.Int(), 0, false},
+		{"Negative", rules.Int(), -1, true},
+		{"One", rules.Int(), 1, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bool
+			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+
+			if err != nil {
+				t.Errorf("Expected no errors, got: %v", err)
+				return
+			}
+
+			if out != tt.expected {
+				t.Errorf("Expected bool %v, got %v", tt.expected, out)
+			}
+		})
+	}
+}

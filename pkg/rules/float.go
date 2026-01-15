@@ -226,6 +226,10 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 			outputElem.Elem().SetString(strVal)
 		}
 		assignable = true
+	} else if outputElem.Kind() == reflect.Bool {
+		// Handle bool output: non-zero values are true, zero is false
+		outputElem.SetBool(floatval != 0)
+		assignable = true
 	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
 		(outputElem.Kind() == reflect.Float32 || outputElem.Kind() == reflect.Float64 ||
 			outputElem.Type().AssignableTo(reflect.TypeOf(floatval))) {

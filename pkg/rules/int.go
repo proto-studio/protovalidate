@@ -296,6 +296,10 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 			outputElem.Elem().SetString(strVal)
 		}
 		assignable = true
+	} else if outputElem.Kind() == reflect.Bool {
+		// Handle bool output: non-zero values are true, zero is false
+		outputElem.SetBool(intval != 0)
+		assignable = true
 	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
 		(outputElem.Kind() == reflect.Int || outputElem.Kind() == reflect.Int8 ||
 			outputElem.Kind() == reflect.Int16 || outputElem.Kind() == reflect.Int32 ||
