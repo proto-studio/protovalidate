@@ -109,13 +109,13 @@ func TestFloatRuleSet_WithMax_Conflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "FloatRuleSet[float64].WithMax(10.000000).WithMin(3.000000)"
+	expected := "FloatRuleSet[float64].WithMax(10).WithMin(3)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated max
-	expected = "FloatRuleSet[float64].WithMin(3.000000).WithMax(20.000000)"
+	expected = "FloatRuleSet[float64].WithMin(3).WithMax(20)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

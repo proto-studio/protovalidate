@@ -9,15 +9,43 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type stringConflictType int
+
+const (
+	stringConflictTypeNone stringConflictType = iota
+	stringConflictTypeRequired
+	stringConflictTypeNil
+	stringConflictTypeStrict
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct stringConflictType) Conflict(other stringConflictType) bool {
+	return ct != stringConflictTypeNone && ct == other
+}
+
+// Replaces returns true if this conflict type replaces the given rule.
+// It attempts to cast the rule to *StringRuleSet and checks if the conflictType conflicts.
+func (ct stringConflictType) Replaces(r Rule[string]) bool {
+	rs, ok := r.(*StringRuleSet)
+	if !ok {
+		return false
+	}
+	return ct.Conflict(rs.conflictType)
+}
+
 // Implementation of RuleSet for strings.
 type StringRuleSet struct {
 	NoConflict[string]
-	strict   bool
-	rule     Rule[string]
-	required bool
-	withNil  bool
-	parent   *StringRuleSet
-	label    string
+	strict       bool
+	rule         Rule[string]
+	required     bool
+	withNil      bool
+	parent       *StringRuleSet
+	label        string
+	conflictType stringConflictType // New unexported field for fast conflict checking
 }
 
 // baseStringRuleSet is the main RuleSet.
@@ -34,17 +62,18 @@ func String() *StringRuleSet {
 // clone returns a shallow copy of the rule set with parent set to the current instance.
 func (v *StringRuleSet) clone() *StringRuleSet {
 	return &StringRuleSet{
-		strict:   v.strict,
-		required: v.required,
-		withNil:  v.withNil,
-		parent:   v,
+		strict:       v.strict,
+		required:     v.required,
+		withNil:      v.withNil,
+		parent:       v,
+		conflictType: v.conflictType,
 	}
 }
 
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already a string.
 func (v *StringRuleSet) WithStrict() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.cloneWithConflictType(stringConflictTypeStrict)
 	newRuleSet.strict = true
 	newRuleSet.label = "WithStrict()"
 	return newRuleSet
@@ -58,7 +87,7 @@ func (v *StringRuleSet) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *StringRuleSet) WithRequired() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.cloneWithConflictType(stringConflictTypeRequired)
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
 	return newRuleSet
@@ -68,7 +97,7 @@ func (v *StringRuleSet) WithRequired() *StringRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *StringRuleSet) WithNil() *StringRuleSet {
-	newRuleSet := v.clone()
+	newRuleSet := v.cloneWithConflictType(stringConflictTypeNil)
 	newRuleSet.withNil = true
 	newRuleSet.label = "WithNil()"
 	return newRuleSet
@@ -147,32 +176,50 @@ func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.Valid
 	}
 }
 
+// cloneWithConflictType clones the rule set and removes any previous entries with the same conflict type.
+func (v *StringRuleSet) cloneWithConflictType(conflictType stringConflictType) *StringRuleSet {
+	newParent := v.noConflict(conflictType)
+	newRuleSet := newParent.clone()
+	newRuleSet.conflictType = conflictType
+	return newRuleSet
+}
+
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *StringRuleSet) noConflict(rule Rule[string]) *StringRuleSet {
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+func (ruleSet *StringRuleSet) noConflict(checker Replaces[string]) *StringRuleSet {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 

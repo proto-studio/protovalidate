@@ -23,8 +23,8 @@ func (rule *minLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.Val
 	return nil
 }
 
-// Conflict returns true for any minimum length rule.
-func (rule *minLenRule[TV, T]) Conflict(x Rule[T]) bool {
+// Replaces returns true for any minimum length rule.
+func (rule *minLenRule[TV, T]) Replaces(x Rule[T]) bool {
 	_, ok := x.(*minLenRule[TV, T])
 	return ok
 }
@@ -38,7 +38,7 @@ func (rule *minLenRule[TV, T]) String() string {
 // WithMinLen returns a new child RuleSet that is constrained to the provided minimum array/slice length.
 // The minLen is checked after all items are processed, ensuring the final output meets the minimum length requirement.
 func (v *SliceRuleSet[T]) WithMinLen(min int) *SliceRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.cloneWithConflictType(conflictTypeMinLen)
 	newRuleSet.minLen = min
 	newRuleSet.label = fmt.Sprintf("WithMinLen(%d)", min)
 	return newRuleSet

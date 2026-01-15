@@ -24,8 +24,8 @@ func (rule *minExclusiveRule[T]) Evaluate(ctx context.Context, value T) errors.V
 	return nil
 }
 
-// Conflict returns true for any minimum or exclusive minimum rule.
-func (rule *minExclusiveRule[T]) Conflict(x Rule[T]) bool {
+// Replaces returns true for any minimum or exclusive minimum rule.
+func (rule *minExclusiveRule[T]) Replaces(x Rule[T]) bool {
 	_, ok1 := x.(*minRule[T])
 	_, ok2 := x.(*minExclusiveRule[T])
 	return ok1 || ok2
@@ -49,6 +49,6 @@ func (v *IntRuleSet[T]) WithMinExclusive(min T) *IntRuleSet[T] {
 func (v *FloatRuleSet[T]) WithMinExclusive(min T) *FloatRuleSet[T] {
 	return v.WithRule(&minExclusiveRule[T]{
 		min,
-		"f",
+		"g",
 	})
 }

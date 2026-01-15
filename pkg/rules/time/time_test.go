@@ -138,7 +138,7 @@ func TestTimeRuleSet_Apply_BadType(t *testing.T) {
 // - Layouts are comma separated.
 // - Layout values are quoted.
 // - If there are more than 3, the test " ... and X more" is used.
-func TestTimeRuleSet_String_WithLayouts(t *testing.T) {
+func TestTimeRuleSet_String(t *testing.T) {
 	layouts := []string{
 		internalTime.DateOnly,
 		internalTime.TimeOnly,
@@ -147,33 +147,33 @@ func TestTimeRuleSet_String_WithLayouts(t *testing.T) {
 		internalTime.RFC1123,
 	}
 
-	ruleSet := time.Time().WithLayouts(layouts[0], layouts[1])
-	expected := fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\")", layouts[0], layouts[1])
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	tests := []struct {
+		name     string
+		ruleSet  *time.TimeRuleSet
+		expected string
+	}{
+		{"Base", time.Time(), "TimeRuleSet"},
+		{"WithRequired", time.Time().WithRequired(), "TimeRuleSet.WithRequired()"},
+		{"WithNil", time.Time().WithNil(), "TimeRuleSet.WithNil()"},
+		{"WithLayouts", time.Time().WithLayouts(layouts[0], layouts[1]), fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\")", layouts[0], layouts[1])},
+		{"WithLayoutsThree", time.Time().WithLayouts(layouts[0], layouts[1:3]...), fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\")", layouts[0], layouts[1], layouts[2])},
+		{"WithLayoutsMany", time.Time().WithLayouts(layouts[0], layouts[1:]...), fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\" ... and 2 more)", layouts[0], layouts[1], layouts[2])},
+		{"WithOutputLayout", time.Time().WithOutputLayout(layouts[0]), fmt.Sprintf("TimeRuleSet.WithOutputLayout(\"%s\")", layouts[0])},
+		{"Chained", time.Time().WithRequired().WithNil(), "TimeRuleSet.WithRequired().WithNil()"},
+		{"ChainedWithLayouts", time.Time().WithRequired().WithLayouts(layouts[0]), fmt.Sprintf("TimeRuleSet.WithRequired().WithLayouts(\"%s\")", layouts[0])},
+		{"ChainedAll", time.Time().WithRequired().WithLayouts(layouts[0]).WithOutputLayout(layouts[1]), fmt.Sprintf("TimeRuleSet.WithRequired().WithLayouts(\"%s\").WithOutputLayout(\"%s\")", layouts[0], layouts[1])},
+		{"ConflictResolution_Layouts", time.Time().WithLayouts(layouts[0]).WithLayouts(layouts[1]), fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\")", layouts[1])},
+		{"ConflictResolution_OutputLayout", time.Time().WithOutputLayout(layouts[0]).WithOutputLayout(layouts[1]), fmt.Sprintf("TimeRuleSet.WithOutputLayout(\"%s\")", layouts[1])},
+		{"WithMin", time.Time().WithMin(internalTime.Date(2023, 1, 1, 0, 0, 0, 0, internalTime.UTC)), "TimeRuleSet.WithMin(2023-01-01 00:00:00 +0000 UTC)"},
+		{"ChainedWithRule", time.Time().WithRequired().WithMin(internalTime.Date(2023, 1, 1, 0, 0, 0, 0, internalTime.UTC)), "TimeRuleSet.WithRequired().WithMin(2023-01-01 00:00:00 +0000 UTC)"},
 	}
 
-	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:3]...)
-	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\")", layouts[0], layouts[1], layouts[2])
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
-	}
-
-	ruleSet = time.Time().WithLayouts(layouts[0], layouts[1:]...)
-	expected = fmt.Sprintf("TimeRuleSet.WithLayouts(\"%s\", \"%s\", \"%s\" ... and 2 more)", layouts[0], layouts[1], layouts[2])
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
-	}
-}
-
-// TestTimeRuleSet_String_WithRequired tests:
-// - Serializes to WithRequired()
-func TestTimeRuleSet_String_WithRequired(t *testing.T) {
-	ruleSet := time.Time().WithRequired()
-
-	expected := "TimeRuleSet.WithRequired()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ruleSet.String(); got != tt.expected {
+				t.Errorf("String() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
 

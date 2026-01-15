@@ -143,13 +143,13 @@ func TestFloatRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	}
 
 	// Verify that the original rule set is not mutated
-	expected := "FloatRuleSet[float64].WithMaxExclusive(10.000000).WithMinExclusive(3.000000)"
+	expected := "FloatRuleSet[float64].WithMaxExclusive(10).WithMinExclusive(3)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
 	// Verify that the new rule set has the updated threshold
-	expected = "FloatRuleSet[float64].WithMinExclusive(3.000000).WithMaxExclusive(9.000000)"
+	expected = "FloatRuleSet[float64].WithMinExclusive(3).WithMaxExclusive(9)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

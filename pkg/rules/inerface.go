@@ -52,7 +52,7 @@ func (v *InterfaceRuleSet[T]) clone() *InterfaceRuleSet[T] {
 func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)) *InterfaceRuleSet[T] {
 	newRuleSet := v.clone()
 	newRuleSet.cast = fn
-	newRuleSet.label = "WithCast(...)"
+	newRuleSet.label = "WithCast(<function>)"
 	return newRuleSet
 }
 

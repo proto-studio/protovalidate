@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/idna"
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 )
@@ -36,14 +37,14 @@ func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors
 	)
 }
 
-// Conflict returns true for any suffix rule.
-func (rule *domainSuffixRule) Conflict(x rules.Rule[string]) bool {
+// Replaces returns true for any suffix rule.
+func (rule *domainSuffixRule) Replaces(x rules.Rule[string]) bool {
 	_, ok := x.(*domainSuffixRule)
 	return ok
 }
 
-// String returns the string representation of the maximum diff rule.
-// Example: WithSuffix(...)
+// String returns the string representation of the domain suffix rule.
+// Example: WithSuffix("com", "org")
 func (rule *domainSuffixRule) String() string {
 	l := len(rule.suffix)
 
@@ -55,7 +56,9 @@ func (rule *domainSuffixRule) String() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(fmt.Sprintf(`"%s"`, strings.Join(rule.suffix[i], ".")))
+		suffixStr := strings.Join(rule.suffix[i], ".")
+		truncated := util.TruncateString(suffixStr)
+		sb.WriteString(fmt.Sprintf(`"%s"`, truncated))
 	}
 
 	// If there are more than 3 strings, append the "... and X more" message

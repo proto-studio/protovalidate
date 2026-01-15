@@ -68,10 +68,10 @@ func TestConstantRuleSet_Conflict(t *testing.T) {
 	abc := rules.Constant("abc")
 	xyz := rules.Constant("xyz")
 
-	if !abc.Conflict(xyz) {
+	if !abc.Replaces(xyz) {
 		t.Error("Expected Conflict to be true for abc -> xyz")
 	}
-	if !xyz.Conflict(abc) {
+	if !xyz.Replaces(abc) {
 		t.Error("Expected Conflict to be true for xyz -> abc")
 	}
 }

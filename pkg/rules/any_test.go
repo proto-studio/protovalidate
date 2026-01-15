@@ -96,12 +96,12 @@ func TestAnyRuleSet_String_WithForbidden(t *testing.T) {
 }
 
 // TestAnyRuleSet_String_WithRuleFunc tests:
-// - Serializes to WithRule(...)
+// - Serializes to WithRuleFunc(<function>)
 func TestAnyRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Any().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
-	expected := "AnyRuleSet.WithRuleFunc(...)"
+	expected := "AnyRuleSet.WithRuleFunc(<function>)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

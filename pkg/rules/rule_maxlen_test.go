@@ -79,9 +79,8 @@ func TestSlice_MaxLen_Conflict(t *testing.T) {
 	}
 
 	// Verify that the new rule set's string representation is correct
-	// Note: Built-ins like maxLen don't do conflict deduplication, so both maxLen values remain in the chain
-	// The most recent maxLen value (4) is used since it's copied to clones
-	expected = "SliceRuleSet[int].WithMaxLen(3).WithMinLen(1).WithMaxLen(4)"
+	// With enum-based conflict resolution, the first WithMaxLen(3) is removed when WithMaxLen(4) is called
+	expected = "SliceRuleSet[int].WithMinLen(1).WithMaxLen(4)"
 	if s := ruleSet2.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

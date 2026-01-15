@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 )
 
@@ -16,15 +17,15 @@ type stringMaxRule struct {
 func (rule *stringMaxRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
 	if value > rule.max {
 		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "value must be less than or equal to %q", truncateString(rule.max)),
+			errors.Errorf(errors.CodeMax, ctx, "value must be less than or equal to %q", util.TruncateString(rule.max)),
 		)
 	}
 
 	return nil
 }
 
-// Conflict returns true for any maximum or exclusive maximum string value rule.
-func (rule *stringMaxRule) Conflict(x Rule[string]) bool {
+// Replaces returns true for any maximum or exclusive maximum string value rule.
+func (rule *stringMaxRule) Replaces(x Rule[string]) bool {
 	_, ok1 := x.(*stringMaxRule)
 	_, ok2 := x.(*stringMaxExclusiveRule)
 	return ok1 || ok2
@@ -33,7 +34,8 @@ func (rule *stringMaxRule) Conflict(x Rule[string]) bool {
 // String returns the string representation of the maximum string value rule.
 // Example: WithMax("xyz")
 func (rule *stringMaxRule) String() string {
-	return fmt.Sprintf("WithMax(%q)", rule.max)
+	truncated := util.TruncateString(rule.max)
+	return fmt.Sprintf("WithMax(%q)", truncated)
 }
 
 // WithMax returns a new child RuleSet that is constrained to the provided maximum string value (inclusive).

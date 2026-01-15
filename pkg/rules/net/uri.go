@@ -80,6 +80,32 @@ var baseURIRuleSet URIRuleSet = URIRuleSet{
 	portRuleSet:     defaultPortRuleSet,
 }
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type uriConflictType int
+
+const (
+	uriConflictTypeNone uriConflictType = iota
+	uriConflictTypeRequired
+	uriConflictTypeNil
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct uriConflictType) Conflict(other uriConflictType) bool {
+	return ct != uriConflictTypeNone && ct == other
+}
+
+// Replaces returns true if this conflict type replaces the given rule.
+// It attempts to cast the rule to *URIRuleSet and checks if the conflictType conflicts.
+func (ct uriConflictType) Replaces(r rules.Rule[string]) bool {
+	rs, ok := r.(*URIRuleSet)
+	if !ok {
+		return false
+	}
+	return ct.Conflict(rs.conflictType)
+}
+
 // URIRuleSet implements the RuleSet interface for URIs.
 //
 // It is slightly less efficient than other URI validators because it focuses on being able to evaluate
@@ -103,8 +129,9 @@ type URIRuleSet struct {
 	passwordRuleSet  *rules.StringRuleSet
 	portRuleSet      *rules.IntRuleSet[int]
 
-	rule  rules.Rule[string]
-	label string
+	rule         rules.Rule[string]
+	label        string
+	conflictType uriConflictType // New unexported field for fast conflict checking
 }
 
 // URI returns the base URI RuleSet.
@@ -124,7 +151,7 @@ func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.cloneWithConflictType(uriConflictTypeRequired)
 	newRuleSet.required = true
 	newRuleSet.label = "WithRequired()"
 	return newRuleSet
@@ -134,7 +161,7 @@ func (ruleSet *URIRuleSet) WithRequired() *URIRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *URIRuleSet) WithNil() *URIRuleSet {
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.cloneWithConflictType(uriConflictTypeNil)
 	newRuleSet.withNil = true
 	newRuleSet.label = "WithNil()"
 	return newRuleSet
@@ -632,32 +659,50 @@ func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) errors.Va
 	return nil
 }
 
+// cloneWithConflictType clones the rule set and removes any previous entries with the same conflict type.
+func (ruleSet *URIRuleSet) cloneWithConflictType(conflictType uriConflictType) *URIRuleSet {
+	newParent := ruleSet.noConflict(conflictType)
+	newRuleSet := newParent.clone()
+	newRuleSet.conflictType = conflictType
+	return newRuleSet
+}
+
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *URIRuleSet) noConflict(rule rules.Rule[string]) *URIRuleSet {
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+func (ruleSet *URIRuleSet) noConflict(checker rules.Replaces[string]) *URIRuleSet {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 
@@ -738,5 +783,6 @@ func (ruleSet *URIRuleSet) clone() *URIRuleSet {
 		withNil:          ruleSet.withNil,
 		deepErrors:       ruleSet.deepErrors,
 		relative:         ruleSet.relative,
+		conflictType:     ruleSet.conflictType,
 	}
 }

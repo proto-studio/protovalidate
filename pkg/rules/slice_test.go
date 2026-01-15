@@ -187,23 +187,32 @@ func TestSliceRuleSet_Any(t *testing.T) {
 
 // TestSliceRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
-func TestSliceRuleSet_String_WithRequired(t *testing.T) {
-	ruleSet := rules.Slice[int]().WithRequired()
-
-	expected := "SliceRuleSet[int].WithRequired()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+func TestSliceRuleSet_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.SliceRuleSet[int]
+		expected string
+	}{
+		{"Base", rules.Slice[int](), "SliceRuleSet[int]"},
+		{"WithRequired", rules.Slice[int]().WithRequired(), "SliceRuleSet[int].WithRequired()"},
+		{"WithNil", rules.Slice[int]().WithNil(), "SliceRuleSet[int].WithNil()"},
+		{"WithMinLen", rules.Slice[int]().WithMinLen(3), "SliceRuleSet[int].WithMinLen(3)"},
+		{"WithMaxLen", rules.Slice[int]().WithMaxLen(10), "SliceRuleSet[int].WithMaxLen(10)"},
+		{"Chained", rules.Slice[int]().WithRequired().WithNil(), "SliceRuleSet[int].WithRequired().WithNil()"},
+		{"ChainedWithLengths", rules.Slice[int]().WithMinLen(3).WithMaxLen(10), "SliceRuleSet[int].WithMinLen(3).WithMaxLen(10)"},
+		{"ConflictResolution_MinLen", rules.Slice[int]().WithMinLen(3).WithMinLen(5), "SliceRuleSet[int].WithMinLen(5)"},
+		{"ConflictResolution_MaxLen", rules.Slice[int]().WithMaxLen(10).WithMaxLen(20), "SliceRuleSet[int].WithMaxLen(20)"},
+		{"ConflictResolution_MinLenWithOther", rules.Slice[int]().WithRequired().WithMinLen(3).WithMinLen(5), "SliceRuleSet[int].WithRequired().WithMinLen(5)"},
+		{"WithItemRuleSet", rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2)), "SliceRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"},
+		{"ChainedAll", rules.Slice[int]().WithRequired().WithMinLen(3).WithMaxLen(10), "SliceRuleSet[int].WithRequired().WithMinLen(3).WithMaxLen(10)"},
 	}
-}
 
-// TestSliceRuleSet_String_WithItemRuleSet tests:
-// - Serializes to WithItemRuleSet()
-func TestSliceRuleSet_String_WithItemRuleSet(t *testing.T) {
-	ruleSet := rules.Slice[int]().WithItemRuleSet(rules.Int().WithMin(2))
-
-	expected := "SliceRuleSet[int].WithItemRuleSet(IntRuleSet[int].WithMin(2))"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ruleSet.String(); got != tt.expected {
+				t.Errorf("String() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
 

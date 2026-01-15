@@ -25,8 +25,8 @@ func (rule *minTimeRule) Evaluate(ctx context.Context, value time.Time) errors.V
 	return nil
 }
 
-// Conflict returns true for any minimum or exclusive minimum rule.
-func (rule *minTimeRule) Conflict(x rules.Rule[time.Time]) bool {
+// Replaces returns true for any minimum or exclusive minimum rule.
+func (rule *minTimeRule) Replaces(x rules.Rule[time.Time]) bool {
 	_, ok1 := x.(*minTimeRule)
 	_, ok2 := x.(*minExclusiveTimeRule)
 	return ok1 || ok2

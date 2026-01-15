@@ -2,18 +2,16 @@ package rules
 
 import (
 	"context"
+	"fmt"
 
 	"proto.zip/studio/validate/pkg/errors"
 )
 
-// Rule defines the interface for validation rules.
-// Rule implementations validate a value of type T and return any validation errors.
-type Rule[T any] interface {
-	// Evaluate takes in a context and value and returns any validation errors.
-	Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection
-
-	// Conflict returns true if two rules should not co-exist.
-	// It may be used to remove duplicate rules when the new rule conflicts the existing rule.
+// Replaces is an interface for types that can check if they replace other rules.
+// Types implementing this interface have a Replaces method that takes a Rule[T] and returns whether they replace it.
+type Replaces[T any] interface {
+	// Replaces returns true if this rule should replace the given rule.
+	// It may be used to remove duplicate rules when the new rule replaces the existing rule.
 	// The new rule should be kept and the old rule should be disabled.
 	//
 	// For example, if minimum is called a second time with a higher value, the new value should be taken.
@@ -22,10 +20,23 @@ type Rule[T any] interface {
 	// This method may return false if the previous rule should never be discarded.
 	//
 	// This method should be called even if the two rule types are not the same.
-	Conflict(Rule[T]) bool
+	Replaces(r Rule[T]) bool
+}
 
-	// Returns the string representation of the rule for debugging.
-	String() string
+// Rule defines the interface for validation rules.
+// Rule implementations validate a value of type T and return any validation errors.
+//
+// Rule extends Replaces[T], which provides the Replaces method for checking if one rule
+// should replace another rule during conflict resolution.
+//
+// Rule extends fmt.Stringer, which provides the String method for obtaining a string representation
+// of the rule for debugging purposes.
+type Rule[T any] interface {
+	Replaces[T]
+	fmt.Stringer
+
+	// Evaluate takes in a context and value and returns any validation errors.
+	Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection
 }
 
 // RuleFunc implements the Rule interface for functions.
@@ -36,14 +47,14 @@ func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) errors.Validation
 	return rule(ctx, value)
 }
 
-// Conflict always returns false for rule functions.
-// Conflict cannot perform deduplication; implement the interface instead.
-func (rule RuleFunc[T]) Conflict(_ Rule[T]) bool {
+// Replaces always returns false for rule functions.
+// Replaces cannot perform deduplication; implement the interface instead.
+func (rule RuleFunc[T]) Replaces(_ Rule[T]) bool {
 	return false
 }
 
-// String returns "WithRuleFunc(...)" for function rules.
+// String returns "WithRuleFunc(<function>)" for function rules.
 // String cannot be customized; implement the interface instead.
 func (rule RuleFunc[T]) String() string {
-	return "WithRuleFunc(...)"
+	return "WithRuleFunc(<function>)"
 }

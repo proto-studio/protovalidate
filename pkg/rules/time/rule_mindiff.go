@@ -26,8 +26,8 @@ func (rule *minDiffRule) Evaluate(ctx context.Context, value time.Time) errors.V
 	return nil
 }
 
-// Conflict returns true for any minimum diff rule.
-func (rule *minDiffRule) Conflict(x rules.Rule[time.Time]) bool {
+// Replaces returns true for any minimum diff rule.
+func (rule *minDiffRule) Replaces(x rules.Rule[time.Time]) bool {
 	_, ok := x.(*minDiffRule)
 	return ok
 }

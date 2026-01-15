@@ -25,8 +25,8 @@ func (rule *maxTimeRule) Evaluate(ctx context.Context, value time.Time) errors.V
 	return nil
 }
 
-// Conflict returns true for any maximum or exclusive maximum rule.
-func (rule *maxTimeRule) Conflict(x rules.Rule[time.Time]) bool {
+// Replaces returns true for any maximum or exclusive maximum rule.
+func (rule *maxTimeRule) Replaces(x rules.Rule[time.Time]) bool {
 	_, ok1 := x.(*maxTimeRule)
 	_, ok2 := x.(*maxExclusiveTimeRule)
 	return ok1 || ok2

@@ -124,8 +124,8 @@ func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors
 	return nil
 }
 
-// Conflict returns true for all rules since by definition no rule can be a superset of a constant rule.
-func (ruleSet *ConstantRuleSet[T]) Conflict(other Rule[T]) bool {
+// Replaces returns true for all rules since by definition no rule can be a superset of a constant rule.
+func (ruleSet *ConstantRuleSet[T]) Replaces(other Rule[T]) bool {
 	return true
 }
 

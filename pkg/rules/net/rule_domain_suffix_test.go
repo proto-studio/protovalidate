@@ -49,7 +49,7 @@ func TestDomainRuleSet_WithSuffix_PunycodeError(t *testing.T) {
 }
 
 // TestDomainRuleSet_String_WithSuffix tests:
-// - Only one suffix list is preserved.
+// - Only one suffix list is preserved (conflict resolution).
 // - WithSuffix will serialize up to 3 suffix values.
 // - Suffix values are comma separated.
 // - Suffix values are quoted.
@@ -64,18 +64,21 @@ func TestDomainRuleSet_String_WithSuffix(t *testing.T) {
 		"co.uk",
 	}
 
+	// WithSuffix uses WithRule, so the label comes from the rule's String() method
 	ruleSet := net.Domain().WithSuffix(values[0], values[1]).WithRequired()
 	expected := "DomainRuleSet.WithSuffix(\"STUDIO\", \"COM\").WithRequired()"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Calling WithSuffix again should replace the previous suffix rule (conflict resolution)
 	ruleSet = ruleSet.WithSuffix(values[0], values[1:3]...)
 	expected = "DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\")"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}
 
+	// Calling WithSuffix again should replace the previous suffix rule
 	ruleSet = ruleSet.WithSuffix(values[0], values[1:]...)
 	expected = "DomainRuleSet.WithRequired().WithSuffix(\"STUDIO\", \"COM\", \"XN--O28H\" ... and 2 more)"
 	if s := ruleSet.String(); s != expected {

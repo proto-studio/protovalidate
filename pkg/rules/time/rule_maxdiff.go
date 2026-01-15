@@ -26,8 +26,8 @@ func (rule *maxDiffRule) Evaluate(ctx context.Context, value time.Time) errors.V
 	return nil
 }
 
-// Conflict returns true for any maximum diff rule.
-func (rule *maxDiffRule) Conflict(x rules.Rule[time.Time]) bool {
+// Replaces returns true for any maximum diff rule.
+func (rule *maxDiffRule) Replaces(x rules.Rule[time.Time]) bool {
 	_, ok := x.(*maxDiffRule)
 	return ok
 }

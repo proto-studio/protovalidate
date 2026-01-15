@@ -168,34 +168,33 @@ func TestIntRuleSet_Any(t *testing.T) {
 
 // TestIntRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
-func TestIntRuleSet_String_WithRequired(t *testing.T) {
-	ruleSet := rules.Int().WithRequired()
-
-	expected := "IntRuleSet[int].WithRequired()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+func TestIntRuleSet_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.IntRuleSet[int]
+		expected string
+	}{
+		{"Base", rules.Int(), "IntRuleSet[int]"},
+		{"WithRequired", rules.Int().WithRequired(), "IntRuleSet[int].WithRequired()"},
+		{"WithStrict", rules.Int().WithStrict(), "IntRuleSet[int].WithStrict()"},
+		{"WithNil", rules.Int().WithNil(), "IntRuleSet[int].WithNil()"},
+		{"WithBase", rules.Int().WithBase(16), "IntRuleSet[int].WithBase(16)"},
+		{"WithRounding", rules.Int().WithRounding(rules.RoundingHalfEven), "IntRuleSet[int].WithRounding(HalfEven)"},
+		{"Chained", rules.Int().WithRequired().WithStrict(), "IntRuleSet[int].WithRequired().WithStrict()"},
+		{"ChainedWithBase", rules.Int().WithRequired().WithBase(16), "IntRuleSet[int].WithRequired().WithBase(16)"},
+		{"ChainedAll", rules.Int().WithRequired().WithStrict().WithBase(16), "IntRuleSet[int].WithRequired().WithStrict().WithBase(16)"},
+		{"ConflictResolution_Base", rules.Int().WithBase(10).WithBase(16), "IntRuleSet[int].WithBase(16)"},
+		{"ConflictResolution_Rounding", rules.Int().WithRounding(rules.RoundingUp).WithRounding(rules.RoundingDown), "IntRuleSet[int].WithRounding(Down)"},
+		{"WithMin", rules.Int().WithMin(5), "IntRuleSet[int].WithMin(5)"},
+		{"ChainedWithRule", rules.Int().WithRequired().WithMin(5), "IntRuleSet[int].WithRequired().WithMin(5)"},
 	}
-}
 
-// TestIntRuleSet_String_WithStrict tests:
-// - Serializes to WithStrict()
-func TestIntRuleSet_String_WithStrict(t *testing.T) {
-	ruleSet := rules.Int().WithStrict()
-
-	expected := "IntRuleSet[int].WithStrict()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
-	}
-}
-
-// TestIntRuleSet_String_WithBase tests:
-// - Serializes to WithBase(16)
-func TestIntRuleSet_String_WithBase(t *testing.T) {
-	ruleSet := rules.Int().WithBase(16)
-
-	expected := "IntRuleSet[int].WithBase(16)"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ruleSet.String(); got != tt.expected {
+				t.Errorf("String() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
 
