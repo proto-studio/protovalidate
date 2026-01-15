@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 	"strings"
+
+	"proto.zip/studio/validate/pkg/errors"
 )
 
 const maxStringDisplayLength = 50
@@ -52,4 +54,39 @@ func StringsToRuleOutput[T any](ruleName string, values []T) string {
 	sb.WriteRune(')')
 
 	return sb.String()
+}
+
+// FormatErrorMessageLabel formats a label for WithErrorMessage with truncated string values.
+func FormatErrorMessageLabel(short, long string) string {
+	shortTruncated := TruncateString(short)
+	longTruncated := TruncateString(long)
+	return fmt.Sprintf("WithErrorMessage(%q, %q)", shortTruncated, longTruncated)
+}
+
+// FormatStringArgLabel formats a label for methods that take a single string argument.
+func FormatStringArgLabel(methodName, value string) string {
+	truncated := TruncateString(value)
+	return fmt.Sprintf("%s(%q)", methodName, truncated)
+}
+
+// FormatErrorCodeLabel formats a label for WithErrorCode with the error code value.
+func FormatErrorCodeLabel(code errors.ErrorCode) string {
+	return fmt.Sprintf("WithErrorCode(%v)", code)
+}
+
+// FormatErrorMetaLabel formats a label for WithErrorMeta with truncated key and value.
+func FormatErrorMetaLabel(key string, value any) string {
+	keyTruncated := TruncateString(key)
+	var valueStr string
+	if str, ok := value.(string); ok {
+		valueStr = TruncateString(str)
+		return fmt.Sprintf("WithErrorMeta(%q, %q)", keyTruncated, valueStr)
+	}
+	return fmt.Sprintf("WithErrorMeta(%q, %v)", keyTruncated, value)
+}
+
+// FormatErrorCallbackLabel formats a label for WithErrorCallback.
+// Since callbacks are functions, we show a generic representation.
+func FormatErrorCallbackLabel() string {
+	return "WithErrorCallback(<func>)"
 }

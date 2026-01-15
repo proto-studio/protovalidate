@@ -66,9 +66,9 @@ type stringCloneOption func(*StringRuleSet)
 // clone returns a shallow copy of the rule set with parent set to the current instance.
 func (v *StringRuleSet) clone(options ...stringCloneOption) *StringRuleSet {
 	newRuleSet := &StringRuleSet{
-		strict:       v.strict,
-		required:     v.required,
-		withNil:      v.withNil,
+		strict:      v.strict,
+		required:    v.required,
+		withNil:     v.withNil,
 		parent:      v,
 		errorConfig: v.errorConfig,
 	}
@@ -278,30 +278,30 @@ func (ruleSet *StringRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *StringRuleSet) WithErrorMessage(short, long string) *StringRuleSet {
-	return v.clone(stringWithLabel("WithErrorMessage(...)"), stringWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+	return v.clone(stringWithLabel(util.FormatErrorMessageLabel(short, long)), stringWithErrorConfig(v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *StringRuleSet) WithDocsURI(uri string) *StringRuleSet {
-	return v.clone(stringWithLabel("WithDocsURI(...)"), stringWithErrorConfig(v.errorConfig.WithDocs(uri)))
+	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), stringWithErrorConfig(v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *StringRuleSet) WithTraceURI(uri string) *StringRuleSet {
-	return v.clone(stringWithLabel("WithTraceURI(...)"), stringWithErrorConfig(v.errorConfig.WithTrace(uri)))
+	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), stringWithErrorConfig(v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *StringRuleSet) WithErrorCode(code errors.ErrorCode) *StringRuleSet {
-	return v.clone(stringWithLabel("WithErrorCode(...)"), stringWithErrorConfig(v.errorConfig.WithCode(code)))
+	return v.clone(stringWithLabel(util.FormatErrorCodeLabel(code)), stringWithErrorConfig(v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *StringRuleSet) WithErrorMeta(key string, value any) *StringRuleSet {
-	return v.clone(stringWithLabel("WithErrorMeta(...)"), stringWithErrorConfig(v.errorConfig.WithMeta(key, value)))
+	return v.clone(stringWithLabel(util.FormatErrorMetaLabel(key, value)), stringWithErrorConfig(v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *StringRuleSet) WithErrorCallback(fn errors.ErrorCallback) *StringRuleSet {
-	return v.clone(stringWithLabel("WithErrorCallback(...)"), stringWithErrorConfig(v.errorConfig.WithCallback(fn)))
+	return v.clone(stringWithLabel(util.FormatErrorCallbackLabel()), stringWithErrorConfig(v.errorConfig.WithCallback(fn)))
 }

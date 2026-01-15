@@ -808,30 +808,30 @@ func uriWithConflictType(ct uriConflictType) uriCloneOption {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *URIRuleSet) WithErrorMessage(short, long string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithErrorMessage(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(uriWithLabel(util.FormatErrorMessageLabel(short, long)), uriWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *URIRuleSet) WithDocsURI(uri string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithDocsURI(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *URIRuleSet) WithTraceURI(uri string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithTraceURI(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (ruleSet *URIRuleSet) WithErrorCode(code errors.ErrorCode) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithErrorCode(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
+	return ruleSet.clone(uriWithLabel(util.FormatErrorCodeLabel(code)), uriWithErrorConfig(ruleSet.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (ruleSet *URIRuleSet) WithErrorMeta(key string, value any) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithErrorMeta(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
+	return ruleSet.clone(uriWithLabel(util.FormatErrorMetaLabel(key, value)), uriWithErrorConfig(ruleSet.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (ruleSet *URIRuleSet) WithErrorCallback(fn errors.ErrorCallback) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel("WithErrorCallback(...)"), uriWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
+	return ruleSet.clone(uriWithLabel(util.FormatErrorCallbackLabel()), uriWithErrorConfig(ruleSet.errorConfig.WithCallback(fn)))
 }

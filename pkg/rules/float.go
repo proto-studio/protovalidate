@@ -350,30 +350,30 @@ func (ruleSet *FloatRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *FloatRuleSet[T]) WithErrorMessage(short, long string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithErrorMessage(...)"), floatWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(floatWithLabel[T](util.FormatErrorMessageLabel(short, long)), floatWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *FloatRuleSet[T]) WithDocsURI(uri string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithDocsURI(...)"), floatWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *FloatRuleSet[T]) WithTraceURI(uri string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithTraceURI(...)"), floatWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
 func (v *FloatRuleSet[T]) WithErrorCode(code errors.ErrorCode) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithErrorCode(...)"), floatWithErrorConfig[T](v.errorConfig.WithCode(code)))
+	return v.clone(floatWithLabel[T](util.FormatErrorCodeLabel(code)), floatWithErrorConfig[T](v.errorConfig.WithCode(code)))
 }
 
 // WithErrorMeta returns a new RuleSet with additional error metadata.
 func (v *FloatRuleSet[T]) WithErrorMeta(key string, value any) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithErrorMeta(...)"), floatWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
+	return v.clone(floatWithLabel[T](util.FormatErrorMetaLabel(key, value)), floatWithErrorConfig[T](v.errorConfig.WithMeta(key, value)))
 }
 
 // WithErrorCallback returns a new RuleSet with an error callback for customization.
 func (v *FloatRuleSet[T]) WithErrorCallback(fn errors.ErrorCallback) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T]("WithErrorCallback(...)"), floatWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
+	return v.clone(floatWithLabel[T](util.FormatErrorCallbackLabel()), floatWithErrorConfig[T](v.errorConfig.WithCallback(fn)))
 }
