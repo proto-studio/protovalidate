@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+const maxStringDisplayLength = 50
+
+// TruncateString truncates a string to a maximum length, adding ellipsis if truncated.
+// This is used for displaying string arguments in rule labels to keep them readable.
+func TruncateString(s string) string {
+	if len(s) <= maxStringDisplayLength {
+		return s
+	}
+	return s[:maxStringDisplayLength] + "..."
+}
+
 // StringsToRuleOutput formats a rule name and a slice of values into a string representation.
 // All values are converted to strings, with string values being quoted and any internal quotes escaped.
 // This generic version works with slices of any type.
@@ -23,8 +34,9 @@ func StringsToRuleOutput[T any](ruleName string, values []T) string {
 		v := values[i]
 		str, ok := any(v).(string)
 		if ok {
-			// Escape any internal double quotes if v is a string
-			escapedValue := strings.ReplaceAll(str, "\"", "\\\"")
+			// Truncate and escape any internal double quotes if v is a string
+			truncated := TruncateString(str)
+			escapedValue := strings.ReplaceAll(truncated, "\"", "\\\"")
 			sb.WriteString(fmt.Sprintf("\"%s\"", escapedValue))
 		} else {
 			// Convert the value to a string and quote it if v is not a string

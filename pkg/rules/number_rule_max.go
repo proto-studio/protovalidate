@@ -24,8 +24,8 @@ func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.Validation
 	return nil
 }
 
-// Conflict returns true for any maximum or exclusive maximum rule.
-func (rule *maxRule[T]) Conflict(x Rule[T]) bool {
+// Replaces returns true for any maximum or exclusive maximum rule.
+func (rule *maxRule[T]) Replaces(x Rule[T]) bool {
 	_, ok1 := x.(*maxRule[T])
 	_, ok2 := x.(*maxExclusiveRule[T])
 	return ok1 || ok2
@@ -49,6 +49,6 @@ func (v *IntRuleSet[T]) WithMax(max T) *IntRuleSet[T] {
 func (v *FloatRuleSet[T]) WithMax(max T) *FloatRuleSet[T] {
 	return v.WithRule(&maxRule[T]{
 		max,
-		"f",
+		"g",
 	})
 }

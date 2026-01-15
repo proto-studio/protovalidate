@@ -55,8 +55,8 @@ func (rule *stringValuesRule) Evaluate(ctx context.Context, value string) errors
 	return nil
 }
 
-// Conflict returns two for allow rules and always returns false for deny rules.
-func (rule *stringValuesRule) Conflict(x Rule[string]) bool {
+// Replaces returns two for allow rules and always returns false for deny rules.
+func (rule *stringValuesRule) Replaces(x Rule[string]) bool {
 	if !rule.allow {
 		return false
 	}

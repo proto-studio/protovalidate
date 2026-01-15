@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
 )
 
@@ -27,9 +28,11 @@ func (rule *regexpRule) Evaluate(ctx context.Context, value string) errors.Valid
 }
 
 // String returns the string representation of the regex rule.
-// Example: WithRegexp(2)
+// Example: WithRegexp("^[a-z]+$")
 func (rule *regexpRule) String() string {
-	return fmt.Sprintf("WithRegexp(%s)", rule.exp)
+	pattern := rule.exp.String()
+	truncated := util.TruncateString(pattern)
+	return fmt.Sprintf("WithRegexp(%q)", truncated)
 }
 
 // WithRegexpString returns a new child RuleSet that is constrained to the provided regular expression.

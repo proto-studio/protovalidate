@@ -9,22 +9,22 @@ import (
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
 
-// TestErrorConfigTestRule_Conflict tests:
-// - ErrorConfigTestRule.Conflict returns true for same type
-// - ErrorConfigTestRule.Conflict returns false for different types
-func TestErrorConfigTestRule_Conflict(t *testing.T) {
+// TestErrorConfigTestRule_Replaces tests:
+// - ErrorConfigTestRule.Replaces returns true for same type
+// - ErrorConfigTestRule.Replaces returns false for different types
+func TestErrorConfigTestRule_Replaces(t *testing.T) {
 	rule1 := &testhelpers.ErrorConfigTestRule[string]{}
 	rule2 := &testhelpers.ErrorConfigTestRule[string]{}
 	mockRule := testhelpers.NewMockRule[string]()
 
-	// Same type should conflict
-	if !rule1.Conflict(rule2) {
-		t.Error("Expected ErrorConfigTestRule to conflict with another ErrorConfigTestRule")
+	// Same type should replace
+	if !rule1.Replaces(rule2) {
+		t.Error("Expected ErrorConfigTestRule to replace another ErrorConfigTestRule")
 	}
 
-	// Different type should not conflict
-	if rule1.Conflict(mockRule) {
-		t.Error("Expected ErrorConfigTestRule to not conflict with MockRule")
+	// Different type should not replace
+	if rule1.Replaces(mockRule) {
+		t.Error("Expected ErrorConfigTestRule to not replace MockRule")
 	}
 }
 

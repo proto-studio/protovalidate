@@ -55,8 +55,8 @@ func (rule *valuesRule[T]) Evaluate(ctx context.Context, value T) errors.Validat
 	return nil
 }
 
-// Conflict returns two for allow rules and always returns false for deny rules.
-func (rule *valuesRule[T]) Conflict(x Rule[T]) bool {
+// Replaces returns two for allow rules and always returns false for deny rules.
+func (rule *valuesRule[T]) Replaces(x Rule[T]) bool {
 	if !rule.allow {
 		return false
 	}

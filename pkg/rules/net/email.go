@@ -11,6 +11,32 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type emailConflictType int
+
+const (
+	emailConflictTypeNone emailConflictType = iota
+	emailConflictTypeRequired
+	emailConflictTypeNil
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct emailConflictType) Conflict(other emailConflictType) bool {
+	return ct != emailConflictTypeNone && ct == other
+}
+
+// Replaces returns true if this conflict type replaces the given rule.
+// It attempts to cast the rule to *EmailRuleSet and checks if the conflictType conflicts.
+func (ct emailConflictType) Replaces(r rules.Rule[string]) bool {
+	rs, ok := r.(*EmailRuleSet)
+	if !ok {
+		return false
+	}
+	return ct.Conflict(rs.conflictType)
+}
+
 // EmailRuleSet implements the RuleSet interface for the domain names.
 type EmailRuleSet struct {
 	rules.NoConflict[string]
@@ -20,6 +46,7 @@ type EmailRuleSet struct {
 	rule          rules.Rule[string]
 	domainRuleSet rules.RuleSet[string]
 	label         string
+	conflictType  emailConflictType
 	errorConfig   *errors.ErrorConfig
 }
 
@@ -59,6 +86,16 @@ func emailWithErrorConfig(config *errors.ErrorConfig) emailCloneOption {
 	return func(rs *EmailRuleSet) { rs.errorConfig = config }
 }
 
+func emailWithConflictType(ct emailConflictType) emailCloneOption {
+	return func(rs *EmailRuleSet) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(ct)
+		}
+		rs.conflictType = ct
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (ruleSet *EmailRuleSet) Required() bool {
 	return ruleSet.required
@@ -67,7 +104,7 @@ func (ruleSet *EmailRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
-	newRuleSet := ruleSet.clone(emailWithLabel("WithRequired()"))
+	newRuleSet := ruleSet.clone(emailWithLabel("WithRequired()"), emailWithConflictType(emailConflictTypeRequired))
 	newRuleSet.required = true
 	return newRuleSet
 }
@@ -76,7 +113,7 @@ func (ruleSet *EmailRuleSet) WithRequired() *EmailRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *EmailRuleSet) WithNil() *EmailRuleSet {
-	newRuleSet := ruleSet.clone(emailWithLabel("WithNil()"))
+	newRuleSet := ruleSet.clone(emailWithLabel("WithNil()"), emailWithConflictType(emailConflictTypeNil))
 	newRuleSet.withNil = true
 	return newRuleSet
 }
@@ -221,6 +258,44 @@ func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *Em
 	return newRuleSet
 }
 
+// noConflict returns the new rule set with all conflicting rules removed.
+func (ruleSet *EmailRuleSet) noConflict(checker rules.Replaces[string]) *EmailRuleSet {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
+		}
+		return ruleSet.parent.noConflict(checker)
+	}
+
+	// Current node doesn't conflict, process parent
+	if ruleSet.parent == nil {
+		return ruleSet
+	}
+
+	newParent := ruleSet.parent.noConflict(checker)
+
+	// If parent didn't change, return current node unchanged
+	if newParent == ruleSet.parent {
+		return ruleSet
+	}
+
+	// Parent changed, clone current node with new parent
+	newRuleSet := ruleSet.clone()
+	newRuleSet.rule = ruleSet.rule
+	newRuleSet.parent = newParent
+	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
+	return newRuleSet
+}
+
 // WithRule returns a new child rule set that applies a custom validation rule.
 // The custom rule is evaluated during validation and any errors it returns are included in the validation result.
 //
@@ -228,6 +303,9 @@ func (ruleSet *EmailRuleSet) WithDomain(domainRuleSet rules.RuleSet[string]) *Em
 func (ruleSet *EmailRuleSet) WithRule(rule rules.Rule[string]) *EmailRuleSet {
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = rule
+	if newParent := ruleSet.noConflict(rule); newParent != nil {
+		newRuleSet.parent = newParent
+	}
 	return newRuleSet
 }
 

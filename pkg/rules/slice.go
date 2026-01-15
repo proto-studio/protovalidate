@@ -11,18 +11,48 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type conflictType int
+
+const (
+	conflictTypeNone conflictType = iota
+	conflictTypeRequired
+	conflictTypeNil
+	conflictTypeMinLen
+	conflictTypeMaxLen
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct conflictType) Conflict(other conflictType) bool {
+	return ct != conflictTypeNone && ct == other
+}
+
+// Replaces returns true if this conflict type replaces the given rule.
+// It attempts to cast the rule to *SliceRuleSet and checks if the conflictType conflicts.
+// Since SliceRuleSet is generic, we use an interface to access the conflictType field.
+func (ct conflictType) Replaces(r any) bool {
+	// Use an interface to access the conflictType field
+	if rs, ok := r.(interface{ getConflictType() conflictType }); ok {
+		return ct.Conflict(rs.getConflictType())
+	}
+	return false
+}
+
 // Implementation of RuleSet for arrays of a given type.
 type SliceRuleSet[T any] struct {
 	NoConflict[[]T]
-	itemRules   RuleSet[T]
-	rule        Rule[[]T]
-	maxLen      int // maxLen > 0 means max length is set, 0 means no limit
-	minLen      int // minLen > 0 means min length is set, 0 means no limit
-	required    bool
-	withNil     bool
-	parent      *SliceRuleSet[T]
-	label       string
-	errorConfig *errors.ErrorConfig
+	itemRules    RuleSet[T]
+	rule         Rule[[]T]
+	maxLen       int // maxLen > 0 means max length is set, 0 means no limit
+	minLen       int // minLen > 0 means min length is set, 0 means no limit
+	required     bool
+	withNil      bool
+	parent       *SliceRuleSet[T]
+	label        string
+	conflictType conflictType
+	errorConfig  *errors.ErrorConfig
 }
 
 // Slice creates a new slice RuleSet.
@@ -62,6 +92,16 @@ func sliceWithErrorConfig[T any](config *errors.ErrorConfig) sliceCloneOption[T]
 	return func(rs *SliceRuleSet[T]) { rs.errorConfig = config }
 }
 
+func sliceWithConflictType[T any](ct conflictType) sliceCloneOption[T] {
+	return func(rs *SliceRuleSet[T]) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(sliceConflictTypeReplacesWrapper[T]{ct: ct})
+		}
+		rs.conflictType = ct
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (v *SliceRuleSet[T]) Required() bool {
 	return v.required
@@ -71,7 +111,7 @@ func (v *SliceRuleSet[T]) Required() bool {
 // When a required field is missing from the input, validation fails with an error.
 // WithRequired has no effect on slices if the RuleSet is strict since nil is not a valid slice.
 func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
-	newRuleSet := v.clone(sliceWithLabel[T]("WithRequired()"))
+	newRuleSet := v.clone(sliceWithLabel[T]("WithRequired()"), sliceWithConflictType[T](conflictTypeRequired))
 	newRuleSet.required = true
 	return newRuleSet
 }
@@ -80,7 +120,7 @@ func (v *SliceRuleSet[T]) WithRequired() *SliceRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *SliceRuleSet[T]) WithNil() *SliceRuleSet[T] {
-	newRuleSet := v.clone(sliceWithLabel[T]("WithNil()"))
+	newRuleSet := v.clone(sliceWithLabel[T]("WithNil()"), sliceWithConflictType[T](conflictTypeNil))
 	newRuleSet.withNil = true
 	return newRuleSet
 }
@@ -503,33 +543,61 @@ func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.
 	return ruleSet.Apply(ctx, value, &out)
 }
 
+// sliceConflictTypeReplacesWrapper wraps a conflict type to implement Replaces[[]T]
+type sliceConflictTypeReplacesWrapper[T any] struct {
+	ct conflictType
+}
+
+func (w sliceConflictTypeReplacesWrapper[T]) Replaces(r Rule[[]T]) bool {
+	// Try to cast to SliceRuleSet to access conflictType
+	if rs, ok := r.(interface{ getConflictType() conflictType }); ok {
+		return w.ct.Conflict(rs.getConflictType())
+	}
+	return false
+}
+
+// getConflictType returns the conflict type of the rule set.
+// This is used by the conflict type wrapper to check for conflicts.
+func (v *SliceRuleSet[T]) getConflictType() conflictType {
+	return v.conflictType
+}
+
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *SliceRuleSet[T]) noConflict(rule Rule[[]T]) *SliceRuleSet[T] {
-
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+func (ruleSet *SliceRuleSet[T]) noConflict(checker Replaces[[]T]) *SliceRuleSet[T] {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 

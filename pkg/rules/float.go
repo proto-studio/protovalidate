@@ -23,6 +23,25 @@ type floating interface {
 	float64 | float32
 }
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type floatConflictType int
+
+const (
+	floatConflictTypeNone floatConflictType = iota
+	floatConflictTypeRequired
+	floatConflictTypeNil
+	floatConflictTypeStrict
+	floatConflictTypeRounding
+	floatConflictTypeFixedOutput
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct floatConflictType) Conflict(other floatConflictType) bool {
+	return ct != floatConflictTypeNone && ct == other
+}
+
 // Implementation of RuleSet for floats.
 type FloatRuleSet[T floating] struct {
 	NoConflict[T]
@@ -35,6 +54,7 @@ type FloatRuleSet[T floating] struct {
 	precision       int // Precision for rounding (used with WithRounding)
 	outputPrecision int // Precision for string output (-1 means not set, >= 0 means fixed output)
 	label           string
+	conflictType    floatConflictType
 	errorConfig     *errors.ErrorConfig
 }
 
@@ -60,8 +80,8 @@ func (v *FloatRuleSet[T]) clone(options ...floatCloneOption[T]) *FloatRuleSet[T]
 		rounding:        v.rounding,
 		precision:       v.precision,
 		outputPrecision: v.outputPrecision,
-		parent:          v,
-		errorConfig:     v.errorConfig,
+		parent:      v,
+		errorConfig: v.errorConfig,
 	}
 	for _, opt := range options {
 		opt(newRuleSet)
@@ -77,13 +97,42 @@ func floatWithErrorConfig[T floating](config *errors.ErrorConfig) floatCloneOpti
 	return func(rs *FloatRuleSet[T]) { rs.errorConfig = config }
 }
 
+func floatWithConflictType[T floating](ct floatConflictType) floatCloneOption[T] {
+	return func(rs *FloatRuleSet[T]) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(floatConflictTypeReplacesWrapper[T]{ct: ct})
+		}
+		rs.conflictType = ct
+	}
+}
+
+// getConflictType returns the conflict type of the rule set.
+// This is used by the conflict type wrapper to check for conflicts.
+func (v *FloatRuleSet[T]) getConflictType() floatConflictType {
+	return v.conflictType
+}
+
+// floatConflictTypeReplacesWrapper wraps a conflict type to implement Replaces[T]
+type floatConflictTypeReplacesWrapper[T floating] struct {
+	ct floatConflictType
+}
+
+func (w floatConflictTypeReplacesWrapper[T]) Replaces(r Rule[T]) bool {
+	// Try to cast to FloatRuleSet to access conflictType
+	if rs, ok := r.(interface{ getConflictType() floatConflictType }); ok {
+		return w.ct.Conflict(rs.getConflictType())
+	}
+	return false
+}
+
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
 func (v *FloatRuleSet[T]) WithStrict() *FloatRuleSet[T] {
-	newRuleSet := v.clone(floatWithLabel[T]("WithStrict()"))
+	newRuleSet := v.clone(floatWithLabel[T]("WithStrict()"), floatWithConflictType[T](floatConflictTypeStrict))
 	newRuleSet.strict = true
 	return newRuleSet
 }
@@ -96,7 +145,7 @@ func (v *FloatRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
-	newRuleSet := v.clone(floatWithLabel[T]("WithRequired()"))
+	newRuleSet := v.clone(floatWithLabel[T]("WithRequired()"), floatWithConflictType[T](floatConflictTypeRequired))
 	newRuleSet.required = true
 	return newRuleSet
 }
@@ -105,7 +154,7 @@ func (v *FloatRuleSet[T]) WithRequired() *FloatRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
-	newRuleSet := v.clone(floatWithLabel[T]("WithNil()"))
+	newRuleSet := v.clone(floatWithLabel[T]("WithNil()"), floatWithConflictType[T](floatConflictTypeNil))
 	newRuleSet.withNil = true
 	return newRuleSet
 }
@@ -217,30 +266,40 @@ func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Validati
 
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *FloatRuleSet[T]) noConflict(rule Rule[T]) *FloatRuleSet[T] {
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+func (ruleSet *FloatRuleSet[T]) noConflict(checker Replaces[T]) *FloatRuleSet[T] {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 

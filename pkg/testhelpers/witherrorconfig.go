@@ -16,7 +16,7 @@ func (r *ErrorConfigTestRule[T]) Evaluate(ctx context.Context, value T) errors.V
 	return errors.Collection(errors.Error(errors.CodePattern, ctx))
 }
 
-func (r *ErrorConfigTestRule[T]) Conflict(other rules.Rule[T]) bool {
+func (r *ErrorConfigTestRule[T]) Replaces(other rules.Rule[T]) bool {
 	_, ok := other.(*ErrorConfigTestRule[T])
 	return ok
 }

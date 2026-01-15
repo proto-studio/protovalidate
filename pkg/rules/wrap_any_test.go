@@ -116,7 +116,7 @@ func TestWrapAnyRuleString(t *testing.T) {
 	innerRuleSet := rules.Any()
 	ruleSet := rules.WrapAny[any](innerRuleSet).WithRuleFunc(testhelpers.NewMockRuleWithErrors[any](1).Function())
 
-	expected := "AnyRuleSet.Any().WithRuleFunc(...)"
+	expected := "AnyRuleSet.Any().WithRuleFunc(<function>)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

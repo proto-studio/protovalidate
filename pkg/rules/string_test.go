@@ -179,23 +179,36 @@ func TestStringRuleSet_Any(t *testing.T) {
 
 // TestStringRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
-func TestStringRuleSet_String_WithRequired(t *testing.T) {
-	ruleSet := rules.String().WithRequired()
-
-	expected := "StringRuleSet.WithRequired()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+func TestStringRuleSet_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.StringRuleSet
+		expected string
+	}{
+		{"Base", rules.String(), "StringRuleSet"},
+		{"WithRequired", rules.String().WithRequired(), "StringRuleSet.WithRequired()"},
+		{"WithStrict", rules.String().WithStrict(), "StringRuleSet.WithStrict()"},
+		{"WithNil", rules.String().WithNil(), "StringRuleSet.WithNil()"},
+		{"Chained", rules.String().WithRequired().WithStrict(), "StringRuleSet.WithRequired().WithStrict()"},
+		{"ChainedWithNil", rules.String().WithRequired().WithNil(), "StringRuleSet.WithRequired().WithNil()"},
+		{"ChainedAll", rules.String().WithRequired().WithStrict().WithNil(), "StringRuleSet.WithRequired().WithStrict().WithNil()"},
+		{"ConflictResolution_Required", rules.String().WithRequired().WithRequired(), "StringRuleSet.WithRequired()"},
+		{"ConflictResolution_Nil", rules.String().WithNil().WithNil(), "StringRuleSet.WithNil()"},
+		{"ConflictResolution_Strict", rules.String().WithStrict().WithStrict(), "StringRuleSet.WithStrict()"},
+		{"WithMin", rules.String().WithMin("abc"), "StringRuleSet.WithMin(\"abc\")"},
+		{"WithMinLong", rules.String().WithMin("this is a very long string that should be truncated when displayed in the rule set string representation"), "StringRuleSet.WithMin(\"this is a very long string that should be truncate...\")"},
+		{"WithMax", rules.String().WithMax("xyz"), "StringRuleSet.WithMax(\"xyz\")"},
+		{"WithRegexp", rules.String().WithRegexpString("^[a-z]+$", "error"), "StringRuleSet.WithRegexp(\"^[a-z]+$\")"},
+		{"WithRegexpLong", rules.String().WithRegexpString("^[a-z]+[0-9]*[A-Z]*[a-z]+[0-9]*[A-Z]*[a-z]+[0-9]*[A-Z]*$", "error"), "StringRuleSet.WithRegexp(\"^[a-z]+[0-9]*[A-Z]*[a-z]+[0-9]*[A-Z]*[a-z]+[0-9]*[...\")"},
+		{"ChainedWithRule", rules.String().WithRequired().WithMin("abc"), "StringRuleSet.WithRequired().WithMin(\"abc\")"},
 	}
-}
 
-// TestStringRuleSet_String_WithStrict tests:
-// - Serializes to WithStrict()
-func TestStringRuleSet_String_WithStrict(t *testing.T) {
-	ruleSet := rules.String().WithStrict()
-
-	expected := "StringRuleSet.WithStrict()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ruleSet.String(); got != tt.expected {
+				t.Errorf("String() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
 

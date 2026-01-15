@@ -94,12 +94,12 @@ func TestInterfaceRuleSet_String_WithRequired(t *testing.T) {
 }
 
 // TestInterfaceRuleSet_String_WithRuleFunc tests:
-// - Serializes to WithRule(...)
+// - Serializes to WithRuleFunc(<function>)
 func TestInterfaceRuleSet_String_WithRuleFunc(t *testing.T) {
 	ruleSet := rules.Interface[MyTestInterface]().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[MyTestInterface](1).Function())
 
-	expected := "InterfaceRuleSet[MyTestInterface].WithRuleFunc(...)"
+	expected := "InterfaceRuleSet[MyTestInterface].WithRuleFunc(<function>)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

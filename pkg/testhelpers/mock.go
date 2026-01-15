@@ -63,8 +63,8 @@ func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) errors.Validatio
 	return rule.defaultErrors()
 }
 
-// Conflict returns true for any MockCustomRule with the ConflictKey set to the same value.
-func (rule *MockRule[T]) Conflict(x rules.Rule[T]) bool {
+// Replaces returns true for any MockCustomRule with the ConflictKey set to the same value.
+func (rule *MockRule[T]) Replaces(x rules.Rule[T]) bool {
 	y, ok := x.(*MockRule[T])
 	if ok {
 		return y.ConflictKey != "" && y.ConflictKey == rule.ConflictKey

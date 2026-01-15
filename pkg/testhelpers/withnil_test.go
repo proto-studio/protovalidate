@@ -35,7 +35,7 @@ func (m *MockNoWithNilMethod) Any() rules.RuleSet[any] {
 	return &mockNoWithNilMethodAny{m}
 }
 
-func (m *MockNoWithNilMethod) Conflict(other rules.Rule[int]) bool {
+func (m *MockNoWithNilMethod) Replaces(other rules.Rule[int]) bool {
 	_, ok := other.(*MockNoWithNilMethod)
 	return ok
 }
@@ -63,7 +63,7 @@ func (m *mockNoWithNilMethodAny) Any() rules.RuleSet[any] {
 	return m
 }
 
-func (m *mockNoWithNilMethodAny) Conflict(other rules.Rule[any]) bool {
+func (m *mockNoWithNilMethodAny) Replaces(other rules.Rule[any]) bool {
 	return false
 }
 

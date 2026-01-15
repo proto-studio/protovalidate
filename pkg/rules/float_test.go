@@ -129,23 +129,33 @@ func TestFloatRuleSet_Any(t *testing.T) {
 
 // TestFloatRuleSet_String_WithRequired tests:
 // - Serializes to WithRequired()
-func TestFloatRuleSet_String_WithRequired(t *testing.T) {
-	ruleSet := rules.Float64().WithRequired()
-
-	expected := "FloatRuleSet[float64].WithRequired()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+func TestFloatRuleSet_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		ruleSet  *rules.FloatRuleSet[float64]
+		expected string
+	}{
+		{"Base", rules.Float64(), "FloatRuleSet[float64]"},
+		{"WithRequired", rules.Float64().WithRequired(), "FloatRuleSet[float64].WithRequired()"},
+		{"WithStrict", rules.Float64().WithStrict(), "FloatRuleSet[float64].WithStrict()"},
+		{"WithNil", rules.Float64().WithNil(), "FloatRuleSet[float64].WithNil()"},
+		{"WithRounding", rules.Float64().WithRounding(rules.RoundingHalfEven, 5), "FloatRuleSet[float64].WithRounding(HalfEven, 5)"},
+		{"WithFixedOutput", rules.Float64().WithFixedOutput(2), "FloatRuleSet[float64].WithFixedOutput(2)"},
+		{"Chained", rules.Float64().WithRequired().WithStrict(), "FloatRuleSet[float64].WithRequired().WithStrict()"},
+		{"ChainedWithRounding", rules.Float64().WithRequired().WithRounding(rules.RoundingUp, 3), "FloatRuleSet[float64].WithRequired().WithRounding(Up, 3)"},
+		{"ChainedAll", rules.Float64().WithRequired().WithStrict().WithRounding(rules.RoundingDown, 2), "FloatRuleSet[float64].WithRequired().WithStrict().WithRounding(Down, 2)"},
+		{"ConflictResolution_Rounding", rules.Float64().WithRounding(rules.RoundingUp, 3).WithRounding(rules.RoundingDown, 2), "FloatRuleSet[float64].WithRounding(Down, 2)"},
+		{"ConflictResolution_FixedOutput", rules.Float64().WithFixedOutput(2).WithFixedOutput(4), "FloatRuleSet[float64].WithFixedOutput(4)"},
+		{"WithMin", rules.Float64().WithMin(5.5), "FloatRuleSet[float64].WithMin(5.5)"},
+		{"ChainedWithRule", rules.Float64().WithRequired().WithMin(5.5), "FloatRuleSet[float64].WithRequired().WithMin(5.5)"},
 	}
-}
 
-// TestFloatRuleSet_String_WithStrict tests:
-// - Serializes to WithStrict()
-func TestFloatRuleSet_String_WithStrict(t *testing.T) {
-	ruleSet := rules.Float64().WithStrict()
-
-	expected := "FloatRuleSet[float64].WithStrict()"
-	if s := ruleSet.String(); s != expected {
-		t.Errorf("Expected rule set to be %s, got %s", expected, s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ruleSet.String(); got != tt.expected {
+				t.Errorf("String() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
 

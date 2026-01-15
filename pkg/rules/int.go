@@ -63,18 +63,38 @@ type integer interface {
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr | ~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type intConflictType int
+
+const (
+	intConflictTypeNone intConflictType = iota
+	intConflictTypeRequired
+	intConflictTypeNil
+	intConflictTypeStrict
+	intConflictTypeBase
+	intConflictTypeRounding
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct intConflictType) Conflict(other intConflictType) bool {
+	return ct != intConflictTypeNone && ct == other
+}
+
 // Implementation of RuleSet for integers.
 type IntRuleSet[T integer] struct {
 	NoConflict[T]
-	strict      bool
-	base        int
-	rule        Rule[T]
-	required    bool
-	withNil     bool
-	parent      *IntRuleSet[T]
-	rounding    Rounding
-	label       string
-	errorConfig *errors.ErrorConfig
+	strict       bool
+	base         int
+	rule         Rule[T]
+	required     bool
+	withNil      bool
+	parent       *IntRuleSet[T]
+	rounding     Rounding
+	label        string
+	conflictType intConflictType
+	errorConfig  *errors.ErrorConfig
 }
 
 // Int creates a new integer RuleSet.
@@ -133,10 +153,10 @@ type intCloneOption[T integer] func(*IntRuleSet[T])
 // clone returns a shallow copy of the rule set with parent set to the current instance.
 func (v *IntRuleSet[T]) clone(options ...intCloneOption[T]) *IntRuleSet[T] {
 	newRuleSet := &IntRuleSet[T]{
-		strict:      v.strict,
-		base:        v.base,
-		required:    v.required,
-		withNil:     v.withNil,
+		strict:       v.strict,
+		base:         v.base,
+		required:     v.required,
+		withNil:      v.withNil,
 		rounding:    v.rounding,
 		parent:      v,
 		errorConfig: v.errorConfig,
@@ -155,13 +175,23 @@ func intWithErrorConfig[T integer](config *errors.ErrorConfig) intCloneOption[T]
 	return func(rs *IntRuleSet[T]) { rs.errorConfig = config }
 }
 
+func intWithConflictType[T integer](ct intConflictType) intCloneOption[T] {
+	return func(rs *IntRuleSet[T]) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(conflictTypeReplacesWrapper[T]{ct: ct})
+		}
+		rs.conflictType = ct
+	}
+}
+
 // WithStrict returns a new child RuleSet that disables type coercion.
 // When strict mode is enabled, validation only succeeds if the value is already the correct type.
 //
 // With number types, any type will work in strict mode as long as it can be converted
 // deterministically and without loss.
 func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
-	newRuleSet := v.clone(intWithLabel[T]("WithStrict()"))
+	newRuleSet := v.clone(intWithLabel[T]("WithStrict()"), intWithConflictType[T](intConflictTypeStrict))
 	newRuleSet.strict = true
 	return newRuleSet
 }
@@ -173,9 +203,28 @@ func (v *IntRuleSet[T]) WithStrict() *IntRuleSet[T] {
 //
 // The default is base 10.
 func (v *IntRuleSet[T]) WithBase(base int) *IntRuleSet[T] {
-	newRuleSet := v.clone(intWithLabel[T](fmt.Sprintf("WithBase(%d)", base)))
+	newRuleSet := v.clone(intWithLabel[T](fmt.Sprintf("WithBase(%d)", base)), intWithConflictType[T](intConflictTypeBase))
 	newRuleSet.base = base
 	return newRuleSet
+}
+
+// conflictTypeReplacesWrapper wraps a conflict type to implement Replaces[T]
+type conflictTypeReplacesWrapper[T integer] struct {
+	ct intConflictType
+}
+
+func (w conflictTypeReplacesWrapper[T]) Replaces(r Rule[T]) bool {
+	// Try to cast to IntRuleSet to access conflictType
+	if rs, ok := r.(interface{ getConflictType() intConflictType }); ok {
+		return w.ct.Conflict(rs.getConflictType())
+	}
+	return false
+}
+
+// getConflictType returns the conflict type of the rule set.
+// This is used by the conflict type wrapper to check for conflicts.
+func (v *IntRuleSet[T]) getConflictType() intConflictType {
+	return v.conflictType
 }
 
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
@@ -186,7 +235,7 @@ func (v *IntRuleSet[T]) Required() bool {
 // WithRequired returns a new child rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
-	newRuleSet := v.clone(intWithLabel[T]("WithRequired()"))
+	newRuleSet := v.clone(intWithLabel[T]("WithRequired()"), intWithConflictType[T](intConflictTypeRequired))
 	newRuleSet.required = true
 	return newRuleSet
 }
@@ -195,7 +244,7 @@ func (v *IntRuleSet[T]) WithRequired() *IntRuleSet[T] {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
-	newRuleSet := v.clone(intWithLabel[T]("WithNil()"))
+	newRuleSet := v.clone(intWithLabel[T]("WithNil()"), intWithConflictType[T](intConflictTypeNil))
 	newRuleSet.withNil = true
 	return newRuleSet
 }
@@ -299,32 +348,42 @@ func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.Validation
 	}
 }
 
-// withoutConflicts returns the new array rule set with all conflicting rules removed.
+// noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.withoutConflicts(rule)
+func (ruleSet *IntRuleSet[T]) noConflict(checker Replaces[T]) *IntRuleSet[T] {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.withoutConflicts(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 
@@ -333,7 +392,7 @@ func (ruleSet *IntRuleSet[T]) withoutConflicts(rule Rule[T]) *IntRuleSet[T] {
 func (ruleSet *IntRuleSet[T]) WithRule(rule Rule[T]) *IntRuleSet[T] {
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = rule
-	newRuleSet.parent = ruleSet.withoutConflicts(rule)
+	newRuleSet.parent = ruleSet.noConflict(rule)
 	return newRuleSet
 }
 

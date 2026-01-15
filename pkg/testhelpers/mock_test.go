@@ -53,15 +53,15 @@ func TestMockConflict(t *testing.T) {
 
 	var mockD rules.RuleFunc[int] = testhelpers.NewMockRule[int]().Function()
 
-	if mockA.Conflict(mockB) {
+	if mockA.Replaces(mockB) {
 		t.Errorf("Expected mockA and mockB to not conflict")
 	}
 
-	if !mockA.Conflict(mockAA) {
+	if !mockA.Replaces(mockAA) {
 		t.Errorf("Expected mockA and mockAA to conflict")
 	}
 
-	if mockA.Conflict(mockD) {
+	if mockA.Replaces(mockD) {
 		t.Errorf("Expected mockA and mockD to not conflict")
 	}
 }

@@ -2,6 +2,7 @@ package rules_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -131,5 +132,28 @@ func TestStringRuleSet_WithMax_Truncation(t *testing.T) {
 		if !hasEllipsis {
 			t.Errorf("Error message should contain ellipsis for long strings: %s", errMsg)
 		}
+	}
+}
+
+// TestStringMaxRule_String_Truncation tests that the rule String() method truncates long strings.
+func TestStringMaxRule_String_Truncation(t *testing.T) {
+	// Create a very long string (longer than 50 characters)
+	longString := "a"
+	for i := 0; i < 100; i++ {
+		longString += "b"
+	}
+
+	ruleSet := rules.String().WithMax(longString)
+	ruleStr := ruleSet.String()
+
+	// The String() method should truncate the string argument
+	// Check that the string contains ellipsis and is reasonably short
+	if !strings.Contains(ruleStr, "...") {
+		t.Errorf("String() should contain ellipsis for truncated strings, got: %s", ruleStr)
+	}
+	// The truncated string should be much shorter than the original (101 chars)
+	// With prefix "StringRuleSet.WithMax(\"" and suffix "...\")", total should be < 120
+	if len(ruleStr) > 120 {
+		t.Errorf("String() should truncate long strings to reasonable length, got length %d: %s", len(ruleStr), ruleStr)
 	}
 }

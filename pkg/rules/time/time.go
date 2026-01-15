@@ -11,6 +11,34 @@ import (
 	"proto.zip/studio/validate/pkg/rules"
 )
 
+// conflictType identifies the type of method that was called on a ruleset.
+// Used for fast conflict checking instead of slow string prefix matching.
+type conflictType int
+
+const (
+	conflictTypeNone conflictType = iota
+	conflictTypeRequired
+	conflictTypeNil
+	conflictTypeLayouts
+	conflictTypeOutputLayout
+)
+
+// Conflict returns true if this conflict type conflicts with the other conflict type.
+// Two conflict types conflict if they are the same (non-zero) value.
+func (ct conflictType) Conflict(other conflictType) bool {
+	return ct != conflictTypeNone && ct == other
+}
+
+// Replaces returns true if this conflict type replaces the given rule.
+// It attempts to cast the rule to *TimeRuleSet and checks if the conflictType conflicts.
+func (ct conflictType) Replaces(r rules.Rule[time.Time]) bool {
+	rs, ok := r.(*TimeRuleSet)
+	if !ok {
+		return false
+	}
+	return ct.Conflict(rs.conflictType)
+}
+
 // TimeRuleSet implements the RuleSet interface for the time.Time struct.
 type TimeRuleSet struct {
 	rules.NoConflict[time.Time]
@@ -21,6 +49,7 @@ type TimeRuleSet struct {
 	parent       *TimeRuleSet
 	rule         rules.Rule[time.Time]
 	label        string
+	conflictType conflictType
 	errorConfig  *errors.ErrorConfig
 }
 
@@ -61,6 +90,16 @@ func timeWithErrorConfig(config *errors.ErrorConfig) timeCloneOption {
 	return func(rs *TimeRuleSet) { rs.errorConfig = config }
 }
 
+func timeWithConflictType(ct conflictType) timeCloneOption {
+	return func(rs *TimeRuleSet) {
+		// Check for conflicts and update parent if needed
+		if rs.parent != nil {
+			rs.parent = rs.parent.noConflict(ct)
+		}
+		rs.conflictType = ct
+	}
+}
+
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (ruleSet *TimeRuleSet) Required() bool {
 	return ruleSet.required
@@ -69,7 +108,7 @@ func (ruleSet *TimeRuleSet) Required() bool {
 // WithRequired returns a new rule set that requires the value to be present when nested in an object.
 // When a required field is missing from the input, validation fails with an error.
 func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
-	newRuleSet := ruleSet.clone(timeWithLabel("WithRequired()"))
+	newRuleSet := ruleSet.clone(timeWithLabel("WithRequired()"), timeWithConflictType(conflictTypeRequired))
 	newRuleSet.required = true
 	return newRuleSet
 }
@@ -78,9 +117,8 @@ func (ruleSet *TimeRuleSet) WithRequired() *TimeRuleSet {
 // When nil input is provided, validation passes and the output is set to nil (if the output type supports nil values).
 // By default, nil input values return a CodeNull error.
 func (ruleSet *TimeRuleSet) WithNil() *TimeRuleSet {
-	newRuleSet := ruleSet.clone(timeWithLabel("WithNil()"))
+	newRuleSet := ruleSet.clone(timeWithLabel("WithNil()"), timeWithConflictType(conflictTypeNil))
 	newRuleSet.withNil = true
-	newRuleSet.label = "WithNil()"
 	return newRuleSet
 }
 
@@ -102,9 +140,11 @@ func (ruleSet *TimeRuleSet) WithLayouts(first string, rest ...string) *TimeRuleS
 	layouts = append(layouts, first)
 	layouts = append(layouts, rest...)
 
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.clone(
+		timeWithLabel(util.StringsToRuleOutput("WithLayouts", layouts)),
+		timeWithConflictType(conflictTypeLayouts),
+	)
 	newRuleSet.layouts = layouts
-	newRuleSet.label = util.StringsToRuleOutput("WithLayouts", layouts)
 	return newRuleSet
 }
 
@@ -119,9 +159,11 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 		return ruleSet
 	}
 
-	newRuleSet := ruleSet.clone()
+	newRuleSet := ruleSet.clone(
+		timeWithLabel(util.StringsToRuleOutput("WithOutputLayout", []string{layout})),
+		timeWithConflictType(conflictTypeOutputLayout),
+	)
 	newRuleSet.outputLayout = layout
-	newRuleSet.label = util.StringsToRuleOutput("WithOutputLayout", []string{layout})
 	return newRuleSet
 }
 
@@ -237,30 +279,40 @@ func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) error
 
 // noConflict returns the new array rule set with all conflicting rules removed.
 // Does not mutate the existing rule sets.
-func (ruleSet *TimeRuleSet) noConflict(rule rules.Rule[time.Time]) *TimeRuleSet {
-	if ruleSet.rule != nil {
-
-		// Conflicting rules, skip this and return the parent
-		if rule.Conflict(ruleSet.rule) {
-			return ruleSet.parent.noConflict(rule)
+func (ruleSet *TimeRuleSet) noConflict(checker rules.Replaces[time.Time]) *TimeRuleSet {
+	// Check if current node conflicts (either via rule or conflictType)
+	conflicts := false
+	if ruleSet.rule != nil && checker.Replaces(ruleSet.rule) {
+		conflicts = true
+	} else if checker.Replaces(ruleSet) {
+		conflicts = true
+	}
+	if conflicts {
+		// Skip this node, continue up the parent chain
+		if ruleSet.parent == nil {
+			return nil
 		}
-
+		return ruleSet.parent.noConflict(checker)
 	}
 
+	// Current node doesn't conflict, process parent
 	if ruleSet.parent == nil {
 		return ruleSet
 	}
 
-	newParent := ruleSet.parent.noConflict(rule)
+	newParent := ruleSet.parent.noConflict(checker)
 
+	// If parent didn't change, return current node unchanged
 	if newParent == ruleSet.parent {
 		return ruleSet
 	}
 
+	// Parent changed, clone current node with new parent
 	newRuleSet := ruleSet.clone()
 	newRuleSet.rule = ruleSet.rule
 	newRuleSet.parent = newParent
 	newRuleSet.label = ruleSet.label
+	newRuleSet.conflictType = ruleSet.conflictType
 	return newRuleSet
 }
 

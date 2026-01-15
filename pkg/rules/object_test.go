@@ -847,7 +847,7 @@ func TestWithRuleString(t *testing.T) {
 	ruleSet := rules.Struct[*testStruct]().
 		WithRuleFunc(testhelpers.NewMockRule[*testStruct]().Function())
 
-	expected := "ObjectRuleSet[*rules_test.testStruct].WithRuleFunc(...)"
+	expected := "ObjectRuleSet[*rules_test.testStruct].WithRuleFunc(<function>)"
 	if s := ruleSet.String(); s != expected {
 		t.Errorf("Expected rule set to be %s, got %s", expected, s)
 	}

@@ -67,7 +67,7 @@ func interfaceWithErrorConfig[T any](config *errors.ErrorConfig) interfaceCloneO
 // A third boolean return value is added to differentiate between a successful cast to a nil value
 // and
 func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)) *InterfaceRuleSet[T] {
-	newRuleSet := v.clone(interfaceWithLabel[T]("WithCast(...)"))
+	newRuleSet := v.clone(interfaceWithLabel[T]("WithCast(<function>)"))
 	newRuleSet.cast = fn
 	return newRuleSet
 }

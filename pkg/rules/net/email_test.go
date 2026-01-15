@@ -95,7 +95,7 @@ func TestEmailRuleSet_WithRuleFunc(t *testing.T) {
 
 	// Check the string representation of the rule set
 	str := net.Email().WithRuleFunc(mock.Function()).String()
-	expected := "EmailRuleSet.WithRuleFunc(...)"
+	expected := "EmailRuleSet.WithRuleFunc(<function>)"
 	if str != expected {
 		t.Errorf("Expected %s, got %s", expected, str)
 	}

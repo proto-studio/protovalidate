@@ -22,8 +22,8 @@ func (rule *maxLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.Val
 	return nil
 }
 
-// Conflict returns true for any maximum length rule.
-func (rule *maxLenRule[TV, T]) Conflict(x Rule[T]) bool {
+// Replaces returns true for any maximum length rule.
+func (rule *maxLenRule[TV, T]) Replaces(x Rule[T]) bool {
 	_, ok := x.(*maxLenRule[TV, T])
 	return ok
 }
@@ -38,9 +38,11 @@ func (rule *maxLenRule[TV, T]) String() string {
 // The maxLen is applied proactively during item processing, stopping validation of items after the maximum
 // length is reached. This allows maxLen to be enforced without requiring all items to be buffered in memory.
 func (v *SliceRuleSet[T]) WithMaxLen(max int) *SliceRuleSet[T] {
-	newRuleSet := v.clone()
+	newRuleSet := v.clone(
+		sliceWithLabel[T](fmt.Sprintf("WithMaxLen(%d)", max)),
+		sliceWithConflictType[T](conflictTypeMaxLen),
+	)
 	newRuleSet.maxLen = max
-	newRuleSet.label = fmt.Sprintf("WithMaxLen(%d)", max)
 	return newRuleSet
 }
 
