@@ -55,8 +55,9 @@ func (collection ValidationErrorCollection) Error() string {
 }
 
 // Unwrap implements the wrapped Error interface to return an array of errors.
+// This enables support for errors.Is and errors.As from the standard library.
 //
-// An empty collection should never be returned from a function. Return nil instead. Unwrap panics if called on an empty collection.
+// Returns an empty slice for empty collections. An empty collection should never be returned from a function. Return nil instead.
 func (collection ValidationErrorCollection) Unwrap() []error {
 	errs := make([]error, len(collection))
 	for i := range collection {
