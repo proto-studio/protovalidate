@@ -11,11 +11,8 @@ type PathSerializer interface {
 
 // extractPathSegments extracts all segments from a PathSegment into an array,
 // ordered from root to leaf (top to bottom).
+// segment must not be nil (caller is responsible for checking).
 func extractPathSegments(segment rulecontext.PathSegment) []rulecontext.PathSegment {
-	if segment == nil {
-		return nil
-	}
-
 	// First, collect all segments by traversing up to the root
 	var segments []rulecontext.PathSegment
 	current := segment

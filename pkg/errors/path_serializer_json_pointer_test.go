@@ -58,18 +58,105 @@ func TestJSONPointerSerializer_MixedSegments(t *testing.T) {
 }
 
 // TestJSONPointerSerializer_Escaping tests:
-// - JSON Pointer serializer escapes special characters
+// - JSON Pointer serializer escapes special characters according to RFC 6901
 func TestJSONPointerSerializer_Escaping(t *testing.T) {
-	ctx := rulecontext.WithPathString(context.Background(), "a/b")
-	ctx = rulecontext.WithPathString(ctx, "c~d")
-	err := errors.Errorf(errors.CodeMin, ctx, "short", "message")
+	tests := []struct {
+		name     string
+		segments []string
+		expected string
+	}{
+		{
+			name:     "segment with slash",
+			segments: []string{"a/b"},
+			expected: "/a~1b",
+		},
+		{
+			name:     "segment with tilde",
+			segments: []string{"c~d"},
+			expected: "/c~0d",
+		},
+		{
+			name:     "segment with both tilde and slash",
+			segments: []string{"a~/b"},
+			expected: "/a~0~1b",
+		},
+		{
+			name:     "segment starting with tilde",
+			segments: []string{"~something"},
+			expected: "/~0something",
+		},
+		{
+			name:     "segment starting with slash",
+			segments: []string{"/leading"},
+			expected: "/~1leading",
+		},
+		{
+			name:     "segment ending with tilde",
+			segments: []string{"ending~"},
+			expected: "/ending~0",
+		},
+		{
+			name:     "segment ending with slash",
+			segments: []string{"ending/"},
+			expected: "/ending~1",
+		},
+		{
+			name:     "segment with tilde followed by 0 (literal ~0)",
+			segments: []string{"a~0b"},
+			expected: "/a~00b",
+		},
+		{
+			name:     "segment with tilde followed by 1 (literal ~1)",
+			segments: []string{"a~1b"},
+			expected: "/a~01b",
+		},
+		{
+			name:     "multiple segments with special chars",
+			segments: []string{"a~b", "c/d", "e~f"},
+			expected: "/a~0b/c~1d/e~0f",
+		},
+		{
+			name:     "empty segment",
+			segments: []string{""},
+			expected: "/",
+		},
+		{
+			name:     "segment with only tilde",
+			segments: []string{"~"},
+			expected: "/~0",
+		},
+		{
+			name:     "segment with only slash",
+			segments: []string{"/"},
+			expected: "/~1",
+		},
+		{
+			name:     "segment with multiple tildes",
+			segments: []string{"a~~b"},
+			expected: "/a~0~0b",
+		},
+		{
+			name:     "segment with multiple slashes",
+			segments: []string{"a//b"},
+			expected: "/a~1~1b",
+		},
+	}
 
-	serializer := errors.JSONPointerSerializer{}
-	path := err.PathAs(serializer)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			for _, seg := range tt.segments {
+				ctx = rulecontext.WithPathString(ctx, seg)
+			}
+			err := errors.Errorf(errors.CodeMin, ctx, "short", "message")
 
-	expected := "/a~1b/c~0d"
-	if path != expected {
-		t.Errorf("Expected path to be '%s', got: '%s'", expected, path)
+			serializer := errors.JSONPointerSerializer{}
+			path := err.PathAs(serializer)
+
+			if path != tt.expected {
+				t.Errorf("Expected path to be '%s', got: '%s'", tt.expected, path)
+			}
+		})
 	}
 }
 
