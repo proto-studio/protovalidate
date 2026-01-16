@@ -951,17 +951,17 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *ObjectRuleSet[T, TK, TV]) WithErrorMessage(short, long string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorMessageLabel(short, long)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithMessage(short, long)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatErrorMessageLabel(short, long)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *ObjectRuleSet[T, TK, TV]) WithDocsURI(uri string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithDocsURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithDocs(uri)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithDocsURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *ObjectRuleSet[T, TK, TV]) WithTraceURI(uri string) *ObjectRuleSet[T, TK, TV] {
-	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithTraceURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithTrace(uri)))
+	return v.clone(objectWithLabel[T, TK, TV](util.FormatStringArgLabel("WithTraceURI", uri)), objectWithErrorConfig[T, TK, TV](v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

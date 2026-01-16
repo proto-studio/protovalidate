@@ -166,17 +166,17 @@ func (ruleSet *ConstantRuleSet[T]) Value() T {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *ConstantRuleSet[T]) WithErrorMessage(short, long string) *ConstantRuleSet[T] {
-	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *ConstantRuleSet[T]) WithDocsURI(uri string) *ConstantRuleSet[T] {
-	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *ConstantRuleSet[T]) WithTraceURI(uri string) *ConstantRuleSet[T] {
-	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(constantWithErrorConfig[T](ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

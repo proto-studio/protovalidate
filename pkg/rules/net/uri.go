@@ -808,17 +808,17 @@ func uriWithConflictType(ct uriConflictType) uriCloneOption {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *URIRuleSet) WithErrorMessage(short, long string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel(util.FormatErrorMessageLabel(short, long)), uriWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(uriWithLabel(util.FormatErrorMessageLabel(short, long)), uriWithErrorConfig(ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *URIRuleSet) WithDocsURI(uri string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *URIRuleSet) WithTraceURI(uri string) *URIRuleSet {
-	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(uriWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), uriWithErrorConfig(ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

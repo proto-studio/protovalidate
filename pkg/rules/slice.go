@@ -650,17 +650,17 @@ func (ruleSet *SliceRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *SliceRuleSet[T]) WithErrorMessage(short, long string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T](util.FormatErrorMessageLabel(short, long)), sliceWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(sliceWithLabel[T](util.FormatErrorMessageLabel(short, long)), sliceWithErrorConfig[T](v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *SliceRuleSet[T]) WithDocsURI(uri string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *SliceRuleSet[T]) WithTraceURI(uri string) *SliceRuleSet[T] {
-	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(sliceWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), sliceWithErrorConfig[T](v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

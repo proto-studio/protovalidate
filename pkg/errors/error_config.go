@@ -53,21 +53,21 @@ type ErrorConfigurable[T any, Self any] interface {
 	WithErrorCallback(fn ErrorCallback) Self
 }
 
-// WithMessage returns a new ErrorConfig with the given short and long messages merged.
+// WithErrorMessage returns a new ErrorConfig with the given short and long messages merged.
 // This method is nil-receiver safe.
-func (c *ErrorConfig) WithMessage(short, long string) *ErrorConfig {
+func (c *ErrorConfig) WithErrorMessage(short, long string) *ErrorConfig {
 	return mergeErrorConfig(c, &ErrorConfig{Short: short, Long: long})
 }
 
-// WithDocs returns a new ErrorConfig with the given documentation URI merged.
+// WithDocsURI returns a new ErrorConfig with the given documentation URI merged.
 // This method is nil-receiver safe.
-func (c *ErrorConfig) WithDocs(uri string) *ErrorConfig {
+func (c *ErrorConfig) WithDocsURI(uri string) *ErrorConfig {
 	return mergeErrorConfig(c, &ErrorConfig{DocsURI: uri})
 }
 
-// WithTrace returns a new ErrorConfig with the given trace URI merged.
+// WithTraceURI returns a new ErrorConfig with the given trace URI merged.
 // This method is nil-receiver safe.
-func (c *ErrorConfig) WithTrace(uri string) *ErrorConfig {
+func (c *ErrorConfig) WithTraceURI(uri string) *ErrorConfig {
 	return mergeErrorConfig(c, &ErrorConfig{TraceURI: uri})
 }
 

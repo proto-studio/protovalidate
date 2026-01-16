@@ -357,17 +357,17 @@ func (ruleSet *TimeRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *TimeRuleSet) WithErrorMessage(short, long string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel(util.FormatErrorMessageLabel(short, long)), timeWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(timeWithLabel(util.FormatErrorMessageLabel(short, long)), timeWithErrorConfig(ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *TimeRuleSet) WithDocsURI(uri string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *TimeRuleSet) WithTraceURI(uri string) *TimeRuleSet {
-	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(timeWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), timeWithErrorConfig(ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

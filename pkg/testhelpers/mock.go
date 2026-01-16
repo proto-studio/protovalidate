@@ -236,21 +236,21 @@ func (mockRuleSet *MockRuleSet[T]) Any() rules.RuleSet[any] {
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (mockRuleSet *MockRuleSet[T]) WithErrorMessage(short, long string) *MockRuleSet[T] {
 	newRuleSet := *mockRuleSet
-	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithMessage(short, long)
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithErrorMessage(short, long)
 	return &newRuleSet
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (mockRuleSet *MockRuleSet[T]) WithDocsURI(uri string) *MockRuleSet[T] {
 	newRuleSet := *mockRuleSet
-	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithDocs(uri)
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithDocsURI(uri)
 	return &newRuleSet
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (mockRuleSet *MockRuleSet[T]) WithTraceURI(uri string) *MockRuleSet[T] {
 	newRuleSet := *mockRuleSet
-	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithTrace(uri)
+	newRuleSet.errorConfig = mockRuleSet.errorConfig.WithTraceURI(uri)
 	return &newRuleSet
 }
 

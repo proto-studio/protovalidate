@@ -151,9 +151,9 @@ func TestErrorConfigFluentMethods(t *testing.T) {
 
 	// Start with nil and chain fluent methods
 	config := (*errors.ErrorConfig)(nil).
-		WithMessage("short", "long").
-		WithDocs("https://docs.example.com").
-		WithTrace("https://trace.example.com").
+		WithErrorMessage("short", "long").
+		WithDocsURI("https://docs.example.com").
+		WithTraceURI("https://trace.example.com").
 		WithCode(code).
 		WithMeta("key1", "value1").
 		WithMeta("key2", "value2")
@@ -190,7 +190,7 @@ func TestErrorConfigFluentMethodsChaining(t *testing.T) {
 	}
 
 	// Child overrides some values
-	merged := parent.WithMessage("child short", "").WithDocs("https://child.com/docs")
+	merged := parent.WithErrorMessage("child short", "").WithDocsURI("https://child.com/docs")
 
 	// Child takes precedence for Short
 	if merged.Short != "child short" {
@@ -219,14 +219,14 @@ func TestErrorConfigFluentMethodsNilReceiver(t *testing.T) {
 	var config *errors.ErrorConfig
 
 	// All methods should work on nil receiver
-	if result := config.WithMessage("short", "long"); result.Short != "short" {
-		t.Error("WithMessage should work on nil receiver")
+	if result := config.WithErrorMessage("short", "long"); result.Short != "short" {
+		t.Error("WithErrorMessage should work on nil receiver")
 	}
-	if result := config.WithDocs("docs"); result.DocsURI != "docs" {
-		t.Error("WithDocs should work on nil receiver")
+	if result := config.WithDocsURI("docs"); result.DocsURI != "docs" {
+		t.Error("WithDocsURI should work on nil receiver")
 	}
-	if result := config.WithTrace("trace"); result.TraceURI != "trace" {
-		t.Error("WithTrace should work on nil receiver")
+	if result := config.WithTraceURI("trace"); result.TraceURI != "trace" {
+		t.Error("WithTraceURI should work on nil receiver")
 	}
 	code := errors.ErrorCode("CODE")
 	if result := config.WithCode(code); result.Code == nil || *result.Code != code {

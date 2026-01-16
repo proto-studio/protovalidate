@@ -341,17 +341,17 @@ func (ruleSet *EmailRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *EmailRuleSet) WithErrorMessage(short, long string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel(util.FormatErrorMessageLabel(short, long)), emailWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(emailWithLabel(util.FormatErrorMessageLabel(short, long)), emailWithErrorConfig(ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *EmailRuleSet) WithDocsURI(uri string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *EmailRuleSet) WithTraceURI(uri string) *EmailRuleSet {
-	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(emailWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), emailWithErrorConfig(ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
