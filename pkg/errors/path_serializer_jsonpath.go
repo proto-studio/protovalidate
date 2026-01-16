@@ -22,7 +22,7 @@ func (s JSONPathSerializer) Serialize(segments []rulecontext.PathSegment) string
 	var result strings.Builder
 	result.WriteString("$")
 	firstSegment := true
-	
+
 	for _, seg := range segments {
 		switch v := seg.(type) {
 		case *rulecontext.PathSegmentIndex:
@@ -43,7 +43,7 @@ func (s JSONPathSerializer) Serialize(segments []rulecontext.PathSegment) string
 			firstSegment = false
 		}
 	}
-	
+
 	return result.String()
 }
 
