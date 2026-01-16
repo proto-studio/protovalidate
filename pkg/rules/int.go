@@ -434,17 +434,17 @@ func (ruleSet *IntRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *IntRuleSet[T]) WithErrorMessage(short, long string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T](util.FormatErrorMessageLabel(short, long)), intWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(intWithLabel[T](util.FormatErrorMessageLabel(short, long)), intWithErrorConfig[T](v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *IntRuleSet[T]) WithDocsURI(uri string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), intWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), intWithErrorConfig[T](v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *IntRuleSet[T]) WithTraceURI(uri string) *IntRuleSet[T] {
-	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), intWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(intWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), intWithErrorConfig[T](v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

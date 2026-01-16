@@ -334,17 +334,17 @@ func (ruleSet *IPRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *IPRuleSet) WithErrorMessage(short, long string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel(util.FormatErrorMessageLabel(short, long)), ipWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(ipWithLabel(util.FormatErrorMessageLabel(short, long)), ipWithErrorConfig(ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *IPRuleSet) WithDocsURI(uri string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *IPRuleSet) WithTraceURI(uri string) *IPRuleSet {
-	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(ipWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), ipWithErrorConfig(ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

@@ -200,17 +200,17 @@ func (ruleSet *WrapAnyRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *WrapAnyRuleSet[T]) WithErrorMessage(short, long string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T](util.FormatErrorMessageLabel(short, long)), wrapAnyWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatErrorMessageLabel(short, long)), wrapAnyWithErrorConfig[T](v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *WrapAnyRuleSet[T]) WithDocsURI(uri string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *WrapAnyRuleSet[T]) WithTraceURI(uri string) *WrapAnyRuleSet[T] {
-	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(wrapAnyWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), wrapAnyWithErrorConfig[T](v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

@@ -312,17 +312,17 @@ func (ruleSet *DomainRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (ruleSet *DomainRuleSet) WithErrorMessage(short, long string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel(util.FormatErrorMessageLabel(short, long)), domainWithErrorConfig(ruleSet.errorConfig.WithMessage(short, long)))
+	return ruleSet.clone(domainWithLabel(util.FormatErrorMessageLabel(short, long)), domainWithErrorConfig(ruleSet.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (ruleSet *DomainRuleSet) WithDocsURI(uri string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithDocs(uri)))
+	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (ruleSet *DomainRuleSet) WithTraceURI(uri string) *DomainRuleSet {
-	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithTrace(uri)))
+	return ruleSet.clone(domainWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), domainWithErrorConfig(ruleSet.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

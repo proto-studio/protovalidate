@@ -278,17 +278,17 @@ func (ruleSet *StringRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *StringRuleSet) WithErrorMessage(short, long string) *StringRuleSet {
-	return v.clone(stringWithLabel(util.FormatErrorMessageLabel(short, long)), stringWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+	return v.clone(stringWithLabel(util.FormatErrorMessageLabel(short, long)), stringWithErrorConfig(v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *StringRuleSet) WithDocsURI(uri string) *StringRuleSet {
-	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), stringWithErrorConfig(v.errorConfig.WithDocs(uri)))
+	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithDocsURI", uri)), stringWithErrorConfig(v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *StringRuleSet) WithTraceURI(uri string) *StringRuleSet {
-	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), stringWithErrorConfig(v.errorConfig.WithTrace(uri)))
+	return v.clone(stringWithLabel(util.FormatStringArgLabel("WithTraceURI", uri)), stringWithErrorConfig(v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

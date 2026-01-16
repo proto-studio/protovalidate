@@ -306,17 +306,17 @@ func (ruleSet *BoolRuleSet) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *BoolRuleSet) WithErrorMessage(short, long string) *BoolRuleSet {
-	return v.clone(boolWithLabel("WithErrorMessage(...)"), boolWithErrorConfig(v.errorConfig.WithMessage(short, long)))
+	return v.clone(boolWithLabel("WithErrorMessage(...)"), boolWithErrorConfig(v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *BoolRuleSet) WithDocsURI(uri string) *BoolRuleSet {
-	return v.clone(boolWithLabel("WithDocsURI(...)"), boolWithErrorConfig(v.errorConfig.WithDocs(uri)))
+	return v.clone(boolWithLabel("WithDocsURI(...)"), boolWithErrorConfig(v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *BoolRuleSet) WithTraceURI(uri string) *BoolRuleSet {
-	return v.clone(boolWithLabel("WithTraceURI(...)"), boolWithErrorConfig(v.errorConfig.WithTrace(uri)))
+	return v.clone(boolWithLabel("WithTraceURI(...)"), boolWithErrorConfig(v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.

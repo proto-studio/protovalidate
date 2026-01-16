@@ -350,17 +350,17 @@ func (ruleSet *FloatRuleSet[T]) String() string {
 
 // WithErrorMessage returns a new RuleSet with custom short and long error messages.
 func (v *FloatRuleSet[T]) WithErrorMessage(short, long string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T](util.FormatErrorMessageLabel(short, long)), floatWithErrorConfig[T](v.errorConfig.WithMessage(short, long)))
+	return v.clone(floatWithLabel[T](util.FormatErrorMessageLabel(short, long)), floatWithErrorConfig[T](v.errorConfig.WithErrorMessage(short, long)))
 }
 
 // WithDocsURI returns a new RuleSet with a custom documentation URI.
 func (v *FloatRuleSet[T]) WithDocsURI(uri string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithDocs(uri)))
+	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithDocsURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithDocsURI(uri)))
 }
 
 // WithTraceURI returns a new RuleSet with a custom trace/debug URI.
 func (v *FloatRuleSet[T]) WithTraceURI(uri string) *FloatRuleSet[T] {
-	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithTrace(uri)))
+	return v.clone(floatWithLabel[T](util.FormatStringArgLabel("WithTraceURI", uri)), floatWithErrorConfig[T](v.errorConfig.WithTraceURI(uri)))
 }
 
 // WithErrorCode returns a new RuleSet with a custom error code.
