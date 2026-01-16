@@ -5,65 +5,68 @@ import (
 	"fmt"
 )
 
-// PathSegment represents a segment in a validation path.
-// PathSegment can be either a string segment or an index segment.
-type PathSegment interface {
-	Parent() PathSegment
+// pathSegment represents a segment in a validation path.
+// pathSegment can be either a string segment or an index segment.
+// This interface is unexported to prevent external implementations.
+type pathSegment interface {
+	Parent() pathSegment
 	String() string
-	FullString() string
 }
 
-type pathSegmentString struct {
-	parent  PathSegment
+// PathSegment represents a segment in a validation path.
+// PathSegment is a type alias for the unexported pathSegment interface.
+// While external code can reference PathSegment, they cannot implement it
+// because the underlying pathSegment interface is unexported and the concrete
+// types (PathSegmentString and PathSegmentIndex) are the only implementations.
+type PathSegment = pathSegment
+
+// PathSegmentString represents a string segment in a validation path.
+type PathSegmentString struct {
+	parent  pathSegment
 	segment string
 }
 
-type pathSegmentIndex struct {
-	parent  PathSegment
+// PathSegmentIndex represents an index segment in a validation path.
+type PathSegmentIndex struct {
+	parent  pathSegment
 	segment int
 }
 
 // Parent returns the previous path segment.
-func (s *pathSegmentString) Parent() PathSegment {
+func (s *PathSegmentString) Parent() pathSegment {
 	return s.parent
 }
 
 // String returns the segment as a string.
-func (s *pathSegmentString) String() string {
+func (s *PathSegmentString) String() string {
 	return s.segment
 }
 
-// FullString returns the full path until there are no more parent segments.
-func (s *pathSegmentString) FullString() string {
-	if s.parent != nil {
-		return s.parent.FullString() + "/" + s.String()
-	}
-	return "/" + s.String()
+// Segment returns the string value of this segment.
+func (s *PathSegmentString) Segment() string {
+	return s.segment
 }
 
 // Parent returns the previous path segment.
-func (s *pathSegmentIndex) Parent() PathSegment {
+func (s *PathSegmentIndex) Parent() pathSegment {
 	return s.parent
 }
 
 // String returns the index as a string using brackets.
 //
 // Example: [0] or [3]
-func (s *pathSegmentIndex) String() string {
+func (s *PathSegmentIndex) String() string {
 	return fmt.Sprintf("%d", s.segment)
 }
 
-// FullString returns the full path until there are no more parent segments.
-func (s *pathSegmentIndex) FullString() string {
-	if s.parent != nil {
-		return s.parent.FullString() + "/" + s.String()
-	}
-	return s.String()
+// Index returns the numeric index value of this segment.
+func (s *PathSegmentIndex) Index() int {
+	return s.segment
 }
 
 // WithPathString returns a new context with the path segment added.
 func WithPathString(parent context.Context, value string) context.Context {
-	newPath := &pathSegmentString{
+	newPath := &PathSegmentString{
 		segment: value,
 	}
 
@@ -76,7 +79,7 @@ func WithPathString(parent context.Context, value string) context.Context {
 
 // WithPathIndex returns a new context with the path segment index added.
 func WithPathIndex(parent context.Context, value int) context.Context {
-	newPath := &pathSegmentIndex{
+	newPath := &PathSegmentIndex{
 		segment: value,
 	}
 

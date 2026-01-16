@@ -96,6 +96,27 @@ func (collection ValidationErrorCollection) For(path string) ValidationErrorColl
 	return Collection(filteredErrors...)
 }
 
+// ForPathAs returns a new collection containing only errors for a specific path
+// using the provided serializer to compare paths.
+func (collection ValidationErrorCollection) ForPathAs(path string, serializer PathSerializer) ValidationErrorCollection {
+	if len(collection) == 0 {
+		return nil
+	}
+
+	var filteredErrors []ValidationError
+	for _, err := range collection {
+		if err.PathAs(serializer) == path {
+			filteredErrors = append(filteredErrors, err)
+		}
+	}
+
+	if len(filteredErrors) == 0 {
+		return nil
+	}
+
+	return Collection(filteredErrors...)
+}
+
 // Internal returns true if any error in the collection is an internal error.
 // Internal errors are the most general classification and take precedence.
 // Returns false for empty collections.

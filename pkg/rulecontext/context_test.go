@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
@@ -152,7 +153,13 @@ func TestPathRuleSet(t *testing.T) {
 		t.Error("Expected path segment to not be nil")
 	} else if p.String() != segmentB {
 		t.Errorf("Expected  path segment to be `%s` got `%s`", segmentB, p.String())
-	} else if p.FullString() != expectedFullPath {
-		t.Errorf("Expected full path to be `%s` got `%s`", expectedFullPath, p.FullString())
+	} else {
+		// Use the default serializer to get the full path
+		serializer := errors.DefaultPathSerializer{}
+		segments := extractPathSegmentsForTest(p)
+		fullpath := serializer.Serialize(segments)
+		if fullpath != expectedFullPath {
+			t.Errorf("Expected full path to be `%s` got `%s`", expectedFullPath, fullpath)
+		}
 	}
 }

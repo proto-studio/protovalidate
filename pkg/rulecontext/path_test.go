@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
@@ -19,9 +20,37 @@ func fullPathHelper(t testing.TB, ctx context.Context, expected string) {
 		t.Fatal("Expected path to not be nil")
 	}
 
-	if fullpath := path.FullString(); fullpath != expected {
+	// Use the default serializer to get the full path
+	serializer := errors.DefaultPathSerializer{}
+	segments := extractPathSegmentsForTest(path)
+	fullpath := serializer.Serialize(segments)
+	if fullpath != expected {
 		t.Errorf("Expected full path to be '%s', got: '%s'", expected, fullpath)
 	}
+}
+
+// extractPathSegmentsForTest extracts all segments from a PathSegment into an array,
+// ordered from root to leaf (top to bottom). This is a test helper that mirrors
+// the private function in the errors package.
+func extractPathSegmentsForTest(segment rulecontext.PathSegment) []rulecontext.PathSegment {
+	if segment == nil {
+		return nil
+	}
+
+	// First, collect all segments by traversing up to the root
+	var segments []rulecontext.PathSegment
+	current := segment
+	for current != nil {
+		segments = append(segments, current)
+		current = current.Parent()
+	}
+
+	// Reverse to get root-to-leaf order
+	for i, j := 0, len(segments)-1; i < j; i, j = i+1, j-1 {
+		segments[i], segments[j] = segments[j], segments[i]
+	}
+
+	return segments
 }
 
 // TestPathNil tests:
@@ -116,7 +145,7 @@ func TestWithPathCombined(t *testing.T) {
 }
 
 // TestPathIndexFullStringNilParent tests:
-// - pathSegmentIndex.FullString() with nil parent returns just the index
+// - PathSegmentIndex with nil parent serializes to just the index (no leading slash)
 func TestPathIndexFullStringNilParent(t *testing.T) {
 	// Create a context with only an index path (no parent string path)
 	ctx := rulecontext.WithPathIndex(context.Background(), 5)
