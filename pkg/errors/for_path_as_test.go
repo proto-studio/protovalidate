@@ -108,7 +108,7 @@ func TestForPathAs_NoMatches(t *testing.T) {
 	serializer := errors.DefaultPathSerializer{}
 	filtered := collection.ForPathAs("/nonexistent", serializer)
 
-	if filtered != nil && len(filtered) != 0 {
+	if len(filtered) != 0 {
 		t.Errorf("Expected empty collection, got: %d errors", len(filtered))
 	}
 }
@@ -121,7 +121,7 @@ func TestForPathAs_EmptyCollection(t *testing.T) {
 	serializer := errors.DefaultPathSerializer{}
 	filtered := collection.ForPathAs("/a/b", serializer)
 
-	if filtered != nil && len(filtered) != 0 {
+	if len(filtered) != 0 {
 		t.Errorf("Expected nil or empty collection, got: %d errors", len(filtered))
 	}
 }
