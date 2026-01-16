@@ -9,14 +9,15 @@ import (
 // ValidationError stores information necessary to identify where the validation error
 // is, as well as implementing the Error interface to work with standard errors.
 type ValidationError interface {
-	Code() ErrorCode      // Code returns the error code.
-	Path() string         // Path returns the full path to the error as a string.
-	Error() string        // Error returns the detailed error message (satisfies Go error interface).
-	ShortError() string   // ShortError returns a brief constant error description.
-	DocsURI() string      // DocsURI returns an optional documentation URL for the error.
-	TraceURI() string     // TraceURI returns an optional trace/debug URL for the error.
-	Meta() map[string]any // Meta returns arbitrary metadata associated with the error.
-	Params() []any        // Params returns the format arguments used to create the error message.
+	Code() ErrorCode                         // Code returns the error code.
+	Path() string                            // Path returns the full path to the error as a string.
+	PathAs(serializer PathSerializer) string // PathAs returns the full path using the provided serializer.
+	Error() string                           // Error returns the detailed error message (satisfies Go error interface).
+	ShortError() string                      // ShortError returns a brief constant error description.
+	DocsURI() string                         // DocsURI returns an optional documentation URL for the error.
+	TraceURI() string                        // TraceURI returns an optional trace/debug URL for the error.
+	Meta() map[string]any                    // Meta returns arbitrary metadata associated with the error.
+	Params() []any                           // Params returns the format arguments used to create the error message.
 
 	// Type classification methods
 	Internal() bool   // Internal returns true if the error is an internal error.
@@ -111,11 +112,18 @@ func (err *validationError) Code() ErrorCode {
 }
 
 // Path returns the full path to the error as a string.
+// Path is a wrapper around PathAs using the default serializer.
 func (err *validationError) Path() string {
-	if err.pathSegment == nil {
-		return ""
+	return err.PathAs(DefaultPathSerializer{})
+}
+
+// PathAs returns the full path to the error as a string using the provided serializer.
+func (err *validationError) PathAs(serializer PathSerializer) string {
+	var segments []rulecontext.PathSegment
+	if err.pathSegment != nil {
+		segments = extractPathSegments(err.pathSegment)
 	}
-	return err.pathSegment.FullString()
+	return serializer.Serialize(segments)
 }
 
 // DocsURI returns an optional documentation URL for the error.

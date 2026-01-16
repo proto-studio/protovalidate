@@ -289,6 +289,7 @@ type brokenValidationError struct {
 
 func (e *brokenValidationError) Code() errors.ErrorCode { return e.code }
 func (e *brokenValidationError) Path() string           { return "" }
+func (e *brokenValidationError) PathAs(serializer errors.PathSerializer) string { return "" }
 func (e *brokenValidationError) ShortError() string     { return e.shortErr }
 func (e *brokenValidationError) Error() string          { return e.longErr }
 func (e *brokenValidationError) DocsURI() string        { return "" }
