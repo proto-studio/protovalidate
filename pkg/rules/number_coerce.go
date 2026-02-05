@@ -221,8 +221,28 @@ func (ruleSet *IntRuleSet[T]) coerceInt(value any, ctx context.Context) (T, erro
 }
 
 // tryCoerceFloatToFloat attempts to coerce a float from one type to another and checks that no data was lost in the process.
+// When converting float64 -> float32, exact round-trip equality is not required because float32 has less precision;
+// only the value must be within float32 range (finite and |x| <= math.MaxFloat32).
 func tryCoerceFloatToFloat[From, To floating](value From, ctx context.Context) (To, errors.ValidationError) {
 	floatval := To(value)
+	// When converting float64 -> float32, most values cannot round-trip exactly (e.g. 0.8).
+	// Only require that the value is within float32 range.
+	switch (interface{})(value).(type) {
+	case float64:
+		if _, ok := (interface{})(*new(To)).(float32); ok {
+			f64 := float64(value)
+			if math.IsNaN(f64) || math.IsInf(f64, 0) {
+				target := reflect.ValueOf(*new(To)).Kind().String()
+				return 0, errors.NewRangeError(ctx, target)
+			}
+			if math.Abs(f64) > math.MaxFloat32 {
+				target := reflect.ValueOf(*new(To)).Kind().String()
+				return 0, errors.NewRangeError(ctx, target)
+			}
+			return floatval, nil
+		}
+	}
+	// Same type or float32 -> float64: require exact round-trip
 	if From(floatval) != value {
 		target := reflect.ValueOf(*new(To)).Kind().String()
 		return 0, errors.NewRangeError(ctx, target)
