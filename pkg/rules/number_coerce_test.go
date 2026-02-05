@@ -302,6 +302,20 @@ func TestCoerceToFloat32(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(123.0), expected)
 }
 
+// TestCoerceFloat64ToFloat32_CommonDecimals tests that float64 values that are not
+// exactly representable in binary (e.g. 0.6, 0.8) still coerce to float32 successfully,
+// since they are within range and only lose precision (no range error).
+func TestCoerceFloat64ToFloat32_CommonDecimals(t *testing.T) {
+	ruleSet := rules.Float32().Any()
+
+	// 0.6 and 0.8 are not exactly representable in float64; round-trip float64->float32->float64
+	// would not be exact. Coercion should succeed with a range check only, not exact equality.
+	testhelpers.MustApplyMutation(t, ruleSet, float64(0.6), float32(0.6))
+	testhelpers.MustApplyMutation(t, ruleSet, float64(0.8), float32(0.8))
+	testhelpers.MustApplyMutation(t, ruleSet, float64(0.1), float32(0.1))
+	testhelpers.MustApplyMutation(t, ruleSet, float64(0.3), float32(0.3))
+}
+
 // TestFloat32EqualityCheckFailure tests:
 // - Returns error when float32 cannot exactly represent the integer value
 func TestFloat32EqualityCheckFailure(t *testing.T) {
