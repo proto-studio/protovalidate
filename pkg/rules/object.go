@@ -551,8 +551,23 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	allErrors := errors.Collection()
 	var emptyKey TK
 
+	// Pre caching a list of dynamic buckets lets us avoid extra loops.
+	// This method is faster in all cases where there is at least one bucket and the input has dynamic values.
+	// We build this before knownKeys so we can track keys when dynamic buckets exist: otherwise with
+	// WithUnknown() and struct output, knownKeys would not track and every key would be treated as
+	// "unknown", causing SetBucket to be called with raw input instead of validated output (panic when
+	// bucket value type differs from input, e.g. Interface.WithCast).
+	dynamicBuckets := make([]*ObjectRuleSet[T, TK, TV], 0)
+	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+		if currentRuleSet.bucket != emptyKey {
+			dynamicBuckets = append(dynamicBuckets, currentRuleSet)
+		}
+	}
+
 	// Tracks which keys are known so we can create errors for unknown keys.
-	knownKeys := newKnownKeys[TK]((!v.allowUnknown || s.Map()) && fromMap)
+	// When dynamic buckets exist we must track so keys processed by evaluateKeyRule are not
+	// overwritten in the "unknown keys" path with raw input.
+	knownKeys := newKnownKeys[TK](((!v.allowUnknown || s.Map()) && fromMap) || len(dynamicBuckets) > 0)
 
 	// Add each key to the counter.
 	// We need this because conditional keys cannot run until all rule sets are run since rule sets are able
@@ -580,15 +595,6 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	errorsCh := make(chan errors.ValidationErrorCollection)
 	defer close(errorsCh)
 	var outValueMutex sync.Mutex
-
-	// Pre caching a list of dynamic buckets lets us avoid extra loops.
-	// This method is faster in all cases where there is at least one bucket and the input has dynamic values
-	dynamicBuckets := make([]*ObjectRuleSet[T, TK, TV], 0)
-	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.bucket != emptyKey {
-			dynamicBuckets = append(dynamicBuckets, currentRuleSet)
-		}
-	}
 
 	// Wait for all the rules to finish
 	var wg sync.WaitGroup

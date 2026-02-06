@@ -1711,6 +1711,96 @@ func TestWithDynamicBucketToStruct(t *testing.T) {
 	}
 }
 
+// valueListForBucketTest is an interface used to reproduce the bug where WithDynamicBucket +
+// WithDynamicKey(Interface.WithCast) + WithUnknown + struct output caused SetBucket to receive
+// raw input ([]string) instead of validated output, leading to a reflect SetMapIndex panic.
+type valueListForBucketTest interface {
+	Values() []string
+	doNotExtend()
+}
+
+type fieldListMapForTest map[string]bool
+
+func (fl fieldListMapForTest) Values() []string {
+	keys := make([]string, 0, len(fl))
+	for k := range fl {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (fieldListMapForTest) doNotExtend() {}
+
+func newFieldListForTest(fields ...string) valueListForBucketTest {
+	out := make(fieldListMapForTest, len(fields))
+	for _, f := range fields {
+		out[f] = true
+	}
+	return out
+}
+
+// TestWithDynamicBucketAndDynamicKeyInterfaceToStruct reproduces a bug where using WithDynamicKey
+// with rules.Interface[T].WithCast(...) and WithDynamicBucket to a struct field map, plus
+// WithUnknown(), caused the "unknown keys" path to call SetBucket with raw input (e.g. []string)
+// instead of the validated output (e.g. ValueList), triggering:
+//   panic: reflect.Value.SetMapIndex: value of type []string is not assignable to type T
+// The fix is to track known keys when dynamic buckets exist so keys already handled by
+// evaluateKeyRule are not re-processed in the unknown path.
+func TestWithDynamicBucketAndDynamicKeyInterfaceToStruct(t *testing.T) {
+	type queryData struct {
+		Fields  map[string]valueListForBucketTest
+		Filters map[string][]string
+	}
+
+	stringQueryValueRuleSet := rules.Slice[string]().WithItemRuleSet(rules.String()).WithMaxLen(1)
+	fieldKeyRule := rules.String().WithRegexp(regexp.MustCompile(`^fields\[[^\]]+\]$`), "")
+	filterKeyRule := rules.String().WithRegexp(regexp.MustCompile(`^filter\[[^\]]+\]$`), "")
+
+	fieldsRuleSet := rules.Interface[valueListForBucketTest]().WithCast(
+		func(ctx context.Context, value any) (valueListForBucketTest, errors.ValidationErrorCollection) {
+			var strs []string
+			if errs := stringQueryValueRuleSet.Apply(ctx, value, &strs); errs != nil {
+				return nil, errs
+			}
+			if len(strs) == 0 {
+				return newFieldListForTest(), nil
+			}
+			return newFieldListForTest(stringsHelper.Split(strs[0], ",")...), nil
+		},
+	)
+	filterRuleSet := rules.Slice[string]().WithItemRuleSet(rules.String())
+
+	ruleSet := rules.Struct[queryData]().
+		WithDynamicKey(fieldKeyRule, fieldsRuleSet.Any()).
+		WithDynamicKey(filterKeyRule, filterRuleSet.Any()).
+		WithDynamicBucket(fieldKeyRule, "Fields").
+		WithDynamicBucket(filterKeyRule, "Filters").
+		WithUnknown()
+
+	parsed, err := url.ParseQuery(`fields[articles]=abc,xyz`)
+	if err != nil {
+		t.Fatalf("ParseQuery: %v", err)
+	}
+
+	var output queryData
+	errs := ruleSet.Apply(context.Background(), parsed, &output)
+	if errs != nil {
+		t.Fatalf("Apply: %v", errs)
+	}
+	if output.Fields == nil {
+		t.Fatal("output.Fields is nil")
+	}
+	vl, ok := output.Fields["fields[articles]"]
+	if !ok {
+		t.Fatal("fields[articles] not in output.Fields")
+	}
+	// If the bug were present we would have panicked in SetBucket ([]string not assignable to ValueList).
+	vals := vl.Values()
+	if len(vals) != 2 || (vals[0] != "abc" && vals[1] != "abc") || (vals[0] != "xyz" && vals[1] != "xyz") {
+		t.Errorf("expected Values() to contain abc and xyz, got %v", vals)
+	}
+}
+
 // TestWithConditionalDynamicBucket tests:
 // - If no dynamic bucket is matched then the key is considered unknown
 // - Dynamic buckets are not created unless condition is met
