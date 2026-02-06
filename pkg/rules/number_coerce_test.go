@@ -2,6 +2,7 @@ package rules_test
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -314,6 +315,22 @@ func TestCoerceFloat64ToFloat32_CommonDecimals(t *testing.T) {
 	testhelpers.MustApplyMutation(t, ruleSet, float64(0.8), float32(0.8))
 	testhelpers.MustApplyMutation(t, ruleSet, float64(0.1), float32(0.1))
 	testhelpers.MustApplyMutation(t, ruleSet, float64(0.3), float32(0.3))
+}
+
+// TestTryCoerceFloatToFloat_NaNAndInf tests tryCoerceFloatToFloat coverage:
+// - float64 NaN/Inf -> float32 returns CodeRange (cannot represent in float32)
+// - float32 NaN -> float64 returns CodeRange (round-trip fails: NaN != NaN)
+// Same-type float (e.g. float32->Float32) takes coerceFloat's case T path and does not call tryCoerceFloatToFloat.
+func TestTryCoerceFloatToFloat_NaNAndInf(t *testing.T) {
+	// float64 -> float32: NaN and Inf are rejected (tryCoerceFloatToFloat NaN/Inf branch)
+	ruleSet32 := rules.Float32().Any()
+	testhelpers.MustNotApply(t, ruleSet32, float64(math.NaN()), errors.CodeRange)
+	testhelpers.MustNotApply(t, ruleSet32, float64(math.Inf(1)), errors.CodeRange)
+	testhelpers.MustNotApply(t, ruleSet32, float64(math.Inf(-1)), errors.CodeRange)
+
+	// float32 NaN -> float64: round-trip fails (NaN != NaN) (tryCoerceFloatToFloat round-trip branch)
+	ruleSet64 := rules.Float64().Any()
+	testhelpers.MustNotApply(t, ruleSet64, float32(math.NaN()), errors.CodeRange)
 }
 
 // TestFloat32EqualityCheckFailure tests:
