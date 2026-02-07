@@ -4,6 +4,7 @@ package net
 
 import (
 	"context"
+	"net/url"
 	"reflect"
 	"regexp"
 
@@ -60,7 +61,7 @@ var defaultSchemaRuleSet *rules.StringRuleSet = rules.String().WithRegexpString(
 
 // Terminal parts.
 var defaultPathRuleSet *rules.StringRuleSet = baseUriPartRuleSet
-var defaultQueryRuleSet *rules.StringRuleSet = baseUriPartRuleSet
+var defaultQueryRuleSet *QueryRuleSet = Query()
 var defaultFragmentRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultHostRuleSet *rules.StringRuleSet = baseUriPartRuleSet
 var defaultUserRuleSet *rules.StringRuleSet = baseUriPartRuleSet
@@ -121,7 +122,7 @@ type URIRuleSet struct {
 	schemeRuleSet    *rules.StringRuleSet
 	authorityRuleSet *rules.StringRuleSet
 	pathRuleSet      *rules.StringRuleSet
-	queryRuleSet     *rules.StringRuleSet
+	queryRuleSet     *QueryRuleSet
 	fragmentRuleSet  *rules.StringRuleSet
 	hostRuleSet      *rules.StringRuleSet
 	userinfoRuleSet  *rules.StringRuleSet
@@ -218,16 +219,13 @@ func (ruleSet *URIRuleSet) WithPortRequired() *URIRuleSet {
 	return newRuleSet
 }
 
-// WithQueryRequired returns a new rule set that requires the query component to be present in the URI.
-// The query component must be in the URI, however, it may be empty.
-func (ruleSet *URIRuleSet) WithQueryRequired() *URIRuleSet {
-	if ruleSet.queryRuleSet.Required() {
-		return ruleSet
-	}
-
+// WithQueryParam returns a new rule set that validates a query parameter by name.
+// If the given rule set is required, the query string is required (at least "?" must be present).
+// Delegates to QueryRuleSet.WithParam.
+func (ruleSet *URIRuleSet) WithQueryParam(name string, paramRuleSet rules.RuleSet[any]) *URIRuleSet {
 	newRuleSet := ruleSet.clone()
-	newRuleSet.queryRuleSet = newRuleSet.queryRuleSet.WithRequired()
-	newRuleSet.label = "WithQueryRequired()"
+	newRuleSet.queryRuleSet = ruleSet.queryRuleSet.WithParam(name, paramRuleSet)
+	newRuleSet.label = util.FormatStringArgLabel("WithQueryParam", name)
 	return newRuleSet
 }
 
@@ -564,7 +562,7 @@ func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (cont
 	return newCtx, ruleSet.pathRuleSet.Evaluate(subContext, value)
 }
 
-// evaluateQuery evaluates the fragment portion of the URI and also returns a context with the fragment set.
+// evaluateQuery evaluates the query portion of the URI and also returns a context with the query set.
 func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
 	newCtx := context.WithValue(ctx, URIContextKeyQuery, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "query")
@@ -577,8 +575,16 @@ func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, miss
 		}
 		return newCtx, nil
 	}
-
-	return newCtx, ruleSet.queryRuleSet.Evaluate(subContext, value)
+	values, parseErr := url.ParseQuery(value)
+	if parseErr != nil {
+		return newCtx, errors.Collection(
+			errors.Errorf(errors.CodeEncoding, subContext, "invalid query", "query string could not be parsed: %v", parseErr),
+		)
+	}
+	if err := ruleSet.queryRuleSet.Evaluate(subContext, values); err != nil {
+		return newCtx, err
+	}
+	return newCtx, nil
 }
 
 // evaluateFragment evaluates the fragment portion of the URI and also returns a context with the fragment set.
