@@ -7,6 +7,7 @@ import (
 
 	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rulecontext"
+	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/rules/net"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -459,26 +460,41 @@ func TestURIRuleSet_WithPortRequired(t *testing.T) {
 }
 
 // Requirement:
-// - Query can be required.
-// - Query can be empty even when required.
-func TestURIRuleSet_WithQueryRequired(t *testing.T) {
+// - Query param can be required via WithQueryParam; if any param is required, query string is required.
+// - Param value can be empty even when param is required.
+func TestURIRuleSet_WithQueryParam(t *testing.T) {
 	withoutRequired := net.URI()
-	withRequired := withoutRequired.WithQueryRequired()
-	withRequiredB := withRequired.WithQueryRequired()
+	withRequired := withoutRequired.WithQueryParam("query", rules.String().WithRequired().Any())
+	withRequiredB := withRequired.WithQueryParam("query", rules.String().WithRequired().Any())
 
-	uriPartRequiredHelper(
-		t,
-		"WithQueryRequired",
-		"query",
-		withoutRequired,
-		withRequired,
-		withRequired == withRequiredB,
-		"http://example.com?query=1",
-		"http://example.com?",
-		"http://example.com",
-		"http:e",
-		"http:",
-	)
+	withRequiredAny := withRequired.Any()
+	withoutRequiredAny := withoutRequired.Any()
+
+	// Identity: each WithQueryParam returns a new rule set
+	if withRequired == withRequiredB {
+		t.Error("Expected subsequent WithQueryParam calls to return a different RuleSet")
+	}
+
+	expectedString := `URIRuleSet.WithQueryParam("query")`
+	if actual := withRequired.String(); actual != expectedString {
+		t.Errorf("Expected String() to be %q, got %q", expectedString, actual)
+	}
+
+	// Valid: param present with value
+	testhelpers.MustApply(t, withoutRequiredAny, "http://example.com?query=1")
+	testhelpers.MustApply(t, withRequiredAny, "http://example.com?query=1")
+
+	// Empty: param present with empty value (allowed when required)
+	testhelpers.MustApply(t, withoutRequiredAny, "http://example.com?query=")
+	testhelpers.MustApply(t, withRequiredAny, "http://example.com?query=")
+
+	// Missing query entirely: fails when param is required
+	testhelpers.MustApply(t, withoutRequiredAny, "http://example.com")
+	testhelpers.MustNotApply(t, withRequiredAny, "http://example.com", errors.CodeRequired)
+
+	// Query present but param missing: fails when param is required
+	testhelpers.MustApply(t, withoutRequiredAny, "http://example.com?")
+	testhelpers.MustNotApply(t, withRequiredAny, "http://example.com?", errors.CodeRequired)
 }
 
 // Requirement:
