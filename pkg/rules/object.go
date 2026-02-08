@@ -384,11 +384,6 @@ func (v *ObjectRuleSet[T, TK, TV]) withKeyHelper(key Rule[TK], destKey TK, condi
 	return newRuleSet
 }
 
-// Deprecated: Key is deprecated and will be removed in v1.0.0. Use WithKey instead.
-func (v *ObjectRuleSet[T, TK, TV]) Key(key TK, ruleSet RuleSet[TV]) *ObjectRuleSet[T, TK, TV] {
-	return v.WithKey(key, ruleSet)
-}
-
 // Required returns a boolean indicating if the value is allowed to be omitted when included in a nested object.
 func (v *ObjectRuleSet[T, TK, TV]) Required() bool {
 	return v.required
