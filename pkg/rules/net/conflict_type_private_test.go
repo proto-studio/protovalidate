@@ -32,7 +32,7 @@ func TestDomainConflictType_Replaces_WrongType(t *testing.T) {
 	}
 
 	// Test with a regular rule (not a ruleset) - use RuleFunc which doesn't implement getConflictType
-	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationErrorCollection {
+	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationError {
 		return nil
 	})
 	if checker.Replaces(rule) {
@@ -64,7 +64,7 @@ func TestEmailConflictType_Replaces_WrongType(t *testing.T) {
 	}
 
 	// Test with a regular rule (not a ruleset) - use RuleFunc which doesn't implement getConflictType
-	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationErrorCollection {
+	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationError {
 		return nil
 	})
 	if checker.Replaces(rule) {
@@ -96,7 +96,7 @@ func TestURIConflictType_Replaces_WrongType(t *testing.T) {
 	}
 
 	// Test with a regular rule (not a ruleset) - use RuleFunc which doesn't implement getConflictType
-	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationErrorCollection {
+	rule := rules.RuleFunc[string](func(ctx context.Context, value string) errors.ValidationError {
 		return nil
 	})
 	if checker.Replaces(rule) {

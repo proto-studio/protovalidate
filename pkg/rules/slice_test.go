@@ -49,7 +49,7 @@ func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 
 	// Apply with an invalid input type, expecting an error
 	err := rules.Slice[string]().Apply(context.TODO(), 123, &output)
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -77,7 +77,7 @@ func TestSliceItemCastError(t *testing.T) {
 
 	// Apply with an array of incorrect types, expecting an error
 	err := rules.Slice[string]().Apply(context.TODO(), []int{1, 2, 3}, &output)
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Errorf("Expected errors to not be empty.")
 		return
 	}
@@ -91,8 +91,8 @@ func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
 
 	// Apply with a valid array but with an item rule set that will fail, expecting 2 errors
 	err := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
-	if len(err) != 2 {
-		t.Errorf("Expected 2 errors and got %d.", len(err))
+	if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors and got %d.", len(errors.Unwrap(err)))
 		return
 	}
 }
@@ -123,8 +123,8 @@ func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 		return
 	}
 
-	if len(err) != 2 {
-		t.Errorf("Expected 2 errors, got %d", len(err))
+	if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors, got %d", len(errors.Unwrap(err)))
 		return
 	}
 
@@ -149,29 +149,29 @@ func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if len(err) != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
+	} else if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(errors.Unwrap(err)), err.Error())
 		return
 	}
 
 	// Check for the first error path (/myarray/0)
-	errA := err.For("/myarray/0")
+	errA := errors.For(err, "/myarray/0")
 	if errA == nil {
 		t.Errorf("Expected error for /myarray/0 to not be nil")
-	} else if len(errA) != 1 {
-		t.Errorf("Expected exactly 1 error for /myarray/0 got %d", len(errA))
-	} else if errA.First().Path() != "/myarray/0" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/0", errA.First().Path())
+	} else if len(errors.Unwrap(errA)) != 1 {
+		t.Errorf("Expected exactly 1 error for /myarray/0 got %d", len(errors.Unwrap(errA)))
+	} else if errA.Path() != "/myarray/0" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/0", errA.Path())
 	}
 
 	// Check for the second error path (/myarray/1)
-	errC := err.For("/myarray/1")
+	errC := errors.For(err, "/myarray/1")
 	if errC == nil {
 		t.Errorf("Expected error for /myarray/1 to not be nil")
-	} else if len(errC) != 1 {
-		t.Errorf("Expected exactly 1 error for /myarray/1 got %d", len(errC))
-	} else if errC.First().Path() != "/myarray/1" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/1", errC.First().Path())
+	} else if len(errors.Unwrap(errC)) != 1 {
+		t.Errorf("Expected exactly 1 error for /myarray/1 got %d", len(errors.Unwrap(errC)))
+	} else if errC.Path() != "/myarray/1" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myarray/1", errC.Path())
 	}
 }
 
@@ -375,7 +375,7 @@ func TestSliceRuleSet_Apply_ChannelWithTimeout(t *testing.T) {
 	}
 
 	// Check that we got a timeout error
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -407,8 +407,8 @@ func TestSliceRuleSet_Apply_ChannelWithItemRuleSet(t *testing.T) {
 		return
 	}
 
-	if len(err) != 2 {
-		t.Errorf("Expected 2 errors (for 'a' and ''), got %d", len(err))
+	if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors (for 'a' and ''), got %d", len(errors.Unwrap(err)))
 	}
 
 	// Check that output has all 4 items (even invalid ones are included)
@@ -518,7 +518,7 @@ func TestSliceRuleSet_Apply_ChannelTypeCompatibility(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -625,7 +625,7 @@ func TestSliceRuleSet_Apply_ChannelWithCancellation(t *testing.T) {
 	}
 
 	// Check that we got a cancellation error
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -687,7 +687,7 @@ func TestSliceRuleSet_Apply_ContextCancelledDuringValidation(t *testing.T) {
 	// Create a rule set that will take time to validate
 	// Cancel after validation starts but before it completes
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
-		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationErrorCollection {
+		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationError {
 			// Cancel context after first item is processed
 			if s == "test" {
 				time.Sleep(10 * time.Millisecond)
@@ -710,13 +710,13 @@ func TestSliceRuleSet_Apply_ContextCancelledDuringValidation(t *testing.T) {
 	}
 
 	// Check that we got a cancellation error
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
 
 	// Verify cancellation error code
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return
@@ -833,8 +833,8 @@ func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 		return
 	}
 
-	if len(err) != 2 {
-		t.Errorf("Expected 2 errors (for 'a' and ''), got %d", len(err))
+	if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors (for 'a' and ''), got %d", len(errors.Unwrap(err)))
 	}
 
 	// Read from output channel - should have all 4 items
@@ -860,8 +860,10 @@ func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 
 	// Verify errors are for the correct items
 	errPaths := make(map[string]bool)
-	for _, e := range err {
-		errPaths[e.Path()] = true
+	for _, e := range errors.Unwrap(err) {
+		if ve, ok := e.(errors.ValidationError); ok {
+			errPaths[ve.Path()] = true
+		}
 	}
 
 	// Should have errors at indices 1 and 3
@@ -888,7 +890,7 @@ func TestSliceRuleSet_Apply_ChannelOutput_NilOutput(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -954,7 +956,7 @@ func TestSliceRuleSet_Apply_ChannelOutput_NilChannel(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -982,7 +984,7 @@ func TestSliceRuleSet_Apply_ChannelOutput_ReceiveOnly(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -1004,7 +1006,7 @@ func TestSliceRuleSet_Apply_ChannelOutput_IncompatibleType(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -1173,13 +1175,13 @@ func TestSliceRuleSet_Apply_PutIndexError(t *testing.T) {
 	}
 
 	// Verify we got a cancellation error
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
 
 	// Verify error is a cancellation error
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return
@@ -1203,7 +1205,7 @@ func TestSliceRuleSet_Apply_FinalizeError(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -1226,7 +1228,7 @@ func TestSliceRuleSet_Apply_ContextCancelledDuringProcessing(t *testing.T) {
 	// Create rule set with item rule function that cancels after first item
 	// Use closure to capture cancel function
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
-		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationErrorCollection {
+		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationError {
 			// Cancel context after first item is processed
 			if s == "a" {
 				cancel()
@@ -1338,7 +1340,7 @@ func TestSliceRuleSet_Apply_NonNilInterfaceNotAssignable(t *testing.T) {
 	}
 
 	// Verify error code
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return
@@ -1365,7 +1367,7 @@ func TestSliceRuleSet_Apply_SliceNotAssignable(t *testing.T) {
 	}
 
 	// Verify error code
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return
@@ -1500,7 +1502,7 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim(t *testing.T) {
 	// Use closure-based cancellation - items are validated sequentially
 	// so cancellation on first item ("a") should always be detected
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
-		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationErrorCollection {
+		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationError {
 			// Cancel after first item is processed
 			if s == "a" {
 				cancel()
@@ -1519,7 +1521,7 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim(t *testing.T) {
 	}
 
 	// Verify it's a cancellation error
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return
@@ -1579,7 +1581,7 @@ func TestSliceRuleSet_Apply_FinalizeErrorAtEnd(t *testing.T) {
 		return
 	}
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected at least one error")
 		return
 	}
@@ -1705,7 +1707,7 @@ func TestSliceRuleSet_Apply_ContextCancelledBetweenItems_NonChanInput(t *testing
 	// Create rule set with item rule function that cancels after first item
 	// Use closure to capture cancel function
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
-		rules.String().WithRuleFunc(func(itemCtx context.Context, s string) errors.ValidationErrorCollection {
+		rules.String().WithRuleFunc(func(itemCtx context.Context, s string) errors.ValidationError {
 			mu.Lock()
 			processedItems = append(processedItems, s)
 			mu.Unlock()
@@ -1730,7 +1732,7 @@ func TestSliceRuleSet_Apply_ContextCancelledBetweenItems_NonChanInput(t *testing
 	}
 
 	// Verify cancellation error code
-	firstErr := err.First()
+	firstErr := err
 	if firstErr == nil {
 		t.Error("Expected at least one error")
 		return

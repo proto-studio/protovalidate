@@ -17,8 +17,17 @@ import (
 //   - WithErrorCallback(fn errors.ErrorCallback) <ConcreteType>
 type RuleSet[T any] interface {
 	Rule[T]
-	Apply(ctx context.Context, value any, out any) errors.ValidationErrorCollection // Apply attempts to coerce the value into the correct type and evaluates all rules in the rule set, then assigns the results to an interface.
-	Any() RuleSet[any]                                                              // Any returns an implementation of rule sets for the "any" type that wraps a typed RuleSet so that the set can be used in nested objects and arrays.
-	Required() bool                                                                 // Returns true if the value is not allowed to be omitted when nested under other rule sets.
-	String() string                                                                 // Converts the rule set to a string for printing and debugging.
+
+	// Apply coerces value into the correct type, evaluates all rules in the rule set, and assigns the result to out.
+	// Returns a ValidationError if coercion or validation fails. out must be a non-nil pointer to the output type.
+	Apply(ctx context.Context, value any, out any) errors.ValidationError
+
+	// Any returns a RuleSet[any] that wraps this rule set for use in nested objects and arrays.
+	Any() RuleSet[any]
+
+	// Required returns true if the value must be present when nested under other rule sets (e.g. required field).
+	Required() bool
+
+	// String returns a string representation of the rule set for debugging and serialization.
+	String() string
 }

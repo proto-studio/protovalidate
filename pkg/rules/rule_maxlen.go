@@ -13,11 +13,9 @@ type maxLenRule[TV any, T lengthy[TV]] struct {
 }
 
 // Evaluate takes a context and array/slice value and returns an error if it is not equal or lower in length than the specified value.
-func (rule *maxLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *maxLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	if len(value) > rule.max {
-		return errors.Collection(
-			errors.Error(errors.CodeMaxLen, ctx, rule.max),
-		)
+		return errors.Error(errors.CodeMaxLen, ctx, rule.max)
 	}
 	return nil
 }

@@ -213,6 +213,7 @@ type conflictTypeReplacesWrapper[T integer] struct {
 	ct intConflictType
 }
 
+// Replaces returns true if the other rule is an IntRuleSet with a conflicting conflict type.
 func (w conflictTypeReplacesWrapper[T]) Replaces(r Rule[T]) bool {
 	// Try to cast to IntRuleSet to access conflictType
 	if rs, ok := r.(interface{ getConflictType() intConflictType }); ok {
@@ -250,8 +251,8 @@ func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -263,15 +264,13 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Attempt to coerce the input value to an integer
 	intval, validationErr := ruleSet.coerceInt(input, ctx)
 	if validationErr != nil {
-		return errors.Collection(validationErr)
+		return validationErr
 	}
 
 	// Handle setting the value in output
@@ -312,44 +311,31 @@ func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) 
 
 	// If the types are incompatible, return an error
 	if !assignable {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", intval, outputElem.Interface(),
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", intval, outputElem.Interface())
 	}
 
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
 			if err := currentRuleSet.rule.Evaluate(ctx, intval); err != nil {
-				allErrors = append(allErrors, err...)
+				errs = errors.Join(errs, err)
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	}
-	return nil
+	return errs
 }
 
-// Evaluate performs validation of a RuleSet against an integer value and returns a ValidationErrorCollection.
-func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+// Evaluate performs validation of a RuleSet against an integer value and returns a ValidationError.
+func (v *IntRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
+	var errs errors.ValidationError
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
 			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
-				allErrors = append(allErrors, err...)
+				errs = errors.Join(errs, err)
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

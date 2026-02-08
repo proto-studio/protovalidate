@@ -14,7 +14,7 @@ type ipCIDRRule struct {
 }
 
 // Evaluate validates that the IP address is within one of the allowed CIDR blocks.
-func (rule *ipCIDRRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func (rule *ipCIDRRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
 		return nil
 	}
@@ -25,9 +25,7 @@ func (rule *ipCIDRRule) Evaluate(ctx context.Context, ip net.IP) errors.Validati
 		}
 	}
 
-	return errors.Collection(errors.Errorf(
-		errors.CodePattern, ctx, "invalid format", "IP address is not within the allowed CIDR block(s)",
-	))
+	return errors.Errorf(errors.CodePattern, ctx, "invalid format", "IP address is not within the allowed CIDR block(s)")
 }
 
 // Replaces returns true for any CIDR rule.

@@ -95,6 +95,7 @@ type boolConflictTypeReplacesWrapper struct {
 	ct boolConflictType
 }
 
+// Replaces returns true if the other rule is a BoolRuleSet with a conflicting conflict type.
 func (w boolConflictTypeReplacesWrapper) Replaces(r Rule[bool]) bool {
 	// Try to cast to BoolRuleSet to access conflictType
 	if rs, ok := r.(interface{ getConflictType() boolConflictType }); ok {
@@ -134,8 +135,8 @@ func (v *BoolRuleSet) WithNil() *BoolRuleSet {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -147,15 +148,13 @@ func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any, output any) er
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Attempt to coerce the input value to a boolean
 	boolval, validationErr := ruleSet.coerceBool(input, ctx)
 	if validationErr != nil {
-		return errors.Collection(validationErr)
+		return validationErr
 	}
 
 	// Handle setting the value in output
@@ -190,44 +189,31 @@ func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any, output any) er
 
 	// If the types are incompatible, return an error
 	if !assignable {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", boolval, outputElem.Interface(),
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", boolval, outputElem.Interface())
 	}
 
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
 			if err := currentRuleSet.rule.Evaluate(ctx, boolval); err != nil {
-				allErrors = append(allErrors, err...)
+				errs = errors.Join(errs, err)
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	}
-	return nil
+	return errs
 }
 
-// Evaluate performs validation of a RuleSet against a boolean value and returns a ValidationErrorCollection.
-func (v *BoolRuleSet) Evaluate(ctx context.Context, value bool) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+// Evaluate performs validation of a RuleSet against a boolean value and returns a ValidationError.
+func (v *BoolRuleSet) Evaluate(ctx context.Context, value bool) errors.ValidationError {
+	var errs errors.ValidationError
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
 			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
-				allErrors = append(allErrors, err...)
+				errs = errors.Join(errs, err)
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new rule set with all conflicting rules removed.

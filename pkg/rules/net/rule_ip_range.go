@@ -15,16 +15,14 @@ type ipRangeRule struct {
 }
 
 // Evaluate validates that the IP address is within the specified range (inclusive).
-func (rule *ipRangeRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func (rule *ipRangeRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
 		return nil
 	}
 
 	// Compare IPs byte by byte
 	if compareIPs(ip, rule.startIP) < 0 || compareIPs(ip, rule.endIP) > 0 {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "IP address is not within the allowed range",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "IP address is not within the allowed range")
 	}
 
 	return nil

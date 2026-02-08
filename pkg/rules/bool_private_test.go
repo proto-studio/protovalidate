@@ -200,7 +200,7 @@ func TestBoolConflictTypeReplacesWrapper_Replaces_False(t *testing.T) {
 // mockRuleWithoutConflictType is a mock rule that doesn't implement getConflictType
 type mockRuleWithoutConflictType struct{}
 
-func (m *mockRuleWithoutConflictType) Evaluate(ctx context.Context, value bool) errors.ValidationErrorCollection {
+func (m *mockRuleWithoutConflictType) Evaluate(ctx context.Context, value bool) errors.ValidationError {
 	return nil
 }
 

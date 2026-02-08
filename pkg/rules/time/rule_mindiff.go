@@ -16,11 +16,9 @@ type minDiffRule struct {
 
 // Evaluate takes a context and integer value and returns an error if the difference between the current server time and
 // the time.Time value is less than than than the specified value.
-func (rule *minDiffRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
+func (rule *minDiffRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationError {
 	if time.Until(value) < rule.min {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s from now", rule.min),
-		)
+		return errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s from now", rule.min)
 	}
 
 	return nil

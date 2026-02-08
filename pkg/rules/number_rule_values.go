@@ -37,19 +37,15 @@ func (rule *valuesRule[T]) exists(value T) bool {
 
 // Evaluate takes a context and string value and returns an error depending on whether the value is in a list
 // of allowed or denied values.
-func (rule *valuesRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *valuesRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	exists := rule.exists(value)
 
 	if rule.allow {
 		if !exists {
-			return errors.Collection(
-				errors.Error(errors.CodeNotAllowed, ctx),
-			)
+			return errors.Error(errors.CodeNotAllowed, ctx)
 		}
 	} else if exists {
-		return errors.Collection(
-			errors.Error(errors.CodeForbidden, ctx),
-		)
+		return errors.Error(errors.CodeForbidden, ctx)
 	}
 
 	return nil

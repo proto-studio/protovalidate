@@ -14,11 +14,9 @@ type stringMinExclusiveRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it is lexicographically less than or equal to the specified value.
-func (rule *stringMinExclusiveRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+func (rule *stringMinExclusiveRule) Evaluate(ctx context.Context, value string) errors.ValidationError {
 	if value <= rule.min {
-		return errors.Collection(
-			errors.Error(errors.CodeMinExclusive, ctx, util.TruncateString(rule.min)),
-		)
+		return errors.Error(errors.CodeMinExclusive, ctx, util.TruncateString(rule.min))
 	}
 
 	return nil

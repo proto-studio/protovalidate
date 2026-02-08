@@ -15,14 +15,14 @@ import (
 func TestCollectionWrapper(t *testing.T) {
 	ctx := context.Background()
 
-	err := pkgerrors.Collection(
+	err := pkgerrors.Join(
 		pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1"),
 		pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2"),
 	)
 
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
-	} else if s := len(err); s != 2 {
+	} else if s := len(pkgerrors.Unwrap(err)); s != 2 {
 		t.Errorf("Expected error to have size %d, got %d", 2, s)
 	}
 }
@@ -34,22 +34,16 @@ func TestCollectionAsSlice(t *testing.T) {
 	err1 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1")
 	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2")
 
-	colErr := pkgerrors.Collection(
-		err1,
-		err2,
-	)
+	colErr := pkgerrors.Join(err1, err2)
 
 	if colErr == nil {
 		t.Fatal("Expected error to not be nil")
-	} else if s := len(colErr); s != 2 {
-		t.Fatalf("Expected error to have size %d, got %d", 2, s)
 	}
-
-	if l := len(colErr); l != 2 {
+	all := pkgerrors.Unwrap(colErr)
+	if l := len(all); l != 2 {
 		t.Fatalf("Expected error to have length %d, got %d", 2, l)
 	}
-
-	if !((colErr[0] == err1 && colErr[1] == err2) || (colErr[0] == err2 && colErr[1] == err1)) {
+	if !((all[0] == err1 && all[1] == err2) || (all[0] == err2 && all[1] == err1)) {
 		t.Errorf("Expected both errors to be in collection")
 	}
 }
@@ -62,19 +56,12 @@ func TestCollectionUnwrap(t *testing.T) {
 	err1 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1")
 	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2")
 
-	colErr := pkgerrors.Collection(
-		err1,
-		err2,
-	)
+	colErr := pkgerrors.Join(err1, err2)
 
 	if colErr == nil {
 		t.Fatal("Expected error to not be nil")
-	} else if s := len(colErr); s != 2 {
-		t.Fatalf("Expected error to have size %d, got %d", 2, s)
 	}
-
-	all := colErr.Unwrap()
-
+	all := pkgerrors.Unwrap(colErr)
 	if l := len(all); l != 2 {
 		t.Fatalf("Expected error to have length %d, got %d", 2, l)
 	}
@@ -84,60 +71,118 @@ func TestCollectionUnwrap(t *testing.T) {
 	}
 }
 
-// TestCollectionLen tests that len(collection) returns the number of errors.
+// TestJoinFlattensMultiError tests that Join flattens a multiError (Unwrap() non-empty) into the result.
+func TestJoinFlattensMultiError(t *testing.T) {
+	ctx := context.Background()
+	err1 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1")
+	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2")
+	err3 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error3")
+
+	inner := pkgerrors.Join(err1, err2)
+	outer := pkgerrors.Join(inner, err3)
+	all := pkgerrors.Unwrap(outer)
+	if len(all) != 3 {
+		t.Errorf("Expected Join to flatten to 3 errors, got %d", len(all))
+	}
+}
+
+// TestJoinSkipsNilsAndNonValidationErrors tests that Join skips nil entries and non-ValidationError values.
+func TestJoinSkipsNilsAndNonValidationErrors(t *testing.T) {
+	ctx := context.Background()
+	err1 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1")
+	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2")
+
+	col := pkgerrors.Join(nil, err1, nil, err2)
+	if col == nil {
+		t.Fatal("Join(nil, err1, nil, err2) should not be nil")
+	}
+	if n := len(pkgerrors.Unwrap(col)); n != 2 {
+		t.Errorf("Expected 2 errors, got %d", n)
+	}
+
+	plainErr := errors.New("plain")
+	col = pkgerrors.Join(err1, plainErr, err2)
+	if col == nil {
+		t.Fatal("Join with plain error should not be nil")
+	}
+	if n := len(pkgerrors.Unwrap(col)); n != 2 {
+		t.Errorf("Expected 2 ValidationErrors (plain skipped), got %d", n)
+	}
+}
+
+// TestCollectionLen tests that Unwrap() returns the correct number of errors.
 func TestCollectionLen(t *testing.T) {
 	ctx := context.Background()
 
 	err1 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error1")
 	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "error2")
 
-	colErr := pkgerrors.Collection(err1)
-
-	if s := len(colErr); s != 1 {
+	colErr := pkgerrors.Join(err1)
+	if s := len(pkgerrors.Unwrap(colErr)); s != 1 {
 		t.Errorf("Expected size to be 1, got: %d", s)
 	}
 
-	colErr = append(colErr, err2)
-
-	if s := len(colErr); s != 2 {
+	colErr = pkgerrors.Join(err1, err2)
+	if s := len(pkgerrors.Unwrap(colErr)); s != 2 {
 		t.Errorf("Expected size to be 2, got: %d", s)
 	}
 }
 
-// TestCollectionFirst tests:
-// - Returns the first error from a collection
-// - Returns one of the errors when multiple errors exist
-func TestCollectionFirst(t *testing.T) {
+// TestCollectionCodeWhenMultiple tests that Code() returns the first error's code when multiple errors exist.
+func TestCollectionCodeWhenMultiple(t *testing.T) {
 	ctx := context.Background()
 	err1 := pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "float32")
 	err2 := pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "float32")
 
-	colErr := pkgerrors.Collection(
-		err1,
-		err2,
-	)
-
+	colErr := pkgerrors.Join(err1, err2)
 	if colErr == nil {
 		t.Fatal("Expected error to not be nil")
-	} else if s := len(colErr); s != 2 {
-		t.Fatalf("Expected error to have size %d, got %d", 2, s)
 	}
-
-	first := colErr.First()
-
-	if first == nil {
-		t.Errorf("Expected first to not be nil")
-	} else if first != err1 && first != err2 {
-		t.Errorf("Expected one of two errors to be returned")
+	if colErr.Code() != pkgerrors.CodeType {
+		t.Errorf("Expected Code() to return CodeType, got: %s", colErr.Code())
 	}
 }
 
-// TestCollectionFirstEmpty tests:
-// - Returns nil when collection is empty
-func TestCollectionFirstEmpty(t *testing.T) {
-	col := pkgerrors.Collection()
-	if first := col.First(); first != nil {
-		t.Errorf("Expected first to be nil, got: %s", first)
+// TestCollectionDelegation tests that Path, PathAs, ShortError, DocsURI, TraceURI, Meta, and Params
+// on a joined (multi) error delegate to the first error.
+func TestCollectionDelegation(t *testing.T) {
+	ctx := rulecontext.WithPathString(context.Background(), "field")
+	err1 := pkgerrors.Errorf(pkgerrors.CodeMin, ctx, "above minimum", "value at least %d", 10)
+	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx, "above maximum", "value at most %d", 100)
+
+	col := pkgerrors.Join(err1, err2)
+	if col == nil {
+		t.Fatal("Expected joined error to not be nil")
+	}
+
+	if p := col.Path(); p != "/field" {
+		t.Errorf("Expected Path() to return first error path /field, got: %s", p)
+	}
+	if p := col.PathAs(pkgerrors.DefaultPathSerializer{}); p != "/field" {
+		t.Errorf("Expected PathAs() to return first error path /field, got: %s", p)
+	}
+	if s := col.ShortError(); s != "above minimum" {
+		t.Errorf("Expected ShortError() to return first error short, got: %s", s)
+	}
+	if u := col.DocsURI(); u != "" {
+		t.Errorf("Expected DocsURI() to return first error docs URI, got: %s", u)
+	}
+	if u := col.TraceURI(); u != "" {
+		t.Errorf("Expected TraceURI() to return first error trace URI, got: %s", u)
+	}
+	if m := col.Meta(); m != nil {
+		t.Errorf("Expected Meta() to return first error meta, got: %v", m)
+	}
+	if params := col.Params(); len(params) != 1 || params[0] != 10 {
+		t.Errorf("Expected Params() to return first error params [10], got: %v", params)
+	}
+}
+
+// TestUnwrapNil tests that pkgerrors.Unwrap(nil) returns nil (Unwrap() on nil is not called).
+func TestUnwrapNil(t *testing.T) {
+	all := pkgerrors.Unwrap(nil)
+	if all != nil {
+		t.Errorf("Expected nil, got length %d", len(all))
 	}
 }
 
@@ -153,50 +198,43 @@ func TestCollectionFor(t *testing.T) {
 	ctx2 = rulecontext.WithPathString(ctx2, "b")
 	err2 := pkgerrors.Errorf(pkgerrors.CodeMax, ctx2, "above maximum", "error2")
 
-	colErr := pkgerrors.Collection(
-		err1,
-		err2,
-	)
+	colErr := pkgerrors.Join(err1, err2)
 
 	if colErr == nil {
 		t.Fatal("Expected error to not be nil")
-	} else if s := len(colErr); s != 2 {
+	}
+	if s := len(pkgerrors.Unwrap(colErr)); s != 2 {
 		t.Fatalf("Expected error to have size %d, got %d", 2, s)
 	}
 
-	path1err := colErr.For("/path1")
-
+	path1err := pkgerrors.For(colErr, "/path1")
 	if path1err == nil {
 		t.Errorf("Expected path1 error to not be nil")
-	} else if s := len(path1err); s != 1 {
+	} else if s := len(pkgerrors.Unwrap(path1err)); s != 1 {
 		t.Errorf("Expected a collection with 1 error, got: '%d'", s)
-	} else if first := path1err.First(); first != err1 {
+	} else if first := pkgerrors.Unwrap(path1err)[0]; first != err1 {
 		t.Errorf("Expected '%s' to be returned, got: '%s'", err1, first)
 	}
 
-	path1err = colErr.For("/path1/b")
-
+	path1err = pkgerrors.For(colErr, "/path1/b")
 	if path1err != nil {
 		t.Errorf("Expected error to be nil, got: %s", path1err)
 	}
 
-	path2err := colErr.For("/path2a/b")
-
+	path2err := pkgerrors.For(colErr, "/path2a/b")
 	if path2err == nil {
 		t.Errorf("Expected path2 error to not be nil")
-	} else if s := len(path2err); s != 1 {
+	} else if s := len(pkgerrors.Unwrap(path2err)); s != 1 {
 		t.Errorf("Expected a collection with 1 error, got: '%d'", s)
-	} else if first := path2err.First(); first != err2 {
+	} else if first := pkgerrors.Unwrap(path2err)[0]; first != err2 {
 		t.Errorf("Expected '%s' to be returned, got: '%s'", err2, first)
 	}
 }
 
-// TestCollectionForEmpty tests:
-// - Returns nil when collection is empty
-func TestCollectionForEmpty(t *testing.T) {
-	col := pkgerrors.Collection()
-	if first := col.For("a"); first != nil {
-		t.Errorf("Expected first to be nil, got: %s", first)
+// TestCollectionForNil tests that For(nil, path) returns nil.
+func TestCollectionForNil(t *testing.T) {
+	if result := pkgerrors.For(nil, "a"); result != nil {
+		t.Errorf("Expected For(nil, path) to be nil, got: %s", result)
 	}
 }
 
@@ -206,29 +244,16 @@ func TestCollectionForEmpty(t *testing.T) {
 func TestCollectionMessage(t *testing.T) {
 	err := pkgerrors.Errorf(pkgerrors.CodeUnknown, context.Background(), "unknown error", "error123")
 
-	col := pkgerrors.Collection(err)
-
+	col := pkgerrors.Join(err)
 	if msg := col.Error(); msg != "error123" {
 		t.Errorf("Expected error message to be %s, got: %s", "error123", msg)
 	}
 
-	col = append(col, pkgerrors.Errorf(pkgerrors.CodeUnknown, context.Background(), "unknown error", "error123"))
-
+	err2 := pkgerrors.Errorf(pkgerrors.CodeUnknown, context.Background(), "unknown error", "error123")
+	col = pkgerrors.Join(err, err2)
 	if msg := col.Error(); !strings.Contains(msg, "(and 1 more)") {
 		t.Errorf("Expected error message to contain the string '(and 1 more)', got: %s", msg)
 	}
-}
-
-// TestPanicCollectionMessageEmpty tests:
-// - Panics when Error is called on an empty collection
-func TestPanicCollectionMessageEmpty(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Expected panic")
-		}
-	}()
-
-	_ = pkgerrors.Collection().Error()
 }
 
 // TestValidationErrorInternal tests:
@@ -306,18 +331,11 @@ func TestValidationErrorPermission(t *testing.T) {
 // TestCollectionInternal tests:
 // - Internal() returns true if any error is internal
 // - Internal() returns false if no errors are internal
-// - Internal() returns false for empty collections
 func TestCollectionInternal(t *testing.T) {
 	ctx := context.Background()
 
-	// Empty collection
-	emptyCol := pkgerrors.Collection()
-	if emptyCol.Internal() {
-		t.Error("Expected empty collection Internal() to return false")
-	}
-
 	// Collection with only validation errors
-	validationCol := pkgerrors.Collection(
+	validationCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeMax, ctx, 100),
 	)
@@ -326,7 +344,7 @@ func TestCollectionInternal(t *testing.T) {
 	}
 
 	// Collection with one internal error
-	mixedCol := pkgerrors.Collection(
+	mixedCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeInternal, ctx),
 	)
@@ -339,18 +357,11 @@ func TestCollectionInternal(t *testing.T) {
 // - Permission() returns true if any error is permission and none are internal
 // - Permission() returns false if any error is internal
 // - Permission() returns false if all errors are validation
-// - Permission() returns false for empty collections
 func TestCollectionPermission(t *testing.T) {
 	ctx := context.Background()
 
-	// Empty collection
-	emptyCol := pkgerrors.Collection()
-	if emptyCol.Permission() {
-		t.Error("Expected empty collection Permission() to return false")
-	}
-
 	// Collection with only validation errors
-	validationCol := pkgerrors.Collection(
+	validationCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeMax, ctx, 100),
 	)
@@ -359,7 +370,7 @@ func TestCollectionPermission(t *testing.T) {
 	}
 
 	// Collection with permission error
-	permissionCol := pkgerrors.Collection(
+	permissionCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeForbidden, ctx),
 	)
@@ -368,7 +379,7 @@ func TestCollectionPermission(t *testing.T) {
 	}
 
 	// Collection with internal and permission errors - internal takes precedence
-	internalAndPermissionCol := pkgerrors.Collection(
+	internalAndPermissionCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeInternal, ctx),
 		pkgerrors.Error(pkgerrors.CodeForbidden, ctx),
 	)
@@ -380,18 +391,11 @@ func TestCollectionPermission(t *testing.T) {
 // TestCollectionValidation tests:
 // - Validation() returns true if all errors are validation
 // - Validation() returns false if any error is internal or permission
-// - Validation() returns false for empty collections
 func TestCollectionValidation(t *testing.T) {
 	ctx := context.Background()
 
-	// Empty collection
-	emptyCol := pkgerrors.Collection()
-	if emptyCol.Validation() {
-		t.Error("Expected empty collection Validation() to return false")
-	}
-
 	// Collection with only validation errors
-	validationCol := pkgerrors.Collection(
+	validationCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeMax, ctx, 100),
 	)
@@ -400,7 +404,7 @@ func TestCollectionValidation(t *testing.T) {
 	}
 
 	// Collection with internal error
-	internalCol := pkgerrors.Collection(
+	internalCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeInternal, ctx),
 	)
@@ -409,7 +413,7 @@ func TestCollectionValidation(t *testing.T) {
 	}
 
 	// Collection with permission error
-	permissionCol := pkgerrors.Collection(
+	permissionCol := pkgerrors.Join(
 		pkgerrors.Error(pkgerrors.CodeMin, ctx, 10),
 		pkgerrors.Error(pkgerrors.CodeForbidden, ctx),
 	)
@@ -418,16 +422,13 @@ func TestCollectionValidation(t *testing.T) {
 	}
 }
 
-// TestCollectionUnwrapEmpty tests:
-// - Unwrap returns an empty slice for empty collections
-func TestCollectionUnwrapEmpty(t *testing.T) {
-	col := pkgerrors.Collection()
-	unwrapped := col.Unwrap()
-	if unwrapped == nil {
-		t.Error("Expected Unwrap() to return an empty slice, not nil")
-	}
-	if len(unwrapped) != 0 {
-		t.Errorf("Expected Unwrap() to return empty slice, got length %d", len(unwrapped))
+// TestUnwrapSingle tests that a single error's Unwrap() returns nil and pkgerrors.Unwrap returns []error{err}.
+func TestUnwrapSingle(t *testing.T) {
+	ctx := context.Background()
+	err := pkgerrors.Error(pkgerrors.CodeMin, ctx, 10)
+	all := pkgerrors.Unwrap(err)
+	if len(all) != 1 || all[0] != err {
+		t.Errorf("Expected one error, got: %d", len(all))
 	}
 }
 
@@ -443,17 +444,15 @@ func TestCollectionErrorsIs(t *testing.T) {
 	err2 := pkgerrors.Error(pkgerrors.CodeMax, ctx, 100)
 	err3 := pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "string")
 
-	// Single error collection
-	col1 := pkgerrors.Collection(err1)
-	if !errors.Is(col1, err1) {
+	// Single error
+	if !errors.Is(err1, err1) {
 		t.Error("Expected errors.Is to return true for error in single-error collection")
 	}
-	if errors.Is(col1, err2) {
-		t.Error("Expected errors.Is to return false for error not in collection")
+	if errors.Is(err1, err2) {
+		t.Error("Expected errors.Is to return false for different error")
 	}
-
 	// Multiple error collection
-	col2 := pkgerrors.Collection(err1, err2)
+	col2 := pkgerrors.Join(err1, err2)
 	if !errors.Is(col2, err1) {
 		t.Error("Expected errors.Is to return true for first error in collection")
 	}
@@ -464,10 +463,9 @@ func TestCollectionErrorsIs(t *testing.T) {
 		t.Error("Expected errors.Is to return false for error not in collection")
 	}
 
-	// Empty collection
-	emptyCol := pkgerrors.Collection()
-	if errors.Is(emptyCol, err1) {
-		t.Error("Expected errors.Is to return false for empty collection")
+	// Nil
+	if errors.Is(nil, err1) {
+		t.Error("Expected errors.Is(nil, err) to return false")
 	}
 }
 
@@ -482,18 +480,17 @@ func TestCollectionErrorsAs(t *testing.T) {
 	err1 := pkgerrors.Error(pkgerrors.CodeMin, ctx, 10)
 	err2 := pkgerrors.Error(pkgerrors.CodeMax, ctx, 100)
 
-	// Single error collection
-	col1 := pkgerrors.Collection(err1)
+	// Single error
 	var extractedErr pkgerrors.ValidationError
-	if !errors.As(col1, &extractedErr) {
-		t.Error("Expected errors.As to return true and extract ValidationError from single-error collection")
+	if !errors.As(err1, &extractedErr) {
+		t.Error("Expected errors.As to return true and extract ValidationError from single error")
 	}
 	if extractedErr != err1 {
-		t.Error("Expected extracted error to match the error in collection")
+		t.Error("Expected extracted error to match")
 	}
 
 	// Multiple error collection - should extract first matching error
-	col2 := pkgerrors.Collection(err1, err2)
+	col2 := pkgerrors.Join(err1, err2)
 	extractedErr = nil
 	if !errors.As(col2, &extractedErr) {
 		t.Error("Expected errors.As to return true and extract ValidationError from multi-error collection")
@@ -501,30 +498,28 @@ func TestCollectionErrorsAs(t *testing.T) {
 	if extractedErr == nil {
 		t.Error("Expected extracted error to not be nil")
 	}
-	// The extracted error should be one of the errors in the collection
-	if extractedErr != err1 && extractedErr != err2 {
-		t.Error("Expected extracted error to be one of the errors in the collection")
+	// The extracted error should have a code from the collection (As may return the multiError or first wrapped error)
+	if extractedErr.Code() != pkgerrors.CodeMin && extractedErr.Code() != pkgerrors.CodeMax {
+		t.Errorf("Expected extracted error code to be CodeMin or CodeMax, got %v", extractedErr.Code())
 	}
 
 	// Test with a different error code to verify it extracts correctly
 	err3 := pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "string")
-	col3 := pkgerrors.Collection(err3)
 	extractedErr = nil
-	if !errors.As(col3, &extractedErr) {
+	if !errors.As(err3, &extractedErr) {
 		t.Error("Expected errors.As to return true for different error code")
 	}
 	if extractedErr.Code() != pkgerrors.CodeType {
 		t.Errorf("Expected extracted error to have CodeType code, got %v", extractedErr.Code())
 	}
 
-	// Empty collection
-	emptyCol := pkgerrors.Collection()
+	// Nil
 	extractedErr = nil
-	if errors.As(emptyCol, &extractedErr) {
-		t.Error("Expected errors.As to return false for empty collection")
+	if errors.As(nil, &extractedErr) {
+		t.Error("Expected errors.As(nil, &extractedErr) to return false")
 	}
 	if extractedErr != nil {
-		t.Error("Expected extracted error to remain nil for empty collection")
+		t.Error("Expected extracted error to remain nil")
 	}
 }
 
@@ -537,8 +532,9 @@ func TestCollectionErrorsAsWithNestedErrors(t *testing.T) {
 	err2 := pkgerrors.Error(pkgerrors.CodeMax, ctx, 100)
 
 	// Create a collection and then wrap it (simulating nested error scenarios)
-	innerCol := pkgerrors.Collection(err1, err2)
-	outerCol := pkgerrors.Collection(innerCol.First(), pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "string"))
+	innerCol := pkgerrors.Join(err1, err2)
+	first := pkgerrors.Unwrap(innerCol)[0]
+	outerCol := pkgerrors.Join(first, pkgerrors.Error(pkgerrors.CodeType, ctx, "int", "string"))
 
 	var extractedErr pkgerrors.ValidationError
 	if !errors.As(outerCol, &extractedErr) {

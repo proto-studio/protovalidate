@@ -14,11 +14,9 @@ type maxRule[T integer | floating] struct {
 }
 
 // Evaluate takes a context and integer value and returns an error if it is not equal or higher than the specified value.
-func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *maxRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	if value > rule.max {
-		return errors.Collection(
-			errors.Error(errors.CodeMax, ctx, rule.max),
-		)
+		return errors.Error(errors.CodeMax, ctx, rule.max)
 	}
 
 	return nil

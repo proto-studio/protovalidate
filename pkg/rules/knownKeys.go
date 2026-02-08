@@ -42,24 +42,22 @@ func (k *knownKeys[TK]) exists(key TK) bool {
 }
 
 // Check validates if all keys in the provided reflect.Value are known.
-// It returns a ValidationErrorCollection with errors for each unexpected key.
+// It returns a ValidationError with errors for each unexpected key.
 //
 // If allowUnknown is true when creating the object then this always returns an
 // empty error collection.
-func (k *knownKeys[TK]) Check(ctx context.Context, inValue reflect.Value) errors.ValidationErrorCollection {
-	errs := errors.Collection()
-
-	// If the knownKeys map is not initialized, return an empty error collection.
+func (k *knownKeys[TK]) Check(ctx context.Context, inValue reflect.Value) errors.ValidationError {
+	// If the knownKeys map is not initialized, return nil.
 	if k.keys == nil {
-		return errs
+		return nil
 	}
-
+	var errs []error
 	unk := k.Unknown(inValue)
 	for _, key := range unk {
 		subContext := rulecontext.WithPathString(ctx, toPath(key))
 		errs = append(errs, errors.Error(errors.CodeUnexpected, subContext))
 	}
-	return errs
+	return errors.Join(errs...)
 }
 
 // Unknown returns all the unexpected keys.

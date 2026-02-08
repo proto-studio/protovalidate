@@ -27,9 +27,9 @@ func uriPartRequiredMissingHelper(t testing.TB, name, value string, withRequired
 
 	if err == nil {
 		t.Errorf("Expected shallow error to not be nil on %s", value)
-	} else if code := err.First().Code(); code != errors.CodeRequired {
+	} else if code := err.Code(); code != errors.CodeRequired {
 		t.Errorf("Expected shallow error code of %s, got %s (%s)", errors.CodeRequired, code, err)
-	} else if path := err.First().Path(); path != "/uri" {
+	} else if path := err.Path(); path != "/uri" {
 		t.Errorf("Expected shallow error path of %s, got %s (on %s)", "/uri/"+name, path, value)
 	}
 
@@ -38,9 +38,9 @@ func uriPartRequiredMissingHelper(t testing.TB, name, value string, withRequired
 
 	if err == nil {
 		t.Errorf("Expected deep error to not be nil on %s", value)
-	} else if code := err.First().Code(); code != errors.CodeRequired {
+	} else if code := err.Code(); code != errors.CodeRequired {
 		t.Errorf("Expected deep error code of %s, got %s (%s on %s)", errors.CodeRequired, code, err, value)
-	} else if path := err.First().Path(); path != "/uri/"+name {
+	} else if path := err.Path(); path != "/uri/"+name {
 		t.Errorf("Expected deep error path of %s, got %s (on %s)", "/uri/"+name, path, value)
 	}
 }
@@ -181,7 +181,7 @@ func TestURIRuleSet_Apply_SchemeCharacterSet(t *testing.T) {
 func TestURIRuleSet_CustomContext(t *testing.T) {
 	var ctxRef context.Context
 
-	fn := func(ctx context.Context, value string) errors.ValidationErrorCollection {
+	fn := func(ctx context.Context, value string) errors.ValidationError {
 		ctxRef = ctx
 		return nil
 	}
@@ -299,12 +299,14 @@ func TestURIRuleSet_Apply_DeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		errs := ruleSet.Apply(ctx, value, &output)
+		errs := errors.Unwrap(ruleSet.Apply(ctx, value, &output))
 
 		if len(errs) != 1 {
 			t.Errorf("Expected 1 error for %s, got: %d", path, len(errs))
-		} else if errPath := errs.First().Path(); errPath != "/url" {
-			t.Errorf("Expected path for %s to be `/url`, got: %s", path, errPath)
+		} else if ve, ok := errs[0].(errors.ValidationError); ok {
+			if errPath := ve.Path(); errPath != "/url" {
+				t.Errorf("Expected path for %s to be `/url`, got: %s", path, errPath)
+			}
 		}
 	}
 
@@ -320,12 +322,14 @@ func TestURIRuleSet_Apply_DeepErrors(t *testing.T) {
 	}
 
 	for path, value := range tests {
-		errs := ruleSet.Apply(ctx, value, &output)
+		errs := errors.Unwrap(ruleSet.Apply(ctx, value, &output))
 
 		if len(errs) != 1 {
 			// We would have already printed this error
-		} else if errPath := errs.First().Path(); errPath != "/url/"+path {
-			t.Errorf("Expected path for %s to be `/url/%s`, got: %s", path, path, errPath)
+		} else if ve, ok := errs[0].(errors.ValidationError); ok {
+			if errPath := ve.Path(); errPath != "/url/"+path {
+				t.Errorf("Expected path for %s to be `/url/%s`, got: %s", path, path, errPath)
+			}
 		}
 	}
 }
@@ -558,8 +562,8 @@ func TestURIRuleSet_WithRuleFunc(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(err) != 2 {
-		t.Errorf("Expected 2 errors, got: %d", len(err))
+	} else if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors, got: %d", len(errors.Unwrap(err)))
 	}
 }
 

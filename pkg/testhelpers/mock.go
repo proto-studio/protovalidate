@@ -23,7 +23,7 @@ type MockRule[T any] struct {
 	evaluateCallCount int64
 
 	// fn stores the function representation of the rule
-	fn func(_ context.Context, _ T) errors.ValidationErrorCollection
+	fn func(_ context.Context, _ T) errors.ValidationError
 
 	// Errors is used to return errors to the mock caller.
 	Errors []errors.ValidationError
@@ -46,11 +46,12 @@ func NewMockRuleWithErrors[T any](count int) *MockRule[T] {
 }
 
 // defaultErrors returns a collection of the default errors or nil depending on how the mock is configured
-func (rule *MockRule[T]) defaultErrors() errors.ValidationErrorCollection {
-	if len(rule.Errors) > 0 {
-		return errors.Collection(rule.Errors...)
+func (rule *MockRule[T]) defaultErrors() errors.ValidationError {
+	errSlice := make([]error, len(rule.Errors))
+	for i, e := range rule.Errors {
+		errSlice[i] = e
 	}
-	return nil
+	return errors.Join(errSlice...)
 }
 
 // Evaluate takes a context and a value to evaluate.
@@ -58,7 +59,7 @@ func (rule *MockRule[T]) defaultErrors() errors.ValidationErrorCollection {
 // - If errors are set then it will return all the errors.
 // - If an override return value is set it will return that.
 // - If neither, it will return the original value and no errors.
-func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *MockRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	atomic.AddInt64(&rule.evaluateCallCount, 1)
 	return rule.defaultErrors()
 }
@@ -93,9 +94,9 @@ func (rule *MockRule[T]) Reset() {
 // store a copy of the MockCustomRule if you wish to retrieve the count.
 //
 // Calling this function more than once will result in the same function being returned.
-func (rule *MockRule[T]) Function() func(_ context.Context, _ T) errors.ValidationErrorCollection {
+func (rule *MockRule[T]) Function() func(_ context.Context, _ T) errors.ValidationError {
 	if rule.fn == nil {
-		rule.fn = func(ctx context.Context, value T) errors.ValidationErrorCollection {
+		rule.fn = func(ctx context.Context, value T) errors.ValidationError {
 			return rule.Evaluate(ctx, value)
 		}
 	}
@@ -177,7 +178,7 @@ func (mockRuleSet *MockRuleSet[T]) ApplyCallCount() int64 {
 
 // Apply tries to do a simple cast and returns an error if it fails. It then calls
 // Evaluate. Cast errors do not count towards the run count.
-func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	atomic.AddInt64(&mockRuleSet.applyCallCount, 1)
 
 	// Add error config to context for error customization
@@ -190,14 +191,13 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 
 	// Check if the output is a nil pointer, handle error case
 	if output == nil {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "output cannot be nil"))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output cannot be nil")
 	}
 
 	outputVal := reflect.ValueOf(output)
 
-	// Check if output is a pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer, got %T", output))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer, got %T", output)
 	}
 
 	outputElem := outputVal.Elem()
@@ -208,7 +208,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 
 		// Ensure the mockRuleSet.OutputValue is assignable to the output's pointed type
 		if !mockValue.Type().AssignableTo(outputElem.Type()) {
-			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", mockRuleSet.OutputValue, output))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", mockRuleSet.OutputValue, output)
 		}
 
 		// Set the mockRuleSet.OutputValue to the output
@@ -220,7 +220,7 @@ func (mockRuleSet *MockRuleSet[T]) Apply(ctx context.Context, input, output any)
 	inputVal := reflect.ValueOf(input)
 
 	if !inputVal.Type().AssignableTo(outputElem.Type()) {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", input, output))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", input, output)
 	}
 
 	// Set the input value to output

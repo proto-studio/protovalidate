@@ -15,12 +15,10 @@ type minExclusiveDurationRule struct {
 }
 
 // Evaluate takes a context and duration value and returns an error if it is not greater than the specified value (exclusive).
-func (rule *minExclusiveDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationErrorCollection {
+func (rule *minExclusiveDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationError {
 	// Exclusive: value must be > min, so reject if value <= min
 	if value <= rule.min {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMinExclusive, ctx, "below minimum", "must be greater than %s", rule.min),
-		)
+		return errors.Errorf(errors.CodeMinExclusive, ctx, "below minimum", "must be greater than %s", rule.min)
 	}
 
 	return nil
