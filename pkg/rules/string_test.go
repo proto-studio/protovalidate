@@ -56,7 +56,7 @@ func TestStringRuleSet_Apply_TypeError(t *testing.T) {
 	// Use Apply instead of Validate
 	err := rules.String().WithStrict().Apply(context.TODO(), 123, &str)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 	}
 }
@@ -253,14 +253,14 @@ func TestStringRuleSet_ErrorConfig_CoercionError(t *testing.T) {
 		WithStrict(). // Strict mode disables coercion
 		WithErrorMessage("type error", "expected a string")
 
-	errs := ruleSet.Apply(context.Background(), 123, &out)
+	errs := errors.Unwrap(ruleSet.Apply(context.Background(), 123, &out))
 
 	if len(errs) == 0 {
 		t.Fatal("Expected coercion error")
 	}
 
-	if errs[0].ShortError() != "type error" {
-		t.Errorf("Expected short error 'type error', got: %s", errs[0].ShortError())
+	if ve, ok := errs[0].(errors.ValidationError); ok && ve.ShortError() != "type error" {
+		t.Errorf("Expected short error 'type error', got: %s", ve.ShortError())
 	}
 }
 
@@ -272,13 +272,13 @@ func TestStringRuleSet_ErrorConfig_WithMinLen(t *testing.T) {
 		WithMinLen(5).
 		WithErrorMessage("custom short", "custom long")
 
-	errs := ruleSet.Apply(context.Background(), "ab", &out)
+	errs := errors.Unwrap(ruleSet.Apply(context.Background(), "ab", &out))
 
 	if len(errs) == 0 {
 		t.Fatal("Expected validation error")
 	}
 
-	if errs[0].ShortError() != "custom short" {
-		t.Errorf("Expected short error 'custom short', got: %s", errs[0].ShortError())
+	if ve, ok := errs[0].(errors.ValidationError); ok && ve.ShortError() != "custom short" {
+		t.Errorf("Expected short error 'custom short', got: %s", ve.ShortError())
 	}
 }

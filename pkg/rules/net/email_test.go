@@ -187,7 +187,7 @@ func TestEmailRuleSet_DomainContext(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := err.First().Path(); s != expected {
+	} else if s := err.Path(); s != expected {
 		t.Errorf("Expected path to be %s, got: %s", expected, s)
 	}
 }

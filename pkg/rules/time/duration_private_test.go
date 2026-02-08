@@ -38,7 +38,7 @@ func TestDurationConflictType_Replaces_WrongType(t *testing.T) {
 
 	// Test with a regular rule (not a ruleset) - cast should fail
 	// RuleFunc doesn't implement the DurationRuleSet interface, so the cast in Replaces should fail
-	rule := rules.RuleFunc[time.Duration](func(ctx context.Context, value time.Duration) errors.ValidationErrorCollection {
+	rule := rules.RuleFunc[time.Duration](func(ctx context.Context, value time.Duration) errors.ValidationError {
 		return nil
 	})
 	if checker.Replaces(rule) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -25,7 +26,7 @@ func TestMockRule(t *testing.T) {
 	err = rule2(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 1 {
+	} else if s := len(errors.Unwrap(err)); s != 1 {
 		t.Errorf("Expected error collection size to be %d, got: %d", 1, s)
 	}
 
@@ -34,7 +35,7 @@ func TestMockRule(t *testing.T) {
 	err = rule3(ctx, 456)
 	if err == nil {
 		t.Error("Expected error to not be nil")
-	} else if s := len(err); s != 2 {
+	} else if s := len(errors.Unwrap(err)); s != 2 {
 		t.Errorf("Expected error collection size to be %d, got: %d", 2, s)
 	}
 }

@@ -92,8 +92,8 @@ func (v *AnyRuleSet) WithNil() *AnyRuleSet {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the value to the output.
-// Apply returns a ValidationErrorCollection.
-func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError.
+func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -110,9 +110,7 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 	// Ensure output is a pointer
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.Collection(
-			errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"),
-		)
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Get the element the pointer points to
@@ -127,39 +125,29 @@ func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.Valida
 		return nil
 	}
 
-	return errors.Collection(
-		errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output),
-	)
+	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output)
 }
 
-// Evaluate performs validation of a RuleSet against a value and returns a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a value and returns a ValidationError.
 // Evaluate calls wrapped rules before any rules added directly to the AnyRuleSet.
-func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
+func (v *AnyRuleSet) Evaluate(ctx context.Context, value any) errors.ValidationError {
 	if v.forbidden {
-		return errors.Collection(errors.Error(errors.CodeForbidden, ctx))
+		return errors.Error(errors.CodeForbidden, ctx)
 	}
 
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
 
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			err := currentRuleSet.rule.Evaluate(ctx, value)
-			if err != nil {
-				allErrors = append(allErrors, err...)
+			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
+				errs = errors.Join(errs, err)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.

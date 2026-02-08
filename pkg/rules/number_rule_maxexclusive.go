@@ -14,11 +14,9 @@ type maxExclusiveRule[T integer | floating] struct {
 }
 
 // Evaluate takes a context and value and returns an error if it is not less than the specified value (exclusive).
-func (rule *maxExclusiveRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *maxExclusiveRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	if value >= rule.max {
-		return errors.Collection(
-			errors.Error(errors.CodeMaxExclusive, ctx, rule.max),
-		)
+		return errors.Error(errors.CodeMaxExclusive, ctx, rule.max)
 	}
 
 	return nil

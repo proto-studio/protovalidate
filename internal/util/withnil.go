@@ -10,7 +10,7 @@ import (
 // TrySetNilIfAllowed attempts to set the output to nil if withNil is true and input is nil.
 // It returns true if nil was successfully set (and the caller should return), false if normal processing should continue,
 // and an error if there was a problem setting nil or if nil is not allowed.
-func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (handled bool, err errors.ValidationErrorCollection) {
+func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (handled bool, err errors.ValidationError) {
 	// If input is not nil, continue with normal processing
 	if input != nil {
 		return false, nil
@@ -19,17 +19,13 @@ func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (h
 	// Input is nil - check if nil is allowed
 	if !withNil {
 		// Nil is not allowed, return error
-		return true, errors.Collection(errors.Error(
-			errors.CodeNull, ctx,
-		))
+		return true, errors.Error(errors.CodeNull, ctx)
 	}
 
 	// Nil is allowed - ensure output is a pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return false, errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return false, errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// Get the element the pointer points to

@@ -19,7 +19,7 @@ type InterfaceTest struct {
 // - Can cast to interface.
 func TestInterfaceSlice(t *testing.T) {
 	innerRuleSet := rules.Interface[MyTestInterface]().
-		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
+		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationError) {
 			if v == nil {
 				return nil, nil
 			}

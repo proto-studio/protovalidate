@@ -15,11 +15,9 @@ type minTimeRule struct {
 }
 
 // Evaluate takes a context and integer value and returns an error if it is not equal or later than than the specified value.
-func (rule *minTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
+func (rule *minTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationError {
 	if value.Before(rule.min) {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s", rule.min),
-		)
+		return errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be on or after %s", rule.min)
 	}
 
 	return nil

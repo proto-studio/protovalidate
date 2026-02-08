@@ -101,8 +101,8 @@ func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
 }
 
 // Apply validates a RuleSet against an input value and assigns the validated value to output.
-// Apply returns a ValidationErrorCollection.
-func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError.
+func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -115,14 +115,14 @@ func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any)
 	v, ok := input.(T)
 	if !ok {
 		// Return a coercion error if input is not of type T.
-		return errors.Collection(errors.Error(errors.CodeType, ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String()))
+		return errors.Error(errors.CodeType, ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String())
 	}
 
 	// Ensure the output is assignable to the coerced value.
 	outVal := reflect.ValueOf(output)
 	if outVal.Kind() != reflect.Ptr || outVal.IsNil() || !reflect.ValueOf(v).Type().AssignableTo(outVal.Elem().Type()) {
 		// Return an error if the output is not assignable.
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output)
 	}
 
 	// Assign the validated value to the output.
@@ -133,9 +133,9 @@ func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any)
 }
 
 // Evaluate performs validation of a RuleSet against a value and returns any errors.
-func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (ruleSet *ConstantRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	if value != ruleSet.value {
-		return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "value mismatch", "value does not match"))
+		return errors.Errorf(errors.CodePattern, ctx, "value mismatch", "value does not match")
 	}
 	return nil
 }

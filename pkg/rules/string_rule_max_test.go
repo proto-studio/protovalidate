@@ -112,7 +112,7 @@ func TestStringRuleSet_WithMax_Truncation(t *testing.T) {
 		return
 	}
 
-	errMsg := err[0].Error()
+	errMsg := err.Error()
 	// The error message should contain the truncated string (50 chars + "...")
 	// We check that it doesn't contain the full 101-character string
 	if len(errMsg) > 200 {

@@ -27,8 +27,8 @@ func TestTrySetNilIfAllowed(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("Expected error when nil is not allowed")
-	} else if err.First().Code() != errors.CodeNull {
-		t.Errorf("Expected error code to be CodeNull, got: %s", err.First().Code())
+	} else if err.Code() != errors.CodeNull {
+		t.Errorf("Expected error code to be CodeNull, got: %s", err.Code())
 	}
 
 	// Test case 3: input is nil, withNil is true, output is not a pointer - should return false with CodeInternal error
@@ -39,8 +39,8 @@ func TestTrySetNilIfAllowed(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("Expected error when output is not a pointer")
-	} else if err.First().Code() != errors.CodeInternal {
-		t.Errorf("Expected error code to be CodeInternal, got: %s", err.First().Code())
+	} else if err.Code() != errors.CodeInternal {
+		t.Errorf("Expected error code to be CodeInternal, got: %s", err.Code())
 	}
 
 	// Test case 4: input is nil, withNil is true, output is nil pointer - should return false with CodeInternal error
@@ -51,8 +51,8 @@ func TestTrySetNilIfAllowed(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("Expected error when output pointer is nil")
-	} else if err.First().Code() != errors.CodeInternal {
-		t.Errorf("Expected error code to be CodeInternal, got: %s", err.First().Code())
+	} else if err.Code() != errors.CodeInternal {
+		t.Errorf("Expected error code to be CodeInternal, got: %s", err.Code())
 	}
 
 	// Test case 5: input is nil, withNil is true, output points to nil-able type (pointer) - should set to nil

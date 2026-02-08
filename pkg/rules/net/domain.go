@@ -122,8 +122,8 @@ func (ruleSet *DomainRuleSet) WithNil() *DomainRuleSet {
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// It returns a ValidationError if any validation errors occur.
+func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -135,7 +135,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String()))
+		return errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String())
 	}
 
 	// Perform the validation
@@ -147,9 +147,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// Dereference the pointer to get the actual value that needs to be set
@@ -161,9 +159,7 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 	case reflect.Interface:
 		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output,
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output)
 	}
 
 	return nil
@@ -171,63 +167,43 @@ func (ruleSet *DomainRuleSet) Apply(ctx context.Context, input any, output any) 
 
 // validateBasicDomain performs general domain validation that is valid for any and all domains.
 // This function always returns a collection even if it is empty.
-func validateBasicDomain(ctx context.Context, value string) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
-	// Convert to punycode
+func validateBasicDomain(ctx context.Context, value string) errors.ValidationError {
+	var errs errors.ValidationError
 	punycode, err := idna.ToASCII(value)
-
 	if err != nil {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain contains invalid characters"))
-		return allErrors
+		return errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain contains invalid characters"))
 	}
-
-	// Check total length
 	if len(punycode) >= 256 {
-		allErrors = append(allErrors, errors.Errorf(errors.CodeMaxLen, ctx, "too long", "domain exceeds maximum length"))
-		return allErrors
+		return errors.Join(errs, errors.Errorf(errors.CodeMaxLen, ctx, "too long", "domain exceeds maximum length"))
 	}
-
-	// Each labels should contain only valid characters
 	parts := strings.Split(punycode, ".")
-
 	for _, part := range parts {
 		if !domainLabelPattern.MatchString(part) {
-			allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain segment is invalid"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain segment is invalid"))
 			break
 		}
 	}
-
-	return allErrors
+	return errs
 }
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
-// same type or a ValidationErrorCollection.
-func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
-	allErrors := validateBasicDomain(ctx, value)
-
-	if len(allErrors) > 0 {
-		return allErrors
+// same type or a ValidationError.
+func (ruleSet *DomainRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationError {
+	var errs errors.ValidationError
+	if ev := validateBasicDomain(ctx, value); ev != nil {
+		errs = errors.Join(errs, ev)
 	}
-
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

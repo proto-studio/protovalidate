@@ -12,7 +12,7 @@ import (
 )
 
 // queryPercentEncodingRule validates that the query string is properly percent-encoded.
-func queryPercentEncodingRule(ctx context.Context, value string) errors.ValidationErrorCollection {
+func queryPercentEncodingRule(ctx context.Context, value string) errors.ValidationError {
 	runes := []rune(value)
 	l := len(runes)
 	for i := range runes {
@@ -20,9 +20,7 @@ func queryPercentEncodingRule(ctx context.Context, value string) errors.Validati
 			continue
 		}
 		if i >= l-2 || !isHex(runes[i+1]) || !isHex(runes[i+2]) {
-			return errors.Collection(
-				errors.Errorf(errors.CodeEncoding, ctx, "invalid encoding", "value is not properly URI encoded"),
-			)
+			return errors.Errorf(errors.CodeEncoding, ctx, "invalid encoding", "value is not properly URI encoded")
 		}
 	}
 	return nil
@@ -135,14 +133,14 @@ func (q *QueryRuleSet) clone(options ...queryCloneOption) *QueryRuleSet {
 var defaultQueryStringRuleSet rules.RuleSet[string] = rules.String().WithRuleFunc(queryPercentEncodingRule)
 
 // Evaluate validates the query (percent encoding on the encoded form), registered parameters, and top-level rules.
-func (q *QueryRuleSet) Evaluate(ctx context.Context, values url.Values) errors.ValidationErrorCollection {
+func (q *QueryRuleSet) Evaluate(ctx context.Context, values url.Values) errors.ValidationError {
 	queryStringForEncoding := values.Encode()
 	if queryStringForEncoding != "" {
 		if err := defaultQueryStringRuleSet.Evaluate(ctx, queryStringForEncoding); err != nil {
 			return err
 		}
 	}
-	allErrors := errors.Collection()
+	var errs errors.ValidationError
 	if len(q.paramRules) > 0 {
 		for name, spec := range q.paramRules {
 			if spec == nil {
@@ -155,38 +153,34 @@ func (q *QueryRuleSet) Evaluate(ctx context.Context, values url.Values) errors.V
 				paramVal = paramValues[0]
 			}
 			paramContext := rulecontext.WithPathString(ctx, "query["+name+"]")
-
 			if spec.ruleSet != nil {
 				if !paramPresent && spec.ruleSet.Required() {
-					allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, paramContext, "required", "query parameter %q is required", name))
+					errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, paramContext, "required", "query parameter %q is required", name))
 					continue
 				}
 				if !paramPresent && !spec.ruleSet.Required() {
 					continue
 				}
 				if err := spec.ruleSet.Evaluate(paramContext, any(paramVal)); err != nil {
-					allErrors = append(allErrors, err...)
+					errs = errors.Join(errs, err)
 				}
 			}
 		}
-		if len(allErrors) > 0 {
-			return allErrors
+		if errs != nil {
+			return errs
 		}
 	}
 	current := q
 	ctx = rulecontext.WithRuleSet(ctx, q)
 	for current != nil {
 		if current.rule != nil {
-			if errs := current.rule.Evaluate(ctx, values); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := current.rule.Evaluate(ctx, values); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
 		current = current.parent
 	}
-	if len(allErrors) > 0 {
-		return allErrors
-	}
-	return nil
+	return errs
 }
 
 // queryParser is used by Apply to parse a query string; tests may override to trigger the parse-error branch.
@@ -194,7 +188,7 @@ var queryParser = url.ParseQuery
 
 // Apply coerces input to url.Values (string is parsed; parse error becomes a validation error), validates, and writes to output.
 // Output may be *string, *url.Values, or *any.
-func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	ctx = errors.WithErrorConfig(ctx, q.errorConfig)
 
 	var values url.Values
@@ -203,16 +197,12 @@ func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.
 		var parseErr error
 		values, parseErr = queryParser(v)
 		if parseErr != nil {
-			return errors.Collection(
-				errors.Errorf(errors.CodeEncoding, ctx, "invalid query", "query string could not be parsed: %v", parseErr),
-			)
+			return errors.Errorf(errors.CodeEncoding, ctx, "invalid query", "query string could not be parsed: %v", parseErr)
 		}
 	case url.Values:
 		values = v
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeType, ctx, "string or url.Values", reflect.ValueOf(input).Kind().String(),
-		))
+		return errors.Errorf(errors.CodeType, ctx, "string or url.Values", reflect.ValueOf(input).Kind().String())
 	}
 
 	if err := q.Evaluate(ctx, values); err != nil {
@@ -221,9 +211,7 @@ func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.
 
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 	elem := outputVal.Elem()
 
@@ -245,9 +233,7 @@ func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.
 			return nil
 		}
 	}
-	return errors.Collection(errors.Errorf(
-		errors.CodeInternal, ctx, "internal error", "query output must be *string, *url.Values, or *any, got %T", output,
-	))
+	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "query output must be *string, *url.Values, or *any, got %T", output)
 }
 
 // String returns a string representation of the rule set for debugging.

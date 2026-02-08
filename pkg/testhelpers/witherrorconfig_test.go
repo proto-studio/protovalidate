@@ -49,7 +49,7 @@ func TestErrorConfigTestRuleFunc(t *testing.T) {
 
 	// The function should return errors (since it's for testing error config)
 	errs := fn(context.Background(), "test")
-	if len(errs) == 0 {
+	if len(errors.Unwrap(errs)) == 0 {
 		t.Error("Expected ErrorConfigTestRuleFunc to produce errors")
 	}
 }
@@ -299,6 +299,7 @@ func (e *brokenValidationError) Params() []any          { return nil }
 func (e *brokenValidationError) Internal() bool         { return false }
 func (e *brokenValidationError) Validation() bool       { return true }
 func (e *brokenValidationError) Permission() bool       { return false }
+func (e *brokenValidationError) Unwrap() []error        { return nil }
 
 // MockCallbackBrokenError produces errors with empty fields that the callback will capture
 type MockCallbackBrokenError struct {
@@ -307,13 +308,12 @@ type MockCallbackBrokenError struct {
 	callback  errors.ErrorCallback
 }
 
-func (m *MockCallbackBrokenError) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockCallbackBrokenError) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		// Apply callback if set
 		if m.callback != nil {
-			return errors.Collection(m.callback(ctx, m.brokenErr))
+			return m.callback(ctx, m.brokenErr)
 		}
-		return errors.Collection(m.brokenErr)
+		return m.brokenErr
 	}
 	return m.MockRuleSet.Apply(ctx, input, output)
 }
@@ -347,7 +347,7 @@ func (m *MockCallbackBrokenError) WithErrorCallback(fn errors.ErrorCallback) *Mo
 // MockNoErrors has Apply that succeeds even when it should fail (doesn't return errors for nil)
 type MockNoErrors struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNoErrors) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNoErrors) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	return nil // Always succeeds - broken for testing nil error handling
 }
 

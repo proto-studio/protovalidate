@@ -168,8 +168,8 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -181,9 +181,7 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	var t time.Time
@@ -220,10 +218,10 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 			}
 		}
 		if !ok {
-			return errors.Collection(errors.Error(errors.CodeType, ctx, "date time", "string"))
+			return errors.Error(errors.CodeType, ctx, "date time", "string")
 		}
 	default:
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "date time", reflect.TypeOf(input).String()))
+		return errors.Error(errors.CodeType, ctx, "date time", reflect.TypeOf(input).String())
 	}
 
 	// Overwrite layout if outputLayout is set
@@ -244,37 +242,27 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 		formattedTime := t.Format(layout)
 		outputElem.Set(reflect.ValueOf(formattedTime))
 	} else {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", t, outputElem.Interface(),
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", t, outputElem.Interface())
 	}
 
 	// Evaluate the time value and return any validation errors
 	return ruleSet.Evaluate(ctx, t)
 }
 
-// Evaluate performs validation of a RuleSet against a time.Time value and returns a ValidationErrorCollection.
-func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+// Evaluate performs validation of a RuleSet against a time.Time value and returns a ValidationError.
+func (ruleSet *TimeRuleSet) Evaluate(ctx context.Context, value time.Time) errors.ValidationError {
+	var errs errors.ValidationError
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

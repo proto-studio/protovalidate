@@ -127,8 +127,8 @@ func (v *StringRuleSet) WithNil() *StringRuleSet {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the resulting string to the output pointer.
-// Apply returns a ValidationErrorCollection.
-func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError.
+func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -140,16 +140,14 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 	// Ensure output is a pointer that can be set
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.Collection(
-			errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"),
-		)
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Attempt to coerce the input to a string
 	str, validationErr := v.coerce(value, ctx)
 
 	if validationErr != nil {
-		return errors.Collection(validationErr)
+		return validationErr
 	}
 
 	verrs := v.Evaluate(ctx, str)
@@ -173,33 +171,23 @@ func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.Val
 		return nil
 	}
 
-	return errors.Collection(
-		errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign string to %T", output),
-	)
+	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign string to %T", output)
 }
 
-// Evaluate performs validation of a RuleSet against a string value and returns a ValidationErrorCollection.
-func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+// Evaluate performs validation of a RuleSet against a string value and returns a ValidationError.
+func (v *StringRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationError {
+	var errs errors.ValidationError
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

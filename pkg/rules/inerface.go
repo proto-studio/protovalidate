@@ -18,7 +18,7 @@ type InterfaceRuleSet[T any] struct {
 	rule        Rule[T]
 	parent      *InterfaceRuleSet[T]
 	label       string
-	cast        func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)
+	cast        func(ctx context.Context, value any) (T, errors.ValidationError)
 	errorConfig *errors.ErrorConfig
 }
 
@@ -66,7 +66,7 @@ func interfaceWithErrorConfig[T any](config *errors.ErrorConfig) interfaceCloneO
 //
 // A third boolean return value is added to differentiate between a successful cast to a nil value
 // and
-func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationErrorCollection)) *InterfaceRuleSet[T] {
+func (v *InterfaceRuleSet[T]) WithCast(fn func(ctx context.Context, value any) (T, errors.ValidationError)) *InterfaceRuleSet[T] {
 	newRuleSet := v.clone(interfaceWithLabel[T]("WithCast(<function>)"))
 	newRuleSet.cast = fn
 	return newRuleSet
@@ -99,8 +99,8 @@ func (v *InterfaceRuleSet[T]) WithNil() *InterfaceRuleSet[T] {
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// It returns a ValidationError if any validation errors occur.
+func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -112,18 +112,14 @@ func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output
 	// Ensure output is a pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Attempt to cast the input value directly to the expected type T
 	if v, ok := input.(T); ok {
 		inputValue := reflect.ValueOf(v)
 		if !inputValue.Type().AssignableTo(outputVal.Elem().Type()) {
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Cannot assign `%T` to `%T`", input, output,
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign `%T` to `%T`", input, output)
 		}
 		outputVal.Elem().Set(inputValue)
 		return ruleSet.Evaluate(ctx, v)
@@ -143,38 +139,27 @@ func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output
 	}
 
 	// If casting fails, return a coercion error
-	return errors.Collection(
-		errors.Error(errors.CodeType,
-			ctx,
-			reflect.TypeOf(new(T)).Elem().Name(),
-			reflect.ValueOf(input).Kind().String(),
-		),
+	return errors.Error(errors.CodeType,
+		ctx,
+		reflect.TypeOf(new(T)).Elem().Name(),
+		reflect.ValueOf(input).Kind().String(),
 	)
 }
 
 // Evaluate performs a validation of a RuleSet against all the defined rules.
-func (v *InterfaceRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+func (v *InterfaceRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
+	var errs errors.ValidationError
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			err := currentRuleSet.rule.Evaluate(ctx, value)
-			if err != nil {
-				allErrors = append(allErrors, err...)
+			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
+				errs = errors.Join(errs, err)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.

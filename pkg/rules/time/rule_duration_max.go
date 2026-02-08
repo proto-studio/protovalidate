@@ -15,11 +15,9 @@ type maxDurationRule struct {
 }
 
 // Evaluate takes a context and duration value and returns an error if it is greater than the specified value.
-func (rule *maxDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationErrorCollection {
+func (rule *maxDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationError {
 	if value > rule.max {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMax, ctx, "above maximum", "must be at most %s", rule.max),
-		)
+		return errors.Errorf(errors.CodeMax, ctx, "above maximum", "must be at most %s", rule.max)
 	}
 
 	return nil

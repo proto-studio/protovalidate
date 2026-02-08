@@ -17,11 +17,9 @@ type regexpRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it does not match the expected pattern.
-func (rule *regexpRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+func (rule *regexpRule) Evaluate(ctx context.Context, value string) errors.ValidationError {
 	if !rule.exp.MatchString(value) {
-		return errors.Collection(
-			errors.Errorf(errors.CodePattern, ctx, "invalid format", rule.msg),
-		)
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", rule.msg)
 	}
 
 	return nil

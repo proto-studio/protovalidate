@@ -53,8 +53,19 @@ func TestMustApply(t *testing.T) {
 	}
 }
 
+// ruleSetWithPlainUnwrapError is a RuleSet whose Apply returns an error whose Unwrap() contains a plain error.
+// Used to cover the else branch in MustApplyFunc's error-formatting loop.
+type ruleSetWithPlainUnwrapError struct {
+	testhelpers.MockRuleSet[any]
+}
+
+func (r *ruleSetWithPlainUnwrapError) Apply(_ context.Context, _ any, _ any) errors.ValidationError {
+	return &errorWithPlainUnwrap{msg: "apply err"}
+}
+
 // TestMustApplyFunc tests:
 // - MustApplyFunc correctly validates rule sets with custom check function
+// - MustApplyFunc formats unwrapped errors that are not ValidationError (else branch)
 func TestMustApplyFunc(t *testing.T) {
 	ruleSet := rules.Any()
 	callCount := 0
@@ -91,6 +102,18 @@ func TestMustApplyFunc(t *testing.T) {
 	}
 	if callCount != 1 {
 		t.Errorf("Expected check function call count to be 1, got: %d", callCount)
+	}
+
+	// RuleSet that returns an error whose Unwrap() contains a plain error (covers else branch in MustApplyFunc)
+	ruleSetPlainUnwrap := &ruleSetWithPlainUnwrapError{
+		MockRuleSet: *testhelpers.NewMockRuleSet[any](),
+	}
+	mockT = &MockT{}
+	if _, err := testhelpers.MustApplyFunc(mockT, ruleSetPlainUnwrap, 10, 10, checkValid); err == nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
 	}
 }
 
@@ -155,7 +178,7 @@ func TestMustApplyMutation(t *testing.T) {
 // MockNilOk is a mock rule set that incorrectly succeeds when applying nil
 type MockNilOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if output == nil {
 		return nil
 	}
@@ -166,7 +189,7 @@ func (m *MockNilOk) Apply(ctx context.Context, input, output any) errors.Validat
 // MockNilOk is a mock rule set that incorrectly succeeds when applying a pointer to nil
 type MockNilPtrOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if outputPtr, ok := output.(*int); ok && outputPtr == nil {
 		return nil
 	}
@@ -177,7 +200,7 @@ func (m *MockNilPtrOk) Apply(ctx context.Context, input, output any) errors.Vali
 // MockNilOk is a mock rule set that incorrectly succeeds when applying a non-pointer that matches the type
 type MockNonPtrOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNonPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNonPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if _, ok := output.(int); ok {
 		return nil
 	}
@@ -188,7 +211,7 @@ func (m *MockNonPtrOk) Apply(ctx context.Context, input, output any) errors.Vali
 // MockWrongTypeOk is a mock rule set that incorrectly succeeds when applying a pointer with the wrong type
 type MockWrongTypeOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongTypeOk) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWrongTypeOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	// Always succeed on non-nil pointer regardless of type
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -202,28 +225,34 @@ func (m *MockWrongTypeOk) Apply(ctx context.Context, input, output any) errors.V
 // errors.CodeInternal should be used and is replaced with errors.CodeUknown
 type MockWrongErrorCode struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
 	errs := mockRuleSet.Apply(ctx, input, output)
 
 	if errs == nil {
 		return nil
 	}
-
-	// Replace all CodeInternal errors
-	for idx := range errs {
-		if errs[idx].Code() == errors.CodeInternal {
-			errs[idx] = errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "")
+	coll := errors.Unwrap(errs)
+	var out []error
+	for _, e := range coll {
+		ve, ok := e.(errors.ValidationError)
+		if !ok {
+			out = append(out, e)
+			continue
+		}
+		if ve.Code() == errors.CodeInternal {
+			out = append(out, errors.Errorf(errors.CodeUnknown, ctx, "unknown error", ""))
+		} else {
+			out = append(out, ve)
 		}
 	}
-
-	return errs
+	return errors.Join(out...)
 }
 
 // MockAlwaysError is a mock rule set that always fails
 type MockAlwaysError struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
 	errs := mockRuleSet.Apply(ctx, input, output)
 
@@ -231,7 +260,7 @@ func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.V
 		return errs
 	}
 
-	return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", ""))
+	return errors.Join(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", ""))
 }
 
 // TestMustApplyTypes tests:
@@ -291,8 +320,29 @@ func TestMustApplyTypes(t *testing.T) {
 	}
 }
 
+// errorWithPlainUnwrap is a ValidationError whose Unwrap() returns a plain (non-ValidationError) error.
+// Used to cover the branch in MustEvaluate/MustApplyFunc that formats non-VE unwrapped errors.
+type errorWithPlainUnwrap struct {
+	msg string
+}
+
+func (e *errorWithPlainUnwrap) Error() string                                      { return e.msg }
+func (e *errorWithPlainUnwrap) Unwrap() []error                                   { return []error{fmt.Errorf("inner plain error")} }
+func (e *errorWithPlainUnwrap) Code() errors.ErrorCode                             { return errors.CodeUnknown }
+func (e *errorWithPlainUnwrap) Path() string                                      { return "" }
+func (e *errorWithPlainUnwrap) PathAs(_ errors.PathSerializer) string              { return "" }
+func (e *errorWithPlainUnwrap) ShortError() string                                 { return "short" }
+func (e *errorWithPlainUnwrap) DocsURI() string                                   { return "" }
+func (e *errorWithPlainUnwrap) TraceURI() string                                   { return "" }
+func (e *errorWithPlainUnwrap) Meta() map[string]any                               { return nil }
+func (e *errorWithPlainUnwrap) Params() []any                                      { return nil }
+func (e *errorWithPlainUnwrap) Internal() bool                                     { return false }
+func (e *errorWithPlainUnwrap) Validation() bool                                  { return true }
+func (e *errorWithPlainUnwrap) Permission() bool                                  { return false }
+
 // TestMustEvaluate tests:
 // - MustEvaluate correctly validates rules
+// - MustEvaluate formats unwrapped errors that are not ValidationError (else branch)
 func TestMustEvaluate(t *testing.T) {
 	rule := testhelpers.NewMockRuleWithErrors[any](1)
 
@@ -311,6 +361,18 @@ func TestMustEvaluate(t *testing.T) {
 	}
 	if mockT.errorCount != 0 {
 		t.Errorf("Expected error count to be 0, got: %d", mockT.errorCount)
+	}
+
+	// Rule that returns an error whose Unwrap() contains a plain error (covers else branch in MustEvaluate)
+	ruleWithPlainUnwrap := rules.RuleFunc[any](func(_ context.Context, _ any) errors.ValidationError {
+		return &errorWithPlainUnwrap{msg: "wrapper"}
+	})
+	mockT = &MockT{}
+	if err := testhelpers.MustEvaluate[any](mockT, ruleWithPlainUnwrap, 10); err == nil {
+		t.Error("Expected error to not be nil")
+	}
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected error count to be 1, got: %d", mockT.errorCount)
 	}
 }
 

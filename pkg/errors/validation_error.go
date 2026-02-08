@@ -6,36 +6,72 @@ import (
 	"proto.zip/studio/validate/pkg/rulecontext"
 )
 
-// ValidationError stores information necessary to identify where the validation error
-// is, as well as implementing the Error interface to work with standard errors.
+// ValidationError is the interface for validation errors. It extends the standard error
+// interface with Unwrap() []error for multiple errors and rich metadata (Code, Path, etc.).
+// When an error wraps multiple errors (Unwrap() returns non-empty), Code(), Path(), and
+// similar methods return the first error's information.
 type ValidationError interface {
-	Code() ErrorCode                         // Code returns the error code.
-	Path() string                            // Path returns the full path to the error as a string.
-	PathAs(serializer PathSerializer) string // PathAs returns the full path using the provided serializer.
-	Error() string                           // Error returns the detailed error message (satisfies Go error interface).
-	ShortError() string                      // ShortError returns a brief constant error description.
-	DocsURI() string                         // DocsURI returns an optional documentation URL for the error.
-	TraceURI() string                        // TraceURI returns an optional trace/debug URL for the error.
-	Meta() map[string]any                    // Meta returns arbitrary metadata associated with the error.
-	Params() []any                           // Params returns the format arguments used to create the error message.
+	error
 
-	// Type classification methods
-	Internal() bool   // Internal returns true if the error is an internal error.
-	Validation() bool // Validation returns true if the error is a validation error.
-	Permission() bool // Permission returns true if the error is a permission error.
+	// Unwrap returns the list of wrapped errors for use with errors.Is and errors.As.
+	// Returns nil for a single error (no wrapped errors). Nil receiver returns nil.
+	Unwrap() []error
+
+	// Code returns the error code. For multi-errors, returns the first error's code.
+	Code() ErrorCode
+
+	// Path returns the full path to the error (e.g. "/field/subfield"). For multi-errors, returns the first error's path.
+	Path() string
+
+	// PathAs returns the path serialized with the given serializer (e.g. JSON Pointer, JSONPath).
+	PathAs(serializer PathSerializer) string
+
+	// ShortError returns a brief, constant description suitable for API responses.
+	ShortError() string
+
+	// DocsURI returns an optional documentation URL for this error code.
+	DocsURI() string
+
+	// TraceURI returns an optional trace or debug URL.
+	TraceURI() string
+
+	// Meta returns arbitrary key-value metadata attached to the error.
+	Meta() map[string]any
+
+	// Params returns the format arguments used to build the long error message.
+	Params() []any
+
+	// Internal returns true if any wrapped error is classified as internal (e.g. CodeInternal, CodeTimeout).
+	Internal() bool
+
+	// Validation returns true if all wrapped errors are validation errors (user input issues).
+	Validation() bool
+
+	// Permission returns true if any wrapped error is a permission/authorization error and none are internal.
+	Permission() bool
 }
 
-// validationError implements a standard Error interface and also ValidationError interface
-// while preserving the validation data.
-type validationError struct {
-	code        ErrorCode               // Error code helps identify the error without string comparisons.
-	pathSegment rulecontext.PathSegment // The leaf path segment (nil if no path).
-	message     string                  // The error message (long description) converted to the context locale.
-	docsURI     string                  // Optional documentation URL.
-	traceURI    string                  // Optional trace/debug URL.
-	shortMsg    string                  // Brief constant description.
-	meta        map[string]any          // Arbitrary metadata.
-	params      []any                   // Format arguments used to create the message.
+// singleError is the concrete type for a single validation error.
+type singleError struct {
+	code        ErrorCode
+	pathSegment rulecontext.PathSegment
+	message     string
+	docsURI     string
+	traceURI    string
+	shortMsg    string
+	meta        map[string]any
+	params      []any
+}
+
+// Ensure singleError implements ValidationError.
+var _ ValidationError = (*singleError)(nil)
+
+// Unwrap returns nil for a single error (no wrapped errors). Nil receiver returns nil.
+func (err *singleError) Unwrap() []error {
+	if err == nil {
+		return nil
+	}
+	return nil
 }
 
 // Errorf creates a new ValidationError with explicit short and long messages.
@@ -72,7 +108,7 @@ func Errorf(code ErrorCode, ctx context.Context, short, long string, args ...int
 		meta = config.Meta
 	}
 
-	err := ValidationError(&validationError{
+	err := ValidationError(&singleError{
 		code:        actualCode,
 		pathSegment: segment,
 		message:     printer.Sprintf(actualLong, args...),
@@ -99,26 +135,23 @@ func Error(code ErrorCode, ctx context.Context, args ...interface{}) ValidationE
 	return Errorf(code, ctx, dict.ShortError(code), dict.ErrorPattern(code), args...)
 }
 
-// Error implements the standard Error interface to return a string for validation errors.
-// Error loses contextual data, so use the ValidationError object when possible.
-func (err *validationError) Error() string {
+// Error implements the error interface and returns the long-form message.
+func (err *singleError) Error() string {
 	return err.message
 }
 
 // Code returns the error code.
-// Code can be used to look up the error without relying on string checks.
-func (err *validationError) Code() ErrorCode {
+func (err *singleError) Code() ErrorCode {
 	return err.code
 }
 
-// Path returns the full path to the error as a string.
-// Path is a wrapper around PathAs using the default serializer.
-func (err *validationError) Path() string {
+// Path returns the full path using the default serializer.
+func (err *singleError) Path() string {
 	return err.PathAs(DefaultPathSerializer{})
 }
 
-// PathAs returns the full path to the error as a string using the provided serializer.
-func (err *validationError) PathAs(serializer PathSerializer) string {
+// PathAs returns the path serialized with the given serializer.
+func (err *singleError) PathAs(serializer PathSerializer) string {
 	var segments []rulecontext.PathSegment
 	if err.pathSegment != nil {
 		segments = extractPathSegments(err.pathSegment)
@@ -126,43 +159,42 @@ func (err *validationError) PathAs(serializer PathSerializer) string {
 	return serializer.Serialize(segments)
 }
 
-// DocsURI returns an optional documentation URL for the error.
-func (err *validationError) DocsURI() string {
+// DocsURI returns the optional documentation URI.
+func (err *singleError) DocsURI() string {
 	return err.docsURI
 }
 
-// TraceURI returns an optional trace/debug URL for the error.
-func (err *validationError) TraceURI() string {
+// TraceURI returns the optional trace/debug URI.
+func (err *singleError) TraceURI() string {
 	return err.traceURI
 }
 
-// ShortError returns a brief constant error description.
-func (err *validationError) ShortError() string {
+// ShortError returns the brief, constant description.
+func (err *singleError) ShortError() string {
 	return err.shortMsg
 }
 
-// Meta returns arbitrary metadata associated with the error.
-func (err *validationError) Meta() map[string]any {
+// Meta returns the metadata map, if any.
+func (err *singleError) Meta() map[string]any {
 	return err.meta
 }
 
-// Params returns the format arguments used to create the error message.
-// This allows callbacks to access the original values for custom formatting.
-func (err *validationError) Params() []any {
+// Params returns the format arguments for the long message.
+func (err *singleError) Params() []any {
 	return err.params
 }
 
-// Internal returns true if the error is classified as an internal error.
-func (err *validationError) Internal() bool {
+// Internal returns true if the error code is classified as internal.
+func (err *singleError) Internal() bool {
 	return DefaultDict().ErrorType(err.code) == ErrorTypeInternal
 }
 
-// Validation returns true if the error is classified as a validation error.
-func (err *validationError) Validation() bool {
+// Validation returns true if the error code is classified as a validation error.
+func (err *singleError) Validation() bool {
 	return DefaultDict().ErrorType(err.code) == ErrorTypeValidation
 }
 
-// Permission returns true if the error is classified as a permission error.
-func (err *validationError) Permission() bool {
+// Permission returns true if the error code is classified as a permission error.
+func (err *singleError) Permission() bool {
 	return DefaultDict().ErrorType(err.code) == ErrorTypePermission
 }

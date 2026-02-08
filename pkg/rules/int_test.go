@@ -43,7 +43,7 @@ func TestIntRuleSet_Apply_StrictError(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), "123", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -101,7 +101,7 @@ func TestIntRuleSet_Apply_CoerceFromHex(t *testing.T) {
 
 	err = rules.Int().WithBase(16).Apply(context.Background(), "XYZ", &actual)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -113,7 +113,7 @@ func TestIntRuleSet_Apply_CoerceFromFloatWithError(t *testing.T) {
 	var out int
 	err := rules.Int().Apply(context.Background(), 1.000001, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -135,7 +135,7 @@ func TestIntRuleSet_WithRuleFunc(t *testing.T) {
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[int](1).Function()).
 		Apply(context.Background(), "123", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -418,7 +418,7 @@ func TestIntRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
 	var out int
 	err := rules.Int().WithStrict().Apply(context.Background(), true, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}

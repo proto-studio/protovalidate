@@ -427,27 +427,29 @@ func contextErrorToValidation(ctx context.Context) errors.ValidationError {
 }
 
 // wait blocks until either the context is cancelled or the wait group is done (all keys have been validated).
-func wait(ctx context.Context, wg *sync.WaitGroup, errorsCh chan errors.ValidationErrorCollection, listenForCancelled bool) errors.ValidationErrorCollection {
+func wait(ctx context.Context, wg *sync.WaitGroup, errorsCh chan errors.ValidationError, listenForCancelled bool) errors.ValidationError {
 	done := make(chan struct{})
-
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
-
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	for {
 		select {
 		case err := <-errorsCh:
-			allErrors = append(allErrors, err...)
+			if err != nil {
+				errs = errors.Join(errs, err)
+			}
 		case <-ctx.Done():
 			if listenForCancelled {
 				wg.Wait()
-				return append(allErrors, contextErrorToValidation(ctx))
+				if ev := contextErrorToValidation(ctx); ev != nil {
+					errs = errors.Join(errs, ev)
+				}
+				return errs
 			}
 		case <-done:
-			return allErrors
+			return errs
 		}
 	}
 }
@@ -464,7 +466,7 @@ func done(ctx context.Context) bool {
 
 // evaluateKeyRule evaluates a single key rule.
 // Note that this function is meant to be called on the rule set that contains the rule.
-func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, out *T, wg *sync.WaitGroup, outValueMutex *sync.Mutex, errorsCh chan errors.ValidationErrorCollection, key TK, inFieldValue reflect.Value, s setter[TK], counters *counterSet[TK], dynamicBuckets []*ObjectRuleSet[T, TK, TV]) {
+func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, out *T, wg *sync.WaitGroup, outValueMutex *sync.Mutex, errorsCh chan errors.ValidationError, key TK, inFieldValue reflect.Value, s setter[TK], counters *counterSet[TK], dynamicBuckets []*ObjectRuleSet[T, TK, TV]) {
 	defer wg.Done()
 	counters.Lock(key)
 	defer counters.Unlock(key)
@@ -492,9 +494,7 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) evaluateKeyRule(ctx context.Context, ou
 
 	if inFieldValue.Kind() == reflect.Invalid {
 		if ruleSet.rule.Required() {
-			errorsCh <- errors.Collection(
-				errors.Error(errors.CodeRequired, ctx),
-			)
+			errorsCh <- errors.Error(errors.CodeRequired, ctx)
 		}
 		return
 	}
@@ -542,8 +542,8 @@ func (v *ObjectRuleSet[T, TK, TV]) keyValue(key TK, currentRuleSet *ObjectRuleSe
 }
 
 // evaluateKeyRules evaluates the rules for each key and called evaluateKeyRule.
-func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter[TK], fromMap, fromSame bool) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
+func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T, inValue reflect.Value, s setter[TK], fromMap, fromSame bool) errors.ValidationError {
+	var errs errors.ValidationError
 	var emptyKey TK
 
 	// Pre caching a list of dynamic buckets lets us avoid extra loops.
@@ -587,7 +587,7 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 	}
 
 	// Handle concurrency for the rule evaluation
-	errorsCh := make(chan errors.ValidationErrorCollection)
+	errorsCh := make(chan errors.ValidationError)
 	defer close(errorsCh)
 	var outValueMutex sync.Mutex
 
@@ -624,17 +624,16 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 		}
 	}
 
-	// Unknown fields are not concurrent for now so we need to wait for all rule evaluations to finish
 	ruleErrors := wait(ctx, &wg, errorsCh, true)
+	if ruleErrors != nil {
+		errs = errors.Join(errs, ruleErrors)
+	}
 
-	// Throw all applicable unknown keys into dynamic buckets.
-	// Keys in dynamic buckets should not trigger an unknown key error.
 	if len(dynamicBuckets) > 0 {
 		unk := knownKeys.Unknown(inValue)
 		for _, key := range unk {
 			for _, bucketRuleSet := range dynamicBuckets {
 				inFieldValue := v.keyValue(key, bucketRuleSet, inValue, fromMap, fromSame)
-
 				if bucketRuleSet.key.Evaluate(ctx, key) == nil && (bucketRuleSet.condition == nil || bucketRuleSet.condition.Evaluate(ctx, *out) == nil) {
 					knownKeys.Add(key)
 					s.SetBucket(bucketRuleSet.bucket, key, inFieldValue.Interface())
@@ -643,26 +642,24 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateKeyRules(ctx context.Context, out *T,
 		}
 	}
 
-	// Check for unknown values
 	if !v.allowUnknown {
-		// If allowUnknown is not set we want to error for each unknown value
-		knownKeyErrors := knownKeys.Check(ctx, inValue)
-		allErrors = append(allErrors, knownKeyErrors...)
+		if knownKeyErrors := knownKeys.Check(ctx, inValue); knownKeyErrors != nil {
+			errs = errors.Join(errs, knownKeyErrors)
+		}
 	} else if fromMap && s.Map() {
-		// If allowUnknown is set and the output is a map we want to assign each key to the map output.
 		for _, key := range knownKeys.Unknown(inValue) {
 			s.Set(key, inValue.MapIndex(reflect.ValueOf(key)).Interface())
 		}
 	}
 
-	return append(allErrors, ruleErrors...)
+	return errs
 }
 
 // evaluateObjectRules evaluates the object
-func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out *T) errors.ValidationErrorCollection {
+func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out *T) errors.ValidationError {
 	var wg sync.WaitGroup
 	var outValueMutex sync.Mutex
-	errorsCh := make(chan errors.ValidationErrorCollection)
+	errorsCh := make(chan errors.ValidationError)
 	defer close(errorsCh)
 
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
@@ -670,25 +667,20 @@ func (v *ObjectRuleSet[T, TK, TV]) evaluateObjectRules(ctx context.Context, out 
 			if done(ctx) {
 				break
 			}
-
 			wg.Add(1)
 			go func(objRule Rule[T]) {
 				outValueMutex.Lock()
 				defer outValueMutex.Unlock()
 				defer wg.Done()
-
 				if done(ctx) {
 					return
 				}
-
 				if err := objRule.Evaluate(ctx, *out); err != nil {
 					errorsCh <- err
 				}
-
 			}(currentRuleSet.objRule)
 		}
 	}
-
 	return wait(ctx, &wg, errorsCh, !done(ctx))
 }
 
@@ -707,8 +699,8 @@ func (ruleSet *ObjectRuleSet[T, TK, TV]) newSetter(outValue reflect.Value) sette
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -720,9 +712,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 	// Ensure output is a non-nil pointer
 	rv := reflect.ValueOf(output)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// If this is true we need to assign the output at the end of the Apply since we can't assign it directly initially.
@@ -780,7 +770,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		// We're pointing to a nil interface{}
 		// We can't set up the pointer now so we'll need to deal with it later
 		if !reflect.ValueOf(out).Type().AssignableTo(elem.Type()) {
-			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output)
 		}
 
 		assignLater = true
@@ -800,7 +790,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		}
 
 	} else {
-		return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign %T to %T", out, output)
 	}
 
 	var outValue reflect.Value
@@ -834,9 +824,7 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 		}
 
 		if !coerced && attempted {
-			return errors.Collection(
-				errors.Error(errors.CodeType, ctx, "object, map, or JSON string", inKind.String()),
-			)
+			return errors.Error(errors.CodeType, ctx, "object, map, or JSON string", inKind.String())
 		}
 
 		if attempted {
@@ -849,34 +837,21 @@ func (v *ObjectRuleSet[T, TK, TV]) Apply(ctx context.Context, value any, output 
 	fromSame := !fromMap && inValue.Type() == v.outputType
 
 	if !fromMap && inKind != reflect.Struct {
-		return errors.Collection(
-			errors.Error(errors.CodeType, ctx, "object or map", inKind.String()),
-		)
+		return errors.Error(errors.CodeType, ctx, "object or map", inKind.String())
 	}
 
-	allErrors := errors.Collection()
-
-	// Evaluate key rules
 	keyErrs := v.evaluateKeyRules(ctx, out, inValue, s, fromMap, fromSame)
-	allErrors = append(allErrors, keyErrs...)
-
-	// Evaluate object rules
 	valErrs := v.evaluateObjectRules(ctx, out)
-	allErrors = append(allErrors, valErrs...)
-
-	if len(allErrors) > 0 {
-		return allErrors
-	}
+	errs := errors.Join(keyErrs, valErrs)
 
 	if assignLater {
 		elem.Set(reflect.ValueOf(out).Elem())
 	}
-
-	return nil
+	return errs
 }
 
-// Evaluate performs validation of a RuleSet against a value of the object type and returns a ValidationErrorCollection.
-func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+// Evaluate performs validation of a RuleSet against a value of the object type and returns a ValidationError.
+func (ruleSet *ObjectRuleSet[T, TK, TV]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	// Prepare a variable to hold the output after applying the rule set
 	var output T
 

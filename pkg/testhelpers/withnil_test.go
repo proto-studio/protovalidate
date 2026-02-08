@@ -14,9 +14,9 @@ import (
 // It implements RuleSet[int] directly to avoid inheriting WithNil from MockRuleSet
 type MockNoWithNilMethod struct{}
 
-func (m *MockNoWithNilMethod) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNoWithNilMethod) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// Set output for valid input
 	if outputPtr, ok := output.(*int); ok && outputPtr != nil {
@@ -27,7 +27,7 @@ func (m *MockNoWithNilMethod) Apply(ctx context.Context, input, output any) erro
 	return nil
 }
 
-func (m *MockNoWithNilMethod) Evaluate(ctx context.Context, value int) errors.ValidationErrorCollection {
+func (m *MockNoWithNilMethod) Evaluate(ctx context.Context, value int) errors.ValidationError {
 	return nil
 }
 
@@ -51,11 +51,11 @@ func (m *MockNoWithNilMethod) String() string {
 // mockNoWithNilMethodAny wraps MockNoWithNilMethod to implement RuleSet[any]
 type mockNoWithNilMethodAny struct{ inner *MockNoWithNilMethod }
 
-func (m *mockNoWithNilMethodAny) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *mockNoWithNilMethodAny) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	return m.inner.Apply(ctx, input, output)
 }
 
-func (m *mockNoWithNilMethodAny) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
+func (m *mockNoWithNilMethodAny) Evaluate(ctx context.Context, value any) errors.ValidationError {
 	return nil
 }
 
@@ -88,10 +88,10 @@ func (m *MockNoWithNil) WithNil() rules.RuleSet[int] {
 // MockWrongNilErrorCode is a mock rule set that returns wrong error code for nil
 type MockWrongNilErrorCode struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongNilErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWrongNilErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return correct CodeNull for the first test (without WithNil)
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -105,10 +105,10 @@ func (m *MockWrongNilErrorCode) WithNil() rules.RuleSet[int] {
 // MockWrongNilErrorCodeWithNil is a mock rule set that returns wrong error code for nil even with WithNil.
 type MockWrongNilErrorCodeWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongNilErrorCodeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWrongNilErrorCodeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return wrong error code instead of CodeNull, and don't set output to nil
-		return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -118,10 +118,10 @@ func (m *MockWrongNilErrorCodeWithNil) Apply(ctx context.Context, input, output 
 // MockNilNotSet is a mock rule set that doesn't set output to nil when WithNil is used
 type MockNilNotSet struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilNotSet) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilNotSet) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return correct CodeNull for the first test (without WithNil)
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -135,14 +135,14 @@ func (m *MockNilNotSet) WithNil() rules.RuleSet[int] {
 // MockNilNotSetWithNil is a mock rule set that doesn't set output to nil when WithNil is used.
 type MockNilNotSetWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilNotSetWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilNotSetWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Don't set output to nil, just return success without setting output
 		// This simulates a bug where WithNil is used but output isn't actually set to nil
 		// We validate output is a pointer but don't set it to nil
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-			return errors.Collection(errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"))
+			return errors.Join(errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer"))
 		}
 		// Intentionally don't set output to nil - this is the bug we're testing
 		return nil
@@ -155,10 +155,10 @@ func (m *MockNilNotSetWithNil) Apply(ctx context.Context, input, output any) err
 // MockNilWrongReturnType is a mock rule set where WithNil returns wrong type
 type MockNilWrongReturnType struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilWrongReturnType) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilWrongReturnType) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return correct CodeNull for the first test (without WithNil)
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -172,7 +172,7 @@ func (m *MockNilWrongReturnType) WithNil() string {
 // MockNilNoError is a mock rule set that doesn't return an error when nil is provided without WithNil
 type MockNilNoError struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilNoError) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilNoError) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Don't return an error - this is the bug we're testing
 		return nil
@@ -189,7 +189,7 @@ func (m *MockNilNoError) WithNil() rules.RuleSet[int] {
 // MockNilNoErrorWithNil is a mock rule set that doesn't return an error when nil is provided even with WithNil.
 type MockNilNoErrorWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilNoErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilNoErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Set output to nil correctly
 		outputVal := reflect.ValueOf(output)
@@ -210,10 +210,10 @@ func (m *MockNilNoErrorWithNil) Apply(ctx context.Context, input, output any) er
 // MockNilWrongCodeWithoutWithNil is a mock rule set that returns wrong error code when nil is provided without WithNil
 type MockNilWrongCodeWithoutWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilWrongCodeWithoutWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilWrongCodeWithoutWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return wrong error code instead of CodeNull
-		return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -227,7 +227,7 @@ func (m *MockNilWrongCodeWithoutWithNil) WithNil() rules.RuleSet[int] {
 // MockNilWrongCodeWithoutWithNilWithNil is a mock rule set that returns wrong error code when nil is provided even with WithNil.
 type MockNilWrongCodeWithoutWithNilWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilWrongCodeWithoutWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilWrongCodeWithoutWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Set output to nil correctly
 		outputVal := reflect.ValueOf(output)
@@ -248,10 +248,10 @@ func (m *MockNilWrongCodeWithoutWithNilWithNil) Apply(ctx context.Context, input
 // MockNilWrongReturnCount is a mock rule set where WithNil returns wrong number of values
 type MockNilWrongReturnCount struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilWrongReturnCount) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilWrongReturnCount) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return correct CodeNull for the first test (without WithNil)
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -266,7 +266,7 @@ func (m *MockNilWrongReturnCount) WithNil() (rules.RuleSet[int], string) {
 // MockNilWrongReturnCountWithNil is a mock rule set where WithNil returns wrong number of values.
 type MockNilWrongReturnCountWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilWrongReturnCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockNilWrongReturnCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Set output to nil correctly
 		outputVal := reflect.ValueOf(output)
@@ -421,10 +421,10 @@ func TestMustImplementWithNil(t *testing.T) {
 // MockWithNilOnly is a mock rule set that has WithNil but not WithRequired
 type MockWithNilOnly struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilOnly) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilOnly) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return correct CodeNull for the first test (without WithNil)
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	// For non-nil input, create a fresh mock and use its Apply
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
@@ -438,7 +438,7 @@ func (m *MockWithNilOnly) WithNil() rules.RuleSet[int] {
 // MockWithNilOnlyWithNil is a mock rule set that has WithNil but not WithRequired.
 type MockWithNilOnlyWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilOnlyWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilOnlyWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Set output to nil correctly
 		outputVal := reflect.ValueOf(output)
@@ -459,9 +459,9 @@ func (m *MockWithNilOnlyWithNil) Apply(ctx context.Context, input, output any) e
 // MockWithRequiredNoWithNil is a mock rule set where WithRequired returns a rule set without WithNil
 type MockWithRequiredNoWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredNoWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredNoWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -474,7 +474,7 @@ func (m *MockWithRequiredNoWithNil) WithNil() rules.RuleSet[int] {
 // MockWithRequiredNoWithNilWithNil is a mock rule set where WithRequired returns a rule set without WithNil.
 type MockWithRequiredNoWithNilWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredNoWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredNoWithNilWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -503,9 +503,9 @@ type MockWithRequiredNoWithNilRequired struct{ testhelpers.MockRuleSet[int] }
 // MockWithRequiredWrongType is a mock rule set where WithRequired returns wrong type
 type MockWithRequiredWrongType struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredWrongType) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredWrongType) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -518,7 +518,7 @@ func (m *MockWithRequiredWrongType) WithNil() rules.RuleSet[int] {
 // MockWithRequiredWrongTypeWithNil is a mock rule set where WithRequired returns wrong type.
 type MockWithRequiredWrongTypeWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredWrongTypeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredWrongTypeWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -541,9 +541,9 @@ func (m *MockWithRequiredWrongType) WithRequired() string {
 // MockWithRequiredWrongCount is a mock rule set where WithRequired returns wrong number of values
 type MockWithRequiredWrongCount struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredWrongCount) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredWrongCount) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -556,7 +556,7 @@ func (m *MockWithRequiredWrongCount) WithNil() rules.RuleSet[int] {
 // MockWithRequiredWrongCountWithNil is a mock rule set where WithRequired returns wrong number of values.
 type MockWithRequiredWrongCountWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithRequiredWrongCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithRequiredWrongCountWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -579,9 +579,9 @@ func (m *MockWithRequiredWrongCount) WithRequired() (rules.RuleSet[int], string)
 // MockWithNilWrongTypeOnRequired is a mock where WithRequired returns a rule set whose WithNil returns wrong type
 type MockWithNilWrongTypeOnRequired struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilWrongTypeOnRequired) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilWrongTypeOnRequired) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -594,7 +594,7 @@ func (m *MockWithNilWrongTypeOnRequired) WithNil() rules.RuleSet[int] {
 // MockWithNilWrongTypeOnRequiredWithNil is a mock where WithRequired returns a rule set whose WithNil returns wrong type.
 type MockWithNilWrongTypeOnRequiredWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilWrongTypeOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilWrongTypeOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -624,9 +624,9 @@ func (m *MockWithNilWrongTypeOnRequiredRequired) WithNil() string {
 // MockWithNilWrongCountOnRequired is a mock where WithRequired returns a rule set whose WithNil returns wrong count
 type MockWithNilWrongCountOnRequired struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilWrongCountOnRequired) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilWrongCountOnRequired) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -639,7 +639,7 @@ func (m *MockWithNilWrongCountOnRequired) WithNil() rules.RuleSet[int] {
 // MockWithNilWrongCountOnRequiredWithNil is a mock where WithRequired returns a rule set whose WithNil returns wrong count.
 type MockWithNilWrongCountOnRequiredWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithNilWrongCountOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithNilWrongCountOnRequiredWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -669,9 +669,9 @@ func (m *MockWithNilWrongCountOnRequiredRequired) WithNil() (rules.RuleSet[int],
 // MockWithBothButError is a mock where both WithNil and WithRequired are set but Apply returns error
 type MockWithBothButError struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithBothButError) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithBothButError) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
-		return errors.Collection(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
+		return errors.Join(errors.Errorf(errors.CodeNull, ctx, "null not allowed", "value cannot be null"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)
@@ -684,7 +684,7 @@ func (m *MockWithBothButError) WithNil() rules.RuleSet[int] {
 // MockWithBothButErrorWithNil is a mock where both WithNil and WithRequired are set but Apply returns error.
 type MockWithBothButErrorWithNil struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithBothButErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithBothButErrorWithNil) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		outputVal := reflect.ValueOf(output)
 		if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
@@ -714,10 +714,10 @@ func (m *MockWithBothButErrorRequired) WithNil() rules.RuleSet[int] {
 // MockWithBothButErrorBoth is a mock where both WithNil and WithRequired are set but Apply returns error.
 type MockWithBothButErrorBoth struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWithBothButErrorBoth) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+func (m *MockWithBothButErrorBoth) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	if input == nil {
 		// Return an error even though both WithNil and WithRequired are set - this is the bug we're testing
-		return errors.Collection(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "unexpected error"))
+		return errors.Join(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "unexpected error"))
 	}
 	mockRuleSet := testhelpers.NewMockRuleSet[int]()
 	return mockRuleSet.Apply(ctx, input, output)

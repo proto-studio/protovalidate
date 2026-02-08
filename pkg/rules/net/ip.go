@@ -116,51 +116,37 @@ func (ruleSet *IPRuleSet) WithNil() *IPRuleSet {
 }
 
 // parseIP attempts to parse the input as either a string or net.IP and returns a net.IP.
-func parseIP(ctx context.Context, input any) (net.IP, errors.ValidationErrorCollection) {
-	// Try to cast directly to net.IP
+func parseIP(ctx context.Context, input any) (net.IP, errors.ValidationError) {
 	if ip, ok := input.(net.IP); ok {
 		if ip == nil {
-			return nil, errors.Collection(errors.Error(errors.CodeNull, ctx))
+			return nil, errors.Error(errors.CodeNull, ctx)
 		}
 		return ip, nil
 	}
-
-	// Try to cast to string
 	if str, ok := input.(string); ok {
 		ip := net.ParseIP(str)
 		if ip == nil {
-			return nil, errors.Collection(errors.Errorf(
-				errors.CodePattern, ctx, "invalid format", "invalid IP address format",
-			))
+			return nil, errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid IP address format")
 		}
 		return ip, nil
 	}
-
-	// Try to cast to *string
 	if strPtr, ok := input.(*string); ok && strPtr != nil {
 		ip := net.ParseIP(*strPtr)
 		if ip == nil {
-			return nil, errors.Collection(errors.Errorf(
-				errors.CodePattern, ctx, "invalid format", "invalid IP address format",
-			))
+			return nil, errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid IP address format")
 		}
 		return ip, nil
 	}
-
-	return nil, errors.Collection(errors.Error(
-		errors.CodeType, ctx, "string or net.IP", reflect.ValueOf(input).Kind().String(),
-	))
+	return nil, errors.Error(errors.CodeType, ctx, "string or net.IP", reflect.ValueOf(input).Kind().String())
 }
 
 // setOutput sets the output value to the given IP address.
-func setOutput(ctx context.Context, output any, ip net.IP) errors.ValidationErrorCollection {
+func setOutput(ctx context.Context, output any, ip net.IP) errors.ValidationError {
 	outputVal := reflect.ValueOf(output)
 
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// Dereference the pointer to get the actual value that needs to be set
@@ -180,18 +166,16 @@ func setOutput(ctx context.Context, output any, ip net.IP) errors.ValidationErro
 		// Set as net.IP for interface types
 		outputElem.Set(reflect.ValueOf(ip))
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "cannot assign IP to %T", output,
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign IP to %T", output)
 	}
 
 	return nil
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
+// It returns a ValidationError if any validation errors occur.
 // Input can be either a string or net.IP, and output can be either *string or *net.IP.
-func (ruleSet *IPRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+func (ruleSet *IPRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -217,39 +201,30 @@ func (ruleSet *IPRuleSet) Apply(ctx context.Context, input any, output any) erro
 
 // validateBasicIP performs general IP validation that is valid for any and all IP addresses.
 // This function always returns a collection even if it is empty.
-func validateBasicIP(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func validateBasicIP(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
-		return errors.Collection(errors.Error(errors.CodeNull, ctx))
+		return errors.Error(errors.CodeNull, ctx)
 	}
 	return nil
 }
 
-// Evaluate performs a validation of a RuleSet against a net.IP and returns a ValidationErrorCollection.
-func (ruleSet *IPRuleSet) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
-	allErrors := validateBasicIP(ctx, ip)
-
-	if len(allErrors) > 0 {
-		return allErrors
+// Evaluate performs a validation of a RuleSet against a net.IP and returns a ValidationError.
+func (ruleSet *IPRuleSet) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
+	var errs errors.ValidationError
+	if err := validateBasicIP(ctx, ip); err != nil {
+		errs = errors.Join(errs, err)
 	}
-
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, ip); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, ip); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new rule set with all conflicting rules removed.

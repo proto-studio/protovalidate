@@ -2,111 +2,104 @@ package errors
 
 import "fmt"
 
-// ValidationErrorCollection implements a standard Error interface and also ValidationErrorCollection interface
-// while preserving the validation data.
-type ValidationErrorCollection []ValidationError
-
-// Collection creates a new ValidationErrorCollection from one or more ValidationError values.
-func Collection(errs ...ValidationError) ValidationErrorCollection {
-	var arr []ValidationError
-
-	if errs == nil {
-		arr = make([]ValidationError, 0)
-	} else {
-		arr = errs[:]
-	}
-
-	return ValidationErrorCollection(arr)
+// multiError holds multiple ValidationErrors and implements ValidationError by
+// delegating Code(), Path(), etc. to the first error. Unwrap() returns the list.
+type multiError struct {
+	errs []ValidationError
 }
 
-// Error implements the standard Error interface to return a string.
-//
-// Error returns only the first error if there is more than one, along with the total count.
-// Error loses contextual data, so use the ValidationError object when possible.
-//
-// If there is more than one error, which error is displayed is not guaranteed to be deterministic.
-//
-// An empty collection should never be returned from a function. Return nil instead. Error panics if called on an empty collection.
-func (collection ValidationErrorCollection) Error() string {
-	if len(collection) > 1 {
-		return fmt.Sprintf("%s (and %d more)", []ValidationError(collection)[0].Error(), len(collection)-1)
-	}
+var _ ValidationError = (*multiError)(nil)
 
-	if len(collection) > 0 {
-		return []ValidationError(collection)[0].Error()
-	}
-
-	panic("Empty collection")
-}
-
-// Unwrap implements the wrapped Error interface to return an array of errors.
-// This enables support for errors.Is and errors.As from the standard library.
-//
-// Returns an empty slice for empty collections. An empty collection should never be returned from a function. Return nil instead.
-func (collection ValidationErrorCollection) Unwrap() []error {
-	errs := make([]error, len(collection))
-	for i := range collection {
-		errs[i] = collection[i]
-	}
-	return errs
-}
-
-// First returns only the first error.
-// If there is more than one error, the error returned is not guaranteed to be deterministic.
-func (collection ValidationErrorCollection) First() ValidationError {
-	if len(collection) == 0 {
+// Unwrap returns the list of wrapped errors for use with errors.Is and errors.As. Nil receiver returns nil.
+func (e *multiError) Unwrap() []error {
+	if e == nil {
 		return nil
 	}
-
-	return collection[0]
+	out := make([]error, len(e.errs))
+	for i := range e.errs {
+		out[i] = e.errs[i]
+	}
+	return out
 }
 
-// For returns a new collection containing only errors for a specific path.
-func (collection ValidationErrorCollection) For(path string) ValidationErrorCollection {
-	if len(collection) == 0 {
-		return nil
+// Error returns the long-form message; for multiple errors, returns the first message plus a count.
+func (e *multiError) Error() string {
+	if len(e.errs) == 0 {
+		return "(no validation errors)"
 	}
-
-	var filteredErrors []ValidationError
-	for _, err := range collection {
-		if err.Path() == path {
-			filteredErrors = append(filteredErrors, err)
-		}
+	if len(e.errs) > 1 {
+		return fmt.Sprintf("%s (and %d more)", e.errs[0].Error(), len(e.errs)-1)
 	}
-
-	if len(filteredErrors) == 0 {
-		return nil
-	}
-
-	return Collection(filteredErrors...)
+	return e.errs[0].Error()
 }
 
-// ForPathAs returns a new collection containing only errors for a specific path
-// using the provided serializer to compare paths.
-func (collection ValidationErrorCollection) ForPathAs(path string, serializer PathSerializer) ValidationErrorCollection {
-	if len(collection) == 0 {
-		return nil
+// Code returns the first error's code, or empty if there are no errors.
+func (e *multiError) Code() ErrorCode {
+	if len(e.errs) == 0 {
+		return ""
 	}
-
-	var filteredErrors []ValidationError
-	for _, err := range collection {
-		if err.PathAs(serializer) == path {
-			filteredErrors = append(filteredErrors, err)
-		}
-	}
-
-	if len(filteredErrors) == 0 {
-		return nil
-	}
-
-	return Collection(filteredErrors...)
+	return e.errs[0].Code()
 }
 
-// Internal returns true if any error in the collection is an internal error.
-// Internal errors are the most general classification and take precedence.
-// Returns false for empty collections.
-func (collection ValidationErrorCollection) Internal() bool {
-	for _, err := range collection {
+// Path returns the first error's path, or empty if there are no errors.
+func (e *multiError) Path() string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+	return e.errs[0].Path()
+}
+
+// PathAs returns the first error's path using the given serializer.
+func (e *multiError) PathAs(serializer PathSerializer) string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+	return e.errs[0].PathAs(serializer)
+}
+
+// ShortError returns the first error's short description.
+func (e *multiError) ShortError() string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+	return e.errs[0].ShortError()
+}
+
+// DocsURI returns the first error's documentation URI.
+func (e *multiError) DocsURI() string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+	return e.errs[0].DocsURI()
+}
+
+// TraceURI returns the first error's trace URI.
+func (e *multiError) TraceURI() string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+	return e.errs[0].TraceURI()
+}
+
+// Meta returns the first error's metadata.
+func (e *multiError) Meta() map[string]any {
+	if len(e.errs) == 0 {
+		return nil
+	}
+	return e.errs[0].Meta()
+}
+
+// Params returns the first error's format params.
+func (e *multiError) Params() []any {
+	if len(e.errs) == 0 {
+		return nil
+	}
+	return e.errs[0].Params()
+}
+
+// Internal returns true if any wrapped error is internal.
+func (e *multiError) Internal() bool {
+	for _, err := range e.errs {
 		if err.Internal() {
 			return true
 		}
@@ -114,15 +107,12 @@ func (collection ValidationErrorCollection) Internal() bool {
 	return false
 }
 
-// Permission returns true if the most general error classification is permission.
-// Permission errors are more general than validation errors but less general than internal errors.
-// Returns true if any error is a permission error and no errors are internal.
-// Returns false for empty collections.
-func (collection ValidationErrorCollection) Permission() bool {
-	if collection.Internal() {
+// Permission returns true if any wrapped error is a permission error and none are internal.
+func (e *multiError) Permission() bool {
+	if e.Internal() {
 		return false
 	}
-	for _, err := range collection {
+	for _, err := range e.errs {
 		if err.Permission() {
 			return true
 		}
@@ -130,13 +120,91 @@ func (collection ValidationErrorCollection) Permission() bool {
 	return false
 }
 
-// Validation returns true if all errors are validation errors.
-// Validation errors are the most specific classification.
-// Returns true only if no errors are internal or permission errors.
-// Returns false for empty collections.
-func (collection ValidationErrorCollection) Validation() bool {
-	if len(collection) == 0 {
+// Validation returns true if there is at least one error and none are internal or permission.
+func (e *multiError) Validation() bool {
+	if len(e.errs) == 0 {
 		return false
 	}
-	return !collection.Internal() && !collection.Permission()
+	return !e.Internal() && !e.Permission()
+}
+
+// Join combines zero or more errors into a single ValidationError.
+// Nil entries are skipped. Non-ValidationError entries are skipped.
+// If an argument is a ValidationError that wraps multiple errors (Unwrap() non-empty), it is flattened so those errors are merged in. Single errors are added as-is.
+// Returns nil for zero ValidationErrors, the single error unchanged for one, or a multiError for two or more.
+func Join(errs ...error) ValidationError {
+	var verrs []ValidationError
+	for _, e := range errs {
+		if e == nil {
+			continue
+		}
+		ve, ok := e.(ValidationError)
+		if !ok {
+			continue
+		}
+		u := ve.Unwrap()
+		if len(u) == 0 {
+			verrs = append(verrs, ve)
+		} else {
+			for _, sub := range u {
+				if v, ok := sub.(ValidationError); ok {
+					verrs = append(verrs, v)
+				}
+			}
+		}
+	}
+	switch len(verrs) {
+	case 0:
+		return nil
+	case 1:
+		return verrs[0]
+	default:
+		return &multiError{errs: verrs}
+	}
+}
+
+// Unwrap returns the list of errors from err for iteration or len. Nil err returns nil.
+// For a single error (err.Unwrap() is nil), returns []error{err}. Otherwise returns err.Unwrap().
+func Unwrap(err ValidationError) []error {
+	if err == nil {
+		return nil
+	}
+	u := err.Unwrap()
+	if len(u) == 0 {
+		return []error{err}
+	}
+	return u
+}
+
+// For returns a ValidationError containing only the wrapped errors whose Path() equals path.
+// If err is nil or no errors match, returns nil. If exactly one matches, returns that error;
+// if multiple match, returns Join of the matches.
+func For(err ValidationError, path string) ValidationError {
+	unwrapped := Unwrap(err)
+	if len(unwrapped) == 0 {
+		return nil
+	}
+	var matched []error
+	for _, e := range unwrapped {
+		if ve, ok := e.(ValidationError); ok && ve.Path() == path {
+			matched = append(matched, ve)
+		}
+	}
+	return Join(matched...)
+}
+
+// ForPathAs is like For but compares paths using the given serializer (e.g. to filter by JSON Pointer or JSONPath).
+// Use when the path string is in a different format than the default.
+func ForPathAs(err ValidationError, path string, serializer PathSerializer) ValidationError {
+	unwrapped := Unwrap(err)
+	if len(unwrapped) == 0 {
+		return nil
+	}
+	var matched []error
+	for _, e := range unwrapped {
+		if ve, ok := e.(ValidationError); ok && ve.PathAs(serializer) == path {
+			matched = append(matched, ve)
+		}
+	}
+	return Join(matched...)
 }

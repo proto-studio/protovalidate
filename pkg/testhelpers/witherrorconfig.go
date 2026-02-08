@@ -12,8 +12,8 @@ import (
 // This can be used with WithRule to test error config propagation.
 type ErrorConfigTestRule[T any] struct{}
 
-func (r *ErrorConfigTestRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
-	return errors.Collection(errors.Error(errors.CodePattern, ctx))
+func (r *ErrorConfigTestRule[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
+	return errors.Error(errors.CodePattern, ctx)
 }
 
 func (r *ErrorConfigTestRule[T]) Replaces(other rules.Rule[T]) bool {
@@ -28,8 +28,8 @@ func (r *ErrorConfigTestRule[T]) String() string {
 // ErrorConfigTestRuleFunc returns a rule function that creates errors via errors.Error.
 // This can be used with WithRuleFunc to test error config propagation.
 func ErrorConfigTestRuleFunc[T any]() rules.RuleFunc[T] {
-	return func(ctx context.Context, value T) errors.ValidationErrorCollection {
-		return errors.Collection(errors.Error(errors.CodePattern, ctx))
+	return func(ctx context.Context, value T) errors.ValidationError {
+		return errors.Error(errors.CodePattern, ctx)
 	}
 }
 
@@ -69,14 +69,14 @@ func mustApplyErrorConfigWithMessage[T any, RS ruleSetWithErrorConfig[T, RS]](t 
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithErrorMessage: Expected validation error for nil input")
 		return
 	}
-
-	if errs[0].ShortError() != "custom short" {
-		t.Errorf("WithErrorMessage: Expected short error 'custom short', got: %s", errs[0].ShortError())
+	ve := errs[0].(errors.ValidationError)
+	if ve.ShortError() != "custom short" {
+		t.Errorf("WithErrorMessage: Expected short error 'custom short', got: %s", ve.ShortError())
 	}
 }
 
@@ -88,14 +88,14 @@ func mustApplyErrorConfigWithDocsURI[T any, RS ruleSetWithErrorConfig[T, RS]](t 
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithDocsURI: Expected validation error for nil input")
 		return
 	}
-
-	if errs[0].DocsURI() != "https://example.com/docs" {
-		t.Errorf("WithDocsURI: Expected DocsURI 'https://example.com/docs', got: %s", errs[0].DocsURI())
+	ve := errs[0].(errors.ValidationError)
+	if ve.DocsURI() != "https://example.com/docs" {
+		t.Errorf("WithDocsURI: Expected DocsURI 'https://example.com/docs', got: %s", ve.DocsURI())
 	}
 }
 
@@ -107,14 +107,14 @@ func mustApplyErrorConfigWithTraceURI[T any, RS ruleSetWithErrorConfig[T, RS]](t
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithTraceURI: Expected validation error for nil input")
 		return
 	}
-
-	if errs[0].TraceURI() != "https://example.com/trace/123" {
-		t.Errorf("WithTraceURI: Expected TraceURI 'https://example.com/trace/123', got: %s", errs[0].TraceURI())
+	ve := errs[0].(errors.ValidationError)
+	if ve.TraceURI() != "https://example.com/trace/123" {
+		t.Errorf("WithTraceURI: Expected TraceURI 'https://example.com/trace/123', got: %s", ve.TraceURI())
 	}
 }
 
@@ -126,14 +126,14 @@ func mustApplyErrorConfigWithCode[T any, RS ruleSetWithErrorConfig[T, RS]](t tes
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithErrorCode: Expected validation error for nil input")
 		return
 	}
-
-	if errs[0].Code() != errors.CodeForbidden {
-		t.Errorf("WithErrorCode: Expected code %s, got: %s", errors.CodeForbidden, errs[0].Code())
+	ve := errs[0].(errors.ValidationError)
+	if ve.Code() != errors.CodeForbidden {
+		t.Errorf("WithErrorCode: Expected code %s, got: %s", errors.CodeForbidden, ve.Code())
 	}
 }
 
@@ -145,13 +145,13 @@ func mustApplyErrorConfigWithMeta[T any, RS ruleSetWithErrorConfig[T, RS]](t tes
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithErrorMeta: Expected validation error for nil input")
 		return
 	}
-
-	meta := errs[0].Meta()
+	ve := errs[0].(errors.ValidationError)
+	meta := ve.Meta()
 	if meta == nil || meta["field"] != "testvalue" {
 		t.Errorf("WithErrorMeta: Expected meta['field'] to be 'testvalue', got: %v", meta)
 	}
@@ -174,7 +174,7 @@ func mustApplyErrorConfigWithCallback[T any, RS ruleSetWithErrorConfig[T, RS]](t
 
 	// Trigger an error by passing nil without WithNil
 	var output T
-	errs := ruleSetWithConfig.Apply(context.Background(), nil, &output)
+	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
 	if len(errs) == 0 {
 		t.Error("WithErrorCallback: Expected validation error for nil input")
 		return
@@ -208,14 +208,14 @@ func MustApplyErrorConfigWithCustomRule[T any](t testing.TB, ruleSet rules.RuleS
 	t.Helper()
 
 	var output T
-	errs := ruleSet.Apply(context.Background(), triggerInput, &output)
+	errs := errors.Unwrap(ruleSet.Apply(context.Background(), triggerInput, &output))
 	if len(errs) == 0 {
 		t.Error("Expected validation error from custom rule")
 		return
 	}
-
-	if errs[0].DocsURI() != expectedDocsURI {
-		t.Errorf("Expected DocsURI '%s', got: %s", expectedDocsURI, errs[0].DocsURI())
+	ve := errs[0].(errors.ValidationError)
+	if ve.DocsURI() != expectedDocsURI {
+		t.Errorf("Expected DocsURI '%s', got: %s", expectedDocsURI, ve.DocsURI())
 	}
 }
 
@@ -225,13 +225,13 @@ func MustApplyErrorConfigWithMetaOnInput[T any](t testing.TB, ruleSet rules.Rule
 	t.Helper()
 
 	var output T
-	errs := ruleSet.Apply(context.Background(), triggerInput, &output)
+	errs := errors.Unwrap(ruleSet.Apply(context.Background(), triggerInput, &output))
 	if len(errs) == 0 {
 		t.Error("Expected validation error")
 		return
 	}
-
-	meta := errs[0].Meta()
+	ve := errs[0].(errors.ValidationError)
+	meta := ve.Meta()
 	if meta == nil || meta[expectedKey] != expectedValue {
 		t.Errorf("Expected meta['%s'] to be '%v', got: %v", expectedKey, expectedValue, meta)
 	}

@@ -168,8 +168,8 @@ func (ruleSet *DurationRuleSet) WithRounding(rounding rules.Rounding) *DurationR
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -181,9 +181,7 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	var d time.Duration
@@ -220,14 +218,14 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 			ok = true
 		} else {
 			// String parsing failed - this is a format/pattern error, not a type error
-			return errors.Collection(errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid duration format: %v", err))
+			return errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid duration format: %v", err)
 		}
 	default:
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String()))
+		return errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
 	}
 
 	if !ok {
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String()))
+		return errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
 	}
 
 	// Handle setting the value in output
@@ -249,9 +247,7 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 			// Only error if output is numeric (not duration)
 			// Duration output can accept any value
 			if actualOutputElem.Type() != reflect.TypeOf(d) {
-				return errors.Collection(errors.Errorf(
-					errors.CodeRange, ctx, "duration", "Duration %s is not evenly divisible by unit %s", d, unit,
-				))
+				return errors.Errorf(errors.CodeRange, ctx, "duration", "Duration %s is not evenly divisible by unit %s", d, unit)
 			}
 		} else {
 			// Apply rounding based on the remainder
@@ -296,7 +292,7 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 		if outputKind >= reflect.Uint && outputKind <= reflect.Uintptr {
 			// For unsigned types, check if value is non-negative and fits
 			if quotient < 0 {
-				return errors.Collection(errors.NewRangeError(ctx, "duration"))
+				return errors.NewRangeError(ctx, "duration")
 			}
 			// Check if the value fits in the target type by converting and checking if we lose information
 			targetType := actualOutputElem.Type()
@@ -305,7 +301,7 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 			// Convert back to see if we lost information
 			convertedBack := int64(testValue.Uint())
 			if convertedBack != quotient {
-				return errors.Collection(errors.NewRangeError(ctx, "duration"))
+				return errors.NewRangeError(ctx, "duration")
 			}
 			// Set the value - if output was an interface, set the new value into it
 			if outputElem.Kind() == reflect.Interface {
@@ -321,7 +317,7 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 			// Convert back to see if we lost information (same pattern as number_coerce.go)
 			convertedBack := int64(testValue.Int())
 			if convertedBack != quotient {
-				return errors.Collection(errors.NewRangeError(ctx, "duration"))
+				return errors.NewRangeError(ctx, "duration")
 			}
 			// Set the value - if output was an interface, set the new value into it
 			if outputElem.Kind() == reflect.Interface {
@@ -339,37 +335,27 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 
 	// If the types are incompatible, return an error
 	if !assignable {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", d, outputElem.Interface(),
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", d, outputElem.Interface())
 	}
 
 	// Evaluate the duration value and return any validation errors
 	return ruleSet.Evaluate(ctx, d)
 }
 
-// Evaluate performs validation of a RuleSet against a time.Duration value and returns a ValidationErrorCollection.
-func (ruleSet *DurationRuleSet) Evaluate(ctx context.Context, value time.Duration) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+// Evaluate performs validation of a RuleSet against a time.Duration value and returns a ValidationError.
+func (ruleSet *DurationRuleSet) Evaluate(ctx context.Context, value time.Duration) errors.ValidationError {
+	var errs errors.ValidationError
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // noConflict returns the new duration rule set with all conflicting rules removed.

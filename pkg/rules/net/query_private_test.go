@@ -39,8 +39,8 @@ func TestQueryPercentEncodingRule_InvalidEncoding(t *testing.T) {
 					t.Error("expected encoding error, got nil")
 					return
 				}
-				if err.First().Code() != validateerrors.CodeEncoding {
-					t.Errorf("expected CodeEncoding, got %s", err.First().Code())
+				if err.Code() != validateerrors.CodeEncoding {
+					t.Errorf("expected CodeEncoding, got %s", err.Code())
 				}
 			} else {
 				if err != nil {
@@ -93,8 +93,8 @@ func TestQueryRuleSet_Apply_ParseError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when queryParser fails")
 	}
-	if err.First().Code() != validateerrors.CodeEncoding {
-		t.Errorf("expected CodeEncoding, got %s", err.First().Code())
+	if err.Code() != validateerrors.CodeEncoding {
+		t.Errorf("expected CodeEncoding, got %s", err.Code())
 	}
 }
 
@@ -120,32 +120,32 @@ func TestQueryRuleSet_Evaluate_EncodingCheckReturnsError(t *testing.T) {
 	ctx := context.Background()
 	saved := defaultQueryStringRuleSet
 	defer func() { defaultQueryStringRuleSet = saved }()
-	defaultQueryStringRuleSet = rules.String().WithRuleFunc(func(context.Context, string) validateerrors.ValidationErrorCollection {
-		return validateerrors.Collection(validateerrors.Errorf(validateerrors.CodeEncoding, ctx, "bad", "injected"))
+	defaultQueryStringRuleSet = rules.String().WithRuleFunc(func(context.Context, string) validateerrors.ValidationError {
+		return validateerrors.Errorf(validateerrors.CodeEncoding, ctx, "bad", "injected")
 	})
 	q := Query()
 	err := q.Evaluate(ctx, url.Values{"x": {"y"}})
 	if err == nil {
 		t.Fatal("expected error from injected encoding rule")
 	}
-	if err.First().Code() != validateerrors.CodeEncoding {
-		t.Errorf("expected CodeEncoding, got %s", err.First().Code())
+	if err.Code() != validateerrors.CodeEncoding {
+		t.Errorf("expected CodeEncoding, got %s", err.Code())
 	}
 }
 
 // TestQueryRuleSet_Evaluate_ParamRuleSetReturnsError covers the branch where spec.ruleSet.Evaluate returns errors (append to allErrors).
 func TestQueryRuleSet_Evaluate_ParamRuleSetReturnsError(t *testing.T) {
 	ctx := context.Background()
-	failRule := rules.String().WithRuleFunc(func(context.Context, string) validateerrors.ValidationErrorCollection {
-		return validateerrors.Collection(validateerrors.Errorf(validateerrors.CodePattern, ctx, "bad", "injected"))
+	failRule := rules.String().WithRuleFunc(func(context.Context, string) validateerrors.ValidationError {
+		return validateerrors.Errorf(validateerrors.CodePattern, ctx, "bad", "injected")
 	}).Any()
 	q := Query().WithParam("x", failRule)
 	err := q.Evaluate(ctx, url.Values{"x": {"y"}})
 	if err == nil {
 		t.Fatal("expected error from param rule")
 	}
-	if err.First().Code() != validateerrors.CodePattern {
-		t.Errorf("expected CodePattern, got %s", err.First().Code())
+	if err.Code() != validateerrors.CodePattern {
+		t.Errorf("expected CodePattern, got %s", err.Code())
 	}
 }
 

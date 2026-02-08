@@ -41,7 +41,7 @@ func TestFloatRuleSet_Apply_StrictError(t *testing.T) {
 	var out float64
 	err := rules.Float64().WithStrict().Apply(context.Background(), "123.0", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -95,7 +95,7 @@ func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
 		Apply(context.Background(), "123.0", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -561,7 +561,7 @@ func TestFloatRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
 	var out float64
 	err := rules.Float64().WithStrict().Apply(context.Background(), true, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}

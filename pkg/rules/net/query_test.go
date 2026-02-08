@@ -52,8 +52,8 @@ func TestQueryRuleSet_WithParam(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when required param missing")
 	}
-	if err.First().Code() != errors.CodeRequired {
-		t.Errorf("expected CodeRequired, got %s", err.First().Code())
+	if err.Code() != errors.CodeRequired {
+		t.Errorf("expected CodeRequired, got %s", err.Code())
 	}
 }
 
@@ -81,9 +81,9 @@ func TestQueryRuleSet_Required(t *testing.T) {
 func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 	ctx := context.Background()
 	// WithRuleFunc: custom rule that fails when query has "forbidden=1"
-	rs := net.Query().WithRuleFunc(func(ctx context.Context, v url.Values) errors.ValidationErrorCollection {
+	rs := net.Query().WithRuleFunc(func(ctx context.Context, v url.Values) errors.ValidationError {
 		if v.Get("forbidden") == "1" {
-			return errors.Collection(errors.Errorf(errors.CodeForbidden, ctx, "forbidden", "forbidden param present"))
+			return errors.Join(errors.Errorf(errors.CodeForbidden, ctx, "forbidden", "forbidden param present"))
 		}
 		return nil
 	})
@@ -96,13 +96,13 @@ func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when custom rule fails")
 	}
-	if err.First().Code() != errors.CodeForbidden {
-		t.Errorf("expected CodeForbidden, got %s", err.First().Code())
+	if err.Code() != errors.CodeForbidden {
+		t.Errorf("expected CodeForbidden, got %s", err.Code())
 	}
 	// WithRule: pass RuleFunc as Rule (RuleFunc implements Rule)
-	rs2 := net.Query().WithRule(rules.RuleFunc[url.Values](func(ctx context.Context, v url.Values) errors.ValidationErrorCollection {
+	rs2 := net.Query().WithRule(rules.RuleFunc[url.Values](func(ctx context.Context, v url.Values) errors.ValidationError {
 		if len(v) == 0 {
-			return errors.Collection(errors.Errorf(errors.CodeRequired, ctx, "empty", "query must not be empty"))
+			return errors.Join(errors.Errorf(errors.CodeRequired, ctx, "empty", "query must not be empty"))
 		}
 		return nil
 	}))
@@ -126,8 +126,8 @@ func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-string/url.Values input")
 	}
-	if err.First().Code() != errors.CodeType {
-		t.Errorf("expected CodeType, got %s", err.First().Code())
+	if err.Code() != errors.CodeType {
+		t.Errorf("expected CodeType, got %s", err.Code())
 	}
 
 	// Nil output pointer
@@ -135,8 +135,8 @@ func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nil output")
 	}
-	if err.First().Code() != errors.CodeInternal {
-		t.Errorf("expected CodeInternal for nil output, got %s", err.First().Code())
+	if err.Code() != errors.CodeInternal {
+		t.Errorf("expected CodeInternal for nil output, got %s", err.Code())
 	}
 
 	// Non-pointer output
@@ -172,8 +172,8 @@ func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid output type")
 	}
-	if err.First().Code() != errors.CodeInternal {
-		t.Errorf("expected CodeInternal for wrong output type, got %s", err.First().Code())
+	if err.Code() != errors.CodeInternal {
+		t.Errorf("expected CodeInternal for wrong output type, got %s", err.Code())
 	}
 }
 
@@ -187,8 +187,8 @@ func TestQueryRuleSet_Apply_parseError(t *testing.T) {
 		// ParseQuery may or may not fail depending on Go version; if it fails we get CodeEncoding
 		return
 	}
-	if err.First().Code() != errors.CodeEncoding {
-		t.Errorf("expected CodeEncoding on parse error, got %s", err.First().Code())
+	if err.Code() != errors.CodeEncoding {
+		t.Errorf("expected CodeEncoding on parse error, got %s", err.Code())
 	}
 }
 

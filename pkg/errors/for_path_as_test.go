@@ -19,17 +19,15 @@ func TestForPathAs_WithDefaultSerializer(t *testing.T) {
 	ctx2 = rulecontext.WithPathString(ctx2, "c")
 	err2 := errors.Errorf(errors.CodeMin, ctx2, "short", "message2")
 
-	collection := errors.Collection(err1, err2)
-
+	collection := errors.Join(err1, err2)
 	serializer := errors.DefaultPathSerializer{}
-	filtered := collection.ForPathAs("/a/b", serializer)
-
-	if len(filtered) != 1 {
-		t.Errorf("Expected 1 error, got: %d", len(filtered))
+	filtered := errors.ForPathAs(collection, "/a/b", serializer)
+	all := errors.Unwrap(filtered)
+	if len(all) != 1 {
+		t.Errorf("Expected 1 error, got: %d", len(all))
 	}
-
-	if filtered[0].Error() != "message1" {
-		t.Errorf("Expected error message 'message1', got: '%s'", filtered[0].Error())
+	if all[0].Error() != "message1" {
+		t.Errorf("Expected error message 'message1', got: '%s'", all[0].Error())
 	}
 }
 
@@ -44,13 +42,12 @@ func TestForPathAs_WithJSONPointerSerializer(t *testing.T) {
 	ctx2 = rulecontext.WithPathString(ctx2, "c")
 	err2 := errors.Errorf(errors.CodeMin, ctx2, "short", "message2")
 
-	collection := errors.Collection(err1, err2)
+	collection := errors.Join(err1, err2)
 
 	serializer := errors.JSONPointerSerializer{}
-	filtered := collection.ForPathAs("/a/b", serializer)
-
-	if len(filtered) != 1 {
-		t.Errorf("Expected 1 error, got: %d", len(filtered))
+	filtered := errors.ForPathAs(collection, "/a/b", serializer)
+	if len(errors.Unwrap(filtered)) != 1 {
+		t.Errorf("Expected 1 error, got: %d", len(errors.Unwrap(filtered)))
 	}
 }
 
@@ -65,13 +62,12 @@ func TestForPathAs_WithJSONPathSerializer(t *testing.T) {
 	ctx2 = rulecontext.WithPathString(ctx2, "c")
 	err2 := errors.Errorf(errors.CodeMin, ctx2, "short", "message2")
 
-	collection := errors.Collection(err1, err2)
+	collection := errors.Join(err1, err2)
 
 	serializer := errors.JSONPathSerializer{}
-	filtered := collection.ForPathAs("$.a.b", serializer)
-
-	if len(filtered) != 1 {
-		t.Errorf("Expected 1 error, got: %d", len(filtered))
+	filtered := errors.ForPathAs(collection, "$.a.b", serializer)
+	if len(errors.Unwrap(filtered)) != 1 {
+		t.Errorf("Expected 1 error, got: %d", len(errors.Unwrap(filtered)))
 	}
 }
 
@@ -86,13 +82,12 @@ func TestForPathAs_WithDotNotationSerializer(t *testing.T) {
 	ctx2 = rulecontext.WithPathString(ctx2, "c")
 	err2 := errors.Errorf(errors.CodeMin, ctx2, "short", "message2")
 
-	collection := errors.Collection(err1, err2)
+	collection := errors.Join(err1, err2)
 
 	serializer := errors.DotNotationSerializer{}
-	filtered := collection.ForPathAs("a.b", serializer)
-
-	if len(filtered) != 1 {
-		t.Errorf("Expected 1 error, got: %d", len(filtered))
+	filtered := errors.ForPathAs(collection, "a.b", serializer)
+	if len(errors.Unwrap(filtered)) != 1 {
+		t.Errorf("Expected 1 error, got: %d", len(errors.Unwrap(filtered)))
 	}
 }
 
@@ -103,25 +98,20 @@ func TestForPathAs_NoMatches(t *testing.T) {
 	ctx = rulecontext.WithPathString(ctx, "b")
 	err := errors.Errorf(errors.CodeMin, ctx, "short", "message")
 
-	collection := errors.Collection(err)
+	collection := errors.Join(err)
 
 	serializer := errors.DefaultPathSerializer{}
-	filtered := collection.ForPathAs("/nonexistent", serializer)
-
-	if len(filtered) != 0 {
-		t.Errorf("Expected empty collection, got: %d errors", len(filtered))
+	filtered := errors.ForPathAs(collection, "/nonexistent", serializer)
+	if filtered != nil && len(errors.Unwrap(filtered)) != 0 {
+		t.Errorf("Expected no errors, got: %d", len(errors.Unwrap(filtered)))
 	}
 }
 
-// TestForPathAs_EmptyCollection tests:
-// - ForPathAs handles empty collection
-func TestForPathAs_EmptyCollection(t *testing.T) {
-	collection := errors.Collection()
-
+// TestForPathAs_Nil tests that ForPathAs(nil, path, serializer) returns nil.
+func TestForPathAs_Nil(t *testing.T) {
 	serializer := errors.DefaultPathSerializer{}
-	filtered := collection.ForPathAs("/a/b", serializer)
-
-	if len(filtered) != 0 {
-		t.Errorf("Expected nil or empty collection, got: %d errors", len(filtered))
+	filtered := errors.ForPathAs(nil, "/a/b", serializer)
+	if filtered != nil {
+		t.Errorf("Expected nil, got: %v", filtered)
 	}
 }

@@ -15,11 +15,9 @@ type minDurationRule struct {
 }
 
 // Evaluate takes a context and duration value and returns an error if it is less than the specified value.
-func (rule *minDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationErrorCollection {
+func (rule *minDurationRule) Evaluate(ctx context.Context, value time.Duration) errors.ValidationError {
 	if value < rule.min {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be at least %s", rule.min),
-		)
+		return errors.Errorf(errors.CodeMin, ctx, "below minimum", "must be at least %s", rule.min)
 	}
 
 	return nil

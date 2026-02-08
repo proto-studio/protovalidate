@@ -35,8 +35,8 @@ func TestSlice_MaxLen(t *testing.T) {
 	err = ruleSet.Apply(context.TODO(), []int{1, 2, 3}, &output)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
-	} else if len(err) != 1 {
-		t.Errorf("Expected 1 error, got %d", len(err))
+	} else if len(errors.Unwrap(err)) != 1 {
+		t.Errorf("Expected 1 error, got %d", len(errors.Unwrap(err)))
 	}
 }
 

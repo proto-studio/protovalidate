@@ -19,7 +19,7 @@ type domainSuffixRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it does not appear to be a valid domain.
-func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors.ValidationError {
 	// Convert to punycode
 	punycode, _ := idna.ToASCII(value)
 
@@ -32,9 +32,7 @@ func (rule *domainSuffixRule) Evaluate(ctx context.Context, value string) errors
 		}
 	}
 
-	return errors.Collection(
-		errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain suffix is not valid"),
-	)
+	return errors.Errorf(errors.CodePattern, ctx, "invalid format", "domain suffix is not valid")
 }
 
 // Replaces returns true for any suffix rule.

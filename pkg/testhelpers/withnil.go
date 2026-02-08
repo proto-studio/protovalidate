@@ -35,8 +35,8 @@ func MustImplementWithNil[T any](t testing.TB, ruleSet rules.RuleSet[T]) {
 	err := ruleSet.Apply(ctx, nil, &output)
 	if err == nil {
 		t.Error("Expected error when nil is provided without WithNil")
-	} else if err.First().Code() != errors.CodeNull {
-		t.Errorf("Expected error code to be CodeNull, got: %s", err.First().Code())
+	} else if err.Code() != errors.CodeNull {
+		t.Errorf("Expected error code to be CodeNull, got: %s", err.Code())
 	}
 
 	// Test with WithNil - should not error

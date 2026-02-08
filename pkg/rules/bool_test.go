@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"proto.zip/studio/validate/pkg/errors"
 	"proto.zip/studio/validate/pkg/rules"
 	"proto.zip/studio/validate/pkg/testhelpers"
 )
@@ -42,7 +43,7 @@ func TestBoolRuleSet_Apply_StrictError(t *testing.T) {
 	var out bool
 	err := rules.Bool().WithStrict().Apply(context.Background(), "true", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -85,7 +86,7 @@ func TestBoolRuleSet_Apply_CoerceFromString_Invalid(t *testing.T) {
 	var out bool
 	err := rules.Bool().Apply(context.Background(), "invalid", &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -161,7 +162,7 @@ func TestBoolRuleSet_Apply_StrictMode_Int(t *testing.T) {
 	var out bool
 	err := rules.Bool().WithStrict().Apply(context.Background(), 1, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -173,7 +174,7 @@ func TestBoolRuleSet_Apply_StrictMode_Float(t *testing.T) {
 	var out bool
 	err := rules.Bool().WithStrict().Apply(context.Background(), 1.0, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -195,7 +196,7 @@ func TestBoolRuleSet_WithRuleFunc(t *testing.T) {
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[bool](1).Function()).
 		Apply(context.Background(), true, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -436,7 +437,7 @@ func TestBoolRuleSet_Apply_PointerToBool_Nil(t *testing.T) {
 	var nilBool *bool
 	err := rules.Bool().Apply(context.Background(), nilBool, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -448,7 +449,7 @@ func TestBoolRuleSet_Evaluate_WithErrors(t *testing.T) {
 	ruleSet := rules.Bool().WithRuleFunc(testhelpers.NewMockRuleWithErrors[bool](1).Function())
 	err := ruleSet.Evaluate(context.Background(), true)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -490,7 +491,7 @@ func TestBoolRuleSet_coerceBool_EdgeCases(t *testing.T) {
 	var out bool
 	err := rules.Bool().WithStrict().Apply(context.Background(), []int{1, 2, 3}, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
@@ -498,7 +499,7 @@ func TestBoolRuleSet_coerceBool_EdgeCases(t *testing.T) {
 	// Test with unsupported type in non-strict mode
 	err = rules.Bool().Apply(context.Background(), []int{1, 2, 3}, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}

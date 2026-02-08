@@ -10,7 +10,7 @@ import (
 
 func InitInterfaceRuleSet() rules.RuleSet[MyTestInterface] {
 	return rules.Interface[MyTestInterface]().
-		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationErrorCollection) {
+		WithCast(func(ctx context.Context, v any) (MyTestInterface, errors.ValidationError) {
 			if v == nil {
 				return nil, nil
 			}
