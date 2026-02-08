@@ -443,16 +443,15 @@ func TestPanicWhenAssigningRuleSetToMissingField(t *testing.T) {
 }
 
 // TestKeyFunction tests:
-// - Deprecated Key function still works correctly
-// - This function is deprecated and will be removed in v1.0.0
+// - WithKey function works correctly for key-specific rules
 func TestKeyFunction(t *testing.T) {
 	// Prepare the output variable for Apply
 	var out *testStructMapped
 
-	// Use Apply instead of Validate
+	// Use Apply with WithKey for key-specific rules
 	err := rules.Struct[*testStructMapped]().
-		Key("A", rules.Int().Any()).
-		Key("C", rules.Int().Any()).
+		WithKey("A", rules.Int().Any()).
+		WithKey("C", rules.Int().Any()).
 		Apply(context.TODO(), map[string]any{"A": 123, "C": 456}, &out)
 
 	if err != nil {
