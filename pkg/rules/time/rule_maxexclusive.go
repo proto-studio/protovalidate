@@ -15,12 +15,10 @@ type maxExclusiveTimeRule struct {
 }
 
 // Evaluate takes a context and time value and returns an error if it is not before the specified value (exclusive).
-func (rule *maxExclusiveTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationErrorCollection {
+func (rule *maxExclusiveTimeRule) Evaluate(ctx context.Context, value time.Time) errors.ValidationError {
 	// Exclusive: value must be < max, so reject if value >= max
 	if !value.Before(rule.max) {
-		return errors.Collection(
-			errors.Errorf(errors.CodeMaxExclusive, ctx, "above maximum", "must be before %s", rule.max),
-		)
+		return errors.Errorf(errors.CodeMaxExclusive, ctx, "above maximum", "must be before %s", rule.max)
 	}
 
 	return nil

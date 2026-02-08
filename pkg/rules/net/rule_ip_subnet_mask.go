@@ -15,7 +15,7 @@ type ipSubnetMaskRule struct {
 }
 
 // Evaluate validates that the IP address is within the network defined by the network address and subnet mask.
-func (rule *ipSubnetMaskRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func (rule *ipSubnetMaskRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
 		return nil
 	}
@@ -27,9 +27,7 @@ func (rule *ipSubnetMaskRule) Evaluate(ctx context.Context, ip net.IP) errors.Va
 	}
 
 	if !network.Contains(ip) {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "IP address is not within the specified network",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "IP address is not within the specified network")
 	}
 
 	return nil

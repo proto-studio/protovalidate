@@ -13,11 +13,9 @@ type minLenRule[TV any, T lengthy[TV]] struct {
 }
 
 // Evaluate takes a context and array/slice value and returns an error if it is not equal or lower in length than the specified value.
-func (rule *minLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule *minLenRule[TV, T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	if len(value) < rule.min {
-		return errors.Collection(
-			errors.Error(errors.CodeMinLen, ctx, rule.min),
-		)
+		return errors.Error(errors.CodeMinLen, ctx, rule.min)
 	}
 	return nil
 }

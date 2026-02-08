@@ -107,7 +107,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 
 	// Non pointer
 	err = ruleSet.Apply(ctx, input, out1)
-	if err == nil || err.First().Code() != errors.CodeInternal {
+	if err == nil || err.Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
 	}
 
@@ -129,7 +129,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 	// Pointer to incorrect type
 	var out4 int
 	err = ruleSet.Apply(ctx, input, out4)
-	if err == nil || err.First().Code() != errors.CodeInternal {
+	if err == nil || err.Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
 	}
 
@@ -184,7 +184,7 @@ func TestObjectOutput_Apply(t *testing.T) {
 		t.Errorf("Expected error to not be nil")
 	} else if out7 != nil {
 		t.Error("Expected out7 to be nil")
-	} else if c := err.First().Code(); c != errors.CodeInternal {
+	} else if c := err.Code(); c != errors.CodeInternal {
 		t.Errorf("Expected error to be %s (errors.CodeInternal), got: %s", errors.CodeInternal, c)
 	}
 }
@@ -222,7 +222,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 
 	// Non pointer
 	err = ruleSet.Apply(ctx, input, out1)
-	if err == nil || err.First().Code() != errors.CodeInternal {
+	if err == nil || err.Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
 	}
 
@@ -265,7 +265,7 @@ func TestObjectOutputPointer_Apply(t *testing.T) {
 	// Pointer to incorrect type
 	var out4 int
 	err = ruleSet.Apply(ctx, input, out4)
-	if err == nil || err.First().Code() != errors.CodeInternal {
+	if err == nil || err.Code() != errors.CodeInternal {
 		t.Errorf("Expected error to not be internal")
 	}
 }
@@ -601,7 +601,7 @@ func TestMissingRequiredField(t *testing.T) {
 		WithKey("B", rules.Int().WithRequired()).
 		Apply(context.TODO(), map[string]any{"A": 123}, &out)
 
-	if len(err) == 0 {
+	if len(errors.Unwrap(err)) == 0 {
 		t.Errorf("Expected errors to not be empty")
 	}
 }
@@ -654,8 +654,8 @@ func TestReturnsAllErrors(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if len(err) != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
+	} else if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(errors.Unwrap(err)), err.Error())
 	}
 }
 
@@ -676,27 +676,27 @@ func TestObjectReturnsCorrectPaths(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
-	} else if len(err) != 2 {
-		t.Errorf("Expected 2 errors got %d: %s", len(err), err.Error())
+	} else if len(errors.Unwrap(err)) != 2 {
+		t.Errorf("Expected 2 errors got %d: %s", len(errors.Unwrap(err)), err.Error())
 		return
 	}
 
-	errA := err.For("/myobj/A")
+	errA := errors.For(err, "/myobj/A")
 	if errA == nil {
 		t.Errorf("Expected error for /myobj/A to not be nil")
-	} else if len(errA) != 1 {
-		t.Errorf("Expected exactly 1 error for /myobj/A got %d: %s", len(err), err)
-	} else if errA.First().Path() != "/myobj/A" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/A", errA.First().Path())
+	} else if len(errors.Unwrap(errA)) != 1 {
+		t.Errorf("Expected exactly 1 error for /myobj/A got %d: %s", len(errors.Unwrap(err)), err)
+	} else if errA.Path() != "/myobj/A" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/A", errA.Path())
 	}
 
-	errC := err.For("/myobj/C")
+	errC := errors.For(err, "/myobj/C")
 	if errC == nil {
 		t.Errorf("Expected error for /myobj/C to not be nil")
-	} else if len(errC) != 1 {
-		t.Errorf("Expected exactly 1 error for /myobj/C got %d: %s", len(err), err)
-	} else if errC.First().Path() != "/myobj/C" {
-		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/C", errC.First().Path())
+	} else if len(errors.Unwrap(errC)) != 1 {
+		t.Errorf("Expected exactly 1 error for /myobj/C got %d: %s", len(errors.Unwrap(err)), err)
+	} else if errC.Path() != "/myobj/C" {
+		t.Errorf("Expected error path to be `%s` got `%s`", "/myobj/C", errC.Path())
 	}
 }
 
@@ -736,9 +736,9 @@ func TestObjectCustom(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(err) != 5 {
+	} else if len(errors.Unwrap(err)) != 5 {
 		// The two custom errors + 3 unexpected keys
-		t.Errorf("Expected 5 errors, got: %d", len(err))
+		t.Errorf("Expected 5 errors, got: %d", len(errors.Unwrap(err)))
 	}
 
 	if mock.EvaluateCallCount() != 2 {
@@ -908,7 +908,7 @@ func TestTimeoutInObjectRule(t *testing.T) {
 
 	ruleSet := rules.Struct[*testStruct]().
 		WithKey("X", rules.Int().WithMin(2).Any()).
-		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
+		WithRuleFunc(func(_ context.Context, x *testStruct) errors.ValidationError {
 			// Simulate a delay that exceeds the timeout
 			time.Sleep(1 * time.Second)
 			return nil
@@ -922,10 +922,18 @@ func TestTimeoutInObjectRule(t *testing.T) {
 
 	if errs == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(errs) != 2 {
-		t.Errorf("Expected 2 errors, got %d", len(errs))
-	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, c, errs.For("").First())
+	} else if all := errors.Unwrap(errs); len(all) != 2 {
+		t.Errorf("Expected 2 errors, got %d", len(all))
+	} else {
+		codes := map[errors.ErrorCode]bool{}
+		for _, e := range all {
+			if ve, ok := e.(errors.ValidationError); ok {
+				codes[ve.Code()] = true
+			}
+		}
+		if !codes[errors.CodeTimeout] || !codes[errors.CodeMin] {
+			t.Errorf("Expected one CodeTimeout and one CodeMin, got: %s", errs)
+		}
 	}
 }
 
@@ -940,7 +948,7 @@ func TestTimeoutInKeyRule(t *testing.T) {
 
 	ruleSet := rules.Struct[*testStruct]().
 		WithKey("X", rules.Int().
-			WithRuleFunc(func(_ context.Context, x int) errors.ValidationErrorCollection {
+			WithRuleFunc(func(_ context.Context, x int) errors.ValidationError {
 				// Simulate a delay that exceeds the timeout
 				time.Sleep(1 * time.Second)
 				return nil
@@ -954,10 +962,10 @@ func TestTimeoutInKeyRule(t *testing.T) {
 
 	if errs == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(errs) != 1 {
-		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
-	} else if c := errs.For("").First().Code(); c != errors.CodeTimeout {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, c, errs.For("").First())
+	} else if len(errors.Unwrap(errs)) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errors.Unwrap(errs)), errs)
+	} else if c := errs.Code(); c != errors.CodeTimeout {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeTimeout, c, errs)
 	}
 }
 
@@ -969,14 +977,14 @@ func TestCancelled(t *testing.T) {
 	var intCallCount int32 = 0
 	var structCallCount int32 = 0
 
-	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
+	intRule := func(_ context.Context, x int) errors.ValidationError {
 		atomic.AddInt32(&intCallCount, 1)
 		cancel()
 		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
 		return nil
 	}
 
-	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
+	structRule := func(_ context.Context, x *testStruct) errors.ValidationError {
 		atomic.AddInt32(&structCallCount, 1)
 		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
 		return nil
@@ -996,10 +1004,10 @@ func TestCancelled(t *testing.T) {
 
 	if errs == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(errs) != 1 {
-		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
-	} else if c := errs.First().Code(); c != errors.CodeCancelled {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs.First())
+	} else if len(errors.Unwrap(errs)) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errors.Unwrap(errs)), errs)
+	} else if c := errs.Code(); c != errors.CodeCancelled {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs)
 	}
 
 	finalCallCount := atomic.LoadInt32(&intCallCount)
@@ -1020,7 +1028,7 @@ func TestCancelledObjectRules(t *testing.T) {
 
 	var structCallCount int32 = 0
 
-	structRule := func(_ context.Context, x *testStruct) errors.ValidationErrorCollection {
+	structRule := func(_ context.Context, x *testStruct) errors.ValidationError {
 		atomic.AddInt32(&structCallCount, 1)
 		cancel()
 		time.Sleep(1 * time.Second) // Simulate a delay that allows cancellation
@@ -1039,10 +1047,10 @@ func TestCancelledObjectRules(t *testing.T) {
 
 	if errs == nil {
 		t.Error("Expected errors to not be nil")
-	} else if len(errs) != 1 {
-		t.Errorf("Expected 1 error, got %d: %s", len(errs), errs)
-	} else if c := errs.First().Code(); c != errors.CodeCancelled {
-		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs.First())
+	} else if len(errors.Unwrap(errs)) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errors.Unwrap(errs)), errs)
+	} else if c := errs.Code(); c != errors.CodeCancelled {
+		t.Errorf("Expected error to be %s, got %s (%s)", errors.CodeCancelled, c, errs)
 	}
 
 	finalCallCount := atomic.LoadInt32(&structCallCount)
@@ -1060,14 +1068,14 @@ func TestConditionalKey(t *testing.T) {
 	var condValue int32 = 0
 
 	// If the condition is evaluated before this rule finishes then the value will be incorrect
-	intRule := func(_ context.Context, x int) errors.ValidationErrorCollection {
+	intRule := func(_ context.Context, x int) errors.ValidationError {
 		atomic.StoreInt32(&intState, 1)
 		time.Sleep(100 * time.Millisecond)
 		atomic.StoreInt32(&intState, 2)
 		return nil
 	}
 
-	condValueRule := func(_ context.Context, y int) errors.ValidationErrorCollection {
+	condValueRule := func(_ context.Context, y int) errors.ValidationError {
 		condValue = atomic.LoadInt32(&intState)
 		return nil
 	}
@@ -1431,16 +1439,16 @@ func TestUnexpectedKeyPath(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
 		return
-	} else if len(err) != 1 {
-		t.Errorf("Expected 1 error, got %d: %s", len(err), err.Error())
+	} else if len(errors.Unwrap(err)) != 1 {
+		t.Errorf("Expected 1 error, got %d: %s", len(errors.Unwrap(err)), err.Error())
 		return
 	}
 
-	if err.First().Path() != "/myobj/x" {
-		t.Errorf("Expected error path to be `%s` got `%s` (%s)", "/myobj/x", err.First().Path(), err)
+	if err.Path() != "/myobj/x" {
+		t.Errorf("Expected error path to be `%s` got `%s` (%s)", "/myobj/x", err.Path(), err)
 	}
 
-	errA := err.For("/myobj/x")
+	errA := errors.For(err, "/myobj/x")
 	if errA == nil {
 		t.Errorf("Expected error for /myobj/x to not be nil")
 	}
@@ -1756,7 +1764,7 @@ func TestWithDynamicBucketAndDynamicKeyInterfaceToStruct(t *testing.T) {
 	filterKeyRule := rules.String().WithRegexp(regexp.MustCompile(`^filter\[[^\]]+\]$`), "")
 
 	fieldsRuleSet := rules.Interface[valueListForBucketTest]().WithCast(
-		func(ctx context.Context, value any) (valueListForBucketTest, errors.ValidationErrorCollection) {
+		func(ctx context.Context, value any) (valueListForBucketTest, errors.ValidationError) {
 			var strs []string
 			if errs := stringQueryValueRuleSet.Apply(ctx, value, &strs); errs != nil {
 				return nil, errs
@@ -1973,7 +1981,7 @@ func TestStaticKeyWithBucket(t *testing.T) {
 func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 	var callCount int32 = 0
 
-	valueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationErrorCollection {
+	valueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationError {
 		if rulecontext.Path(ctx).String() == "__abc" {
 			time.Sleep(200 * time.Millisecond)
 			atomic.AddInt32(&callCount, 1)
@@ -1981,9 +1989,9 @@ func TestDynamicKeyAsConditionalDependency(t *testing.T) {
 		return nil
 	})
 
-	finalValueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationErrorCollection {
+	finalValueRule := rules.Any().WithRuleFunc(func(ctx context.Context, _ any) errors.ValidationError {
 		if count := atomic.LoadInt32(&callCount); count != 2 {
-			return errors.Collection(errors.Errorf(errors.CodeCancelled, ctx, "cancelled", "Expected count of %d, got %d", 2, count))
+			return errors.Errorf(errors.CodeCancelled, ctx, "cancelled", "Expected count of %d, got %d", 2, count)
 		}
 		return nil
 	})
@@ -2135,8 +2143,8 @@ func TestObjectMapWithNilKeyValue(t *testing.T) {
 		return
 	}
 
-	if err.First().Code() != errors.CodeNull {
-		t.Errorf("Expected error code to be CodeNull, got: %s", err.First().Code())
+	if err.Code() != errors.CodeNull {
+		t.Errorf("Expected error code to be CodeNull, got: %s", err.Code())
 	}
 }
 

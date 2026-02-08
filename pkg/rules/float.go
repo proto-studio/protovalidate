@@ -118,6 +118,7 @@ type floatConflictTypeReplacesWrapper[T floating] struct {
 	ct floatConflictType
 }
 
+// Replaces returns true if the other rule is a FloatRuleSet with a conflicting conflict type.
 func (w floatConflictTypeReplacesWrapper[T]) Replaces(r Rule[T]) bool {
 	// Try to cast to FloatRuleSet to access conflictType
 	if rs, ok := r.(interface{ getConflictType() floatConflictType }); ok {
@@ -160,8 +161,8 @@ func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -173,15 +174,13 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	// Attempt to coerce the input value to the correct float type
 	floatval, validationErr := v.coerceFloat(input, ctx)
 	if validationErr != nil {
-		return errors.Collection(validationErr)
+		return validationErr
 	}
 
 	// Apply rounding if specified
@@ -241,29 +240,22 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 
 	// If the types are incompatible, return an error
 	if !assignable {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", floatval, outputElem.Interface(),
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", floatval, outputElem.Interface())
 	}
 
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
 			if err := currentRuleSet.rule.Evaluate(ctx, floatval); err != nil {
-				allErrors = append(allErrors, err...)
+				errs = errors.Join(errs, err)
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	}
-	return nil
+	return errs
 }
 
-// Evaluate performs validation of a RuleSet against a float value and returns a ValidationErrorCollection.
-func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+// Evaluate performs validation of a RuleSet against a float value and returns a ValidationError.
+func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	var out T
 	return v.Apply(ctx, value, &out)
 }

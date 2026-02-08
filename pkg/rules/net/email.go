@@ -119,8 +119,8 @@ func (ruleSet *EmailRuleSet) WithNil() *EmailRuleSet {
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// It returns a ValidationError if any validation errors occur.
+func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -132,7 +132,7 @@ func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) e
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String()))
+		return errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String())
 	}
 
 	// Perform the validation
@@ -144,9 +144,7 @@ func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) e
 
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// Dereference the pointer to get the actual value that needs to be set
@@ -158,9 +156,7 @@ func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) e
 	case reflect.Interface:
 		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output,
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output)
 	}
 
 	return nil
@@ -168,82 +164,57 @@ func (ruleSet *EmailRuleSet) Apply(ctx context.Context, input any, output any) e
 
 // validateBasicEmail performs general domain validation that is valid for any and all domains.
 // This function always returns a collection even if it is empty.
-func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value string) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+func (ruleSet *EmailRuleSet) validateBasicEmail(ctx context.Context, value string) errors.ValidationError {
+	var errs errors.ValidationError
 	parts := strings.Split(value, "@")
-
 	if len(parts) < 2 {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "missing @ symbol"))
-		return allErrors
+		return errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "missing @ symbol"))
 	}
 	if len(parts) > 2 {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "too many @ symbols"))
-		return allErrors
+		return errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "too many @ symbols"))
 	}
-
 	local := parts[0]
 	domain := parts[1]
-
 	domainRuleSet := ruleSet.domainRuleSet
 	if domainRuleSet == nil {
 		domainRuleSet = Domain().WithTLD()
 	}
-
-	domainErrs := domainRuleSet.Evaluate(ctx, domain)
-
-	if len(domainErrs) > 0 {
-		allErrors = append(allErrors, domainErrs...)
+	if ev := domainRuleSet.Evaluate(ctx, domain); ev != nil {
+		errs = errors.Join(errs, ev)
 	}
-
 	if len(local) == 0 {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "local part is empty"))
-		return allErrors
+		return errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "local part is empty"))
 	}
-
 	if strings.HasPrefix(local, ".") {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot start with a dot"))
+		errs = errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot start with a dot"))
 	}
-
 	if strings.HasSuffix(local, ".") {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot end with a dot"))
+		errs = errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot end with a dot"))
 	}
-
 	if strings.Contains(local, "..") {
-		allErrors = append(allErrors, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot contain consecutive dots"))
+		errs = errors.Join(errs, errors.Errorf(errors.CodePattern, ctx, "invalid format", "cannot contain consecutive dots"))
 	}
-
-	return allErrors
+	return errs
 }
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
-// same type or a ValidationErrorCollection.
-func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
-
-	allErrors := ruleSet.validateBasicEmail(ctx, value)
-
-	if len(allErrors) > 0 {
-		return allErrors
+// same type or a ValidationError.
+func (ruleSet *EmailRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationError {
+	var errs errors.ValidationError
+	if ev := ruleSet.validateBasicEmail(ctx, value); ev != nil {
+		errs = errors.Join(errs, ev)
 	}
-
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errs
 }
 
 // WithDomain returns a new child rule set that uses a custom domain validator

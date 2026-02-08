@@ -56,9 +56,12 @@ func MustApplyFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutp
 
 	if err != nil {
 		str := "Expected error to be nil"
-
-		for _, inner := range err {
-			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
+		for _, inner := range errors.Unwrap(err) {
+			if ve, ok := inner.(errors.ValidationError); ok {
+				str += fmt.Sprintf("\n  %s at %s", ve, ve.Path())
+			} else {
+				str += fmt.Sprintf("\n  %s", inner)
+			}
 		}
 
 		t.Error(str)
@@ -104,8 +107,8 @@ func MustNotApply(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode
 	if err == nil {
 		t.Error("Expected error to not be nil")
 		return nil
-	} else if err.First().Code() != errorCode {
-		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.First().Code(), err)
+	} else if err.Code() != errorCode {
+		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.Code(), err)
 		return nil
 	}
 
@@ -148,7 +151,7 @@ func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
 	err = ruleSet.Apply(context.TODO(), input, outputNonPointer)
 	if err == nil {
 		t.Errorf("Expected error to not be nil on `%T` output", outputNonPointer)
-	} else if code := err.First().Code(); code != errors.CodeInternal {
+	} else if code := err.Code(); code != errors.CodeInternal {
 		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `%T` output, got: %s", errors.CodeInternal, outputNonPointer, code)
 	}
 
@@ -157,18 +160,17 @@ func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
 	err = ruleSet.Apply(context.TODO(), input, outputPointerToNil)
 	if err == nil {
 		t.Error("Expected error to not be nil on pointer to `nil` output")
-	} else if code := err.First().Code(); code != errors.CodeInternal {
+	} else if code := err.Code(); code != errors.CodeInternal {
 		t.Errorf("Expected error code to be %s (errors.CodeInternal) on pointer to `nil` output, got: %s", errors.CodeInternal, code)
 	}
 
 	// Incompatible type
-	// We must assign a &neverAssignableImpl{} to avoid false errors because the pointer was nil
 	var outputIncompatible neverAssignable = &neverAssignableImpl{privProp: 1}
 	outputIncompatible.priv()
 	err = ruleSet.Apply(context.TODO(), input, outputIncompatible)
 	if err == nil {
 		t.Error("Expected error to not be nil on incompatible output")
-	} else if code := err.First().Code(); code != errors.CodeInternal {
+	} else if code := err.Code(); code != errors.CodeInternal {
 		t.Errorf("Expected error code to be %s (errors.CodeInternal) on incompatible output, got: %s", errors.CodeInternal, code)
 	}
 
@@ -176,7 +178,7 @@ func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
 	err = ruleSet.Apply(context.TODO(), input, nil)
 	if err == nil {
 		t.Error("Expected error to not be nil on `nil` output")
-	} else if code := err.First().Code(); code != errors.CodeInternal {
+	} else if code := err.Code(); code != errors.CodeInternal {
 		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `nil` output, got: %s", errors.CodeInternal, code)
 	}
 }
@@ -193,9 +195,12 @@ func MustEvaluate[T any](t testing.TB, rule rules.Rule[T], input T) error {
 
 	if err != nil {
 		str := "Expected error to be nil"
-
-		for _, inner := range err {
-			str += fmt.Sprintf("\n  %s at %s", inner, inner.Path())
+		for _, inner := range errors.Unwrap(err) {
+			if ve, ok := inner.(errors.ValidationError); ok {
+				str += fmt.Sprintf("\n  %s at %s", ve, ve.Path())
+			} else {
+				str += fmt.Sprintf("\n  %s", inner)
+			}
 		}
 
 		t.Error(str)
@@ -219,8 +224,8 @@ func MustNotEvaluate[T any](t testing.TB, rule rules.Rule[T], input T, errorCode
 	if err == nil {
 		t.Error("Expected error to not be nil")
 		return nil
-	} else if err.First().Code() != errorCode {
-		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.First().Code(), err)
+	} else if err.Code() != errorCode {
+		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.Code(), err)
 		return nil
 	}
 

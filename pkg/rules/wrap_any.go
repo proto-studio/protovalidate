@@ -89,29 +89,25 @@ func (v *WrapAnyRuleSet[T]) WithNil() *WrapAnyRuleSet[T] {
 
 // evaluateRules runs all the rules and returns any errors.
 // Returns a collection regardless of if there are any errors.
-func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors.ValidationErrorCollection {
-	allErrors := errors.Collection()
-
+func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors.ValidationError {
+	var errs errors.ValidationError
 	currentRuleSet := v
 	ctx = rulecontext.WithRuleSet(ctx, v)
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	return allErrors
+	return errs
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
 // Apply calls wrapped rules before any rules added directly to the WrapAnyRuleSet.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
-func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationErrorCollection {
+// Apply returns a ValidationError if any validation errors occur.
+func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -121,36 +117,15 @@ func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors
 	}
 
 	innerErrors := v.inner.Apply(ctx, input, output)
-	allErrors := v.evaluateRules(ctx, output)
-
-	if innerErrors != nil {
-		allErrors = append(allErrors, innerErrors...)
-	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	} else {
-		return nil
-	}
+	return errors.Join(v.evaluateRules(ctx, output), innerErrors)
 }
 
-// Evaluate performs validation of a RuleSet against a value of any type and returns a ValidationErrorCollection.
+// Evaluate performs validation of a RuleSet against a value of any type and returns a ValidationError.
 // Evaluate calls the wrapped RuleSet's Evaluate method directly if the input value implements the same type,
 // otherwise it calls Apply. This approach is usually more efficient since it does not need to allocate an output variable.
-func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) errors.ValidationErrorCollection {
+func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) errors.ValidationError {
 	if v, ok := value.(T); ok {
-		innerErrors := ruleSet.inner.Evaluate(ctx, v)
-		allErrors := ruleSet.evaluateRules(ctx, value)
-
-		if innerErrors != nil {
-			allErrors = append(allErrors, innerErrors...)
-		}
-
-		if len(allErrors) != 0 {
-			return allErrors
-		} else {
-			return nil
-		}
+		return errors.Join(ruleSet.evaluateRules(ctx, value), ruleSet.inner.Evaluate(ctx, v))
 	} else {
 		var out T
 		errs := ruleSet.Apply(ctx, value, &out)

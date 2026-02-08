@@ -36,14 +36,14 @@ type Rule[T any] interface {
 	fmt.Stringer
 
 	// Evaluate takes in a context and value and returns any validation errors.
-	Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection
+	Evaluate(ctx context.Context, value T) errors.ValidationError
 }
 
 // RuleFunc implements the Rule interface for functions.
-type RuleFunc[T any] func(ctx context.Context, value T) errors.ValidationErrorCollection
+type RuleFunc[T any] func(ctx context.Context, value T) errors.ValidationError
 
 // Evaluate calls the rule function and returns the results.
-func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) errors.ValidationErrorCollection {
+func (rule RuleFunc[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	return rule(ctx, value)
 }
 

@@ -136,51 +136,39 @@ func (v *SliceRuleSet[T]) WithItemRuleSet(itemRules RuleSet[T]) *SliceRuleSet[T]
 	return newRuleSet
 }
 
-// finishApply merges coercion errors, applies top-level rules, and returns the final error collection.
-func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, itemErrors errors.ValidationErrorCollection, coercionErrors []errors.ValidationErrorCollection) errors.ValidationErrorCollection {
-	// Merge coercion errors if any
-	allErrors := itemErrors
-	if len(coercionErrors) > 0 {
-		for _, ce := range coercionErrors {
-			if ce != nil {
-				allErrors = append(allErrors, ce...)
-			}
+// finishApply merges coercion errors, applies top-level rules, and returns the final error.
+func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, itemErrors errors.ValidationError, coercionErrors []errors.ValidationError) errors.ValidationError {
+	var errs errors.ValidationError
+	if itemErrors != nil {
+		errs = errors.Join(errs, itemErrors)
+	}
+	for _, ce := range coercionErrors {
+		if ce != nil {
+			errs = errors.Join(errs, ce)
 		}
 	}
-
-	// Check minLen - minLen is checked at the end after all items are processed
-	// minLen is copied to clones, so we only need to check the current rule set
-	// outputItems will be non-nil if minLen > 0 (we allocate it in applyChan)
 	if v.minLen > 0 {
 		actualLen := len(outputItems)
 		if actualLen < v.minLen {
-			allErrors = append(allErrors, errors.Error(
-				errors.CodeMinLen, ctx, v.minLen,
-			))
+			errs = errors.Join(errs, errors.Error(errors.CodeMinLen, ctx, v.minLen))
 		}
 	}
-
-	// Apply top-level rules on collected output
 	if len(outputItems) > 0 {
 		for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 			if currentRuleSet.rule != nil {
 				if err := currentRuleSet.rule.Evaluate(ctx, outputItems); err != nil {
-					allErrors = append(allErrors, err...)
+					errs = errors.Join(errs, err)
 				}
 			}
 		}
 	}
-
-	if len(allErrors) != 0 {
-		return allErrors
-	}
-	return nil
+	return errs
 }
 
 // newInputChan converts a slice or array to a channel and returns the channel, original items, and coercion errors.
 // originalItems is populated when itemRuleSet exists, allowing it to process items that couldn't be cast to T.
 // coercionErrors is populated when no itemRuleSet exists, tracking items that couldn't be cast.
-func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Value) (<-chan T, []any, []errors.ValidationErrorCollection) {
+func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Value) (<-chan T, []any, []errors.ValidationError) {
 	// Convert slice/array to channel
 	// Note: maxLen is checked at the end as a top-level rule (after all items are processed)
 	// Send all items - if they can't be cast to T, send zero value
@@ -196,7 +184,7 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 	}
 
 	var originalItems []any
-	var coercionErrors []errors.ValidationErrorCollection
+	var coercionErrors []errors.ValidationError
 
 	// If we have itemRuleSet, track original items for items that can't be cast
 	if itemRuleSet != nil {
@@ -236,7 +224,7 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 			if _, ok := itemInterface.(T); !ok {
 				subContext := rulecontext.WithPathString(ctx, strconv.Itoa(i))
 				actual := item.Kind().String()
-				coercionErrors = append(coercionErrors, errors.Collection(errors.Error(errors.CodeType, subContext, expectedType.Name(), actual)))
+				coercionErrors = append(coercionErrors, errors.Error(errors.CodeType, subContext, expectedType.Name(), actual))
 			}
 		}
 	}
@@ -251,8 +239,8 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 // (used when itemRuleSet needs to process original items that couldn't be cast to T)
 // applyChan does NOT close channels - they are managed by the caller.
 // applyChan returns the collected items and errors. Top-level rules are NOT applied here.
-func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output chan<- T, originalItems []any) ([]T, errors.ValidationErrorCollection) {
-	var allErrors = errors.Collection()
+func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output chan<- T, originalItems []any) ([]T, errors.ValidationError) {
+	var errs errors.ValidationError
 	var outputItems []T
 	var index int
 
@@ -288,42 +276,32 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 	for {
 		select {
 		case <-ctx.Done():
-			allErrors = append(allErrors, contextErrorToValidation(ctx))
-			return outputItems, allErrors
+			errs = errors.Join(errs, contextErrorToValidation(ctx))
+			return outputItems, errs
 		case item, ok := <-input:
 			if !ok {
-				// Input channel closed - all items processed
-				// Return items and errors (top-level rules will be applied in Apply)
-				return outputItems, allErrors
+				return outputItems, errs
 			}
 
 			// Check maxLen proactively - stop applying item rules after maxLen
 			// Item rules are applied up to maxLen, after which we stop processing items
 			if maxLen > 0 && index >= maxLen {
-				// Max length exceeded - return immediately with error
-				// Don't drain the channel as it may never close (DoS risk)
-				allErrors = append(allErrors, errors.Error(
-					errors.CodeMaxLen, ctx, maxLen,
-				))
-				return outputItems, allErrors
+				errs = errors.Join(errs, errors.Error(errors.CodeMaxLen, ctx, maxLen))
+				return outputItems, errs
 			}
 
-			// Validate item (only if we haven't exceeded maxLen)
 			var itemOutput T
-			var itemErr errors.ValidationErrorCollection
-
+			var itemErr errors.ValidationError
 			if itemRuleSet != nil {
 				subContext := rulecontext.WithPathIndex(ctx, index)
-				// Use original item if available (for items that couldn't be cast to T)
 				var itemInput any = item
 				if originalItems != nil && index < len(originalItems) && originalItems[index] != nil {
 					itemInput = originalItems[index]
 				}
 				itemErr = itemRuleSet.Apply(subContext, itemInput, &itemOutput)
 				if itemErr != nil {
-					// Try to use original item if validation fails
 					itemOutput = item
-					allErrors = append(allErrors, itemErr...)
+					errs = errors.Join(errs, itemErr)
 				}
 			} else {
 				// No item rules
@@ -333,8 +311,8 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 			// Write to output channel immediately
 			select {
 			case <-ctx.Done():
-				allErrors = append(allErrors, contextErrorToValidation(ctx))
-				return outputItems, allErrors
+				errs = errors.Join(errs, contextErrorToValidation(ctx))
+				return outputItems, errs
 			case output <- itemOutput:
 				// Append to outputItems if we need it for top-level rules or minLen
 				if hasTopLevelRules || v.minLen > 0 {
@@ -347,14 +325,14 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 }
 
 // Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationErrorCollection if any validation errors occur.
+// Apply returns a ValidationError if any validation errors occur.
 //
 // Apply supports channels as both input and output. When using channels:
 // - Input channel: reads values until closed, max length is hit, or context times out
 // - Output channel: writes validated values in the same order as input
 // - All errors are collected and returned at once
 // - Items are streamed (validated and written immediately, not collected upfront)
-func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
@@ -366,9 +344,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	// Ensure output is a non-nil pointer
 	outputVal := reflect.ValueOf(output)
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
 	}
 
 	outputElem := outputVal.Elem()
@@ -382,38 +358,26 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	case reflect.Chan:
 		// Validate channel element type
 		if outputElem.IsNil() {
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Output channel cannot be nil",
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel cannot be nil")
 		}
 		actualType := outputElem.Type().Elem()
 		if !actualType.AssignableTo(expectedType) {
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Output channel element type %s is not compatible with %s",
-				actualType.String(), expectedType.String(),
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel element type %s is not compatible with %s", actualType.String(), expectedType.String())
 		}
 	case reflect.Interface:
 		// Interface output: check if []T is assignable to the interface type
 		// If nil, it's valid (we'll set it). If not nil, check assignability.
 		if !outputElem.IsNil() {
 			if !expectedSliceType.AssignableTo(outputElem.Type()) {
-				return errors.Collection(errors.Errorf(
-					errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
-				))
+				return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface())
 			}
 		}
 	case reflect.Slice:
-		// Validate slice element type - check if []T is assignable to output slice type
 		if !expectedSliceType.AssignableTo(outputElem.Type()) {
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface(),
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface())
 		}
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "Output must be a slice or channel, got %s", outputElemKind,
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a slice or channel, got %s", outputElemKind)
 	}
 
 	valueOf := reflect.ValueOf(input)
@@ -422,7 +386,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 
 	// Determine input channel
 	var inputChan <-chan T
-	var coercionErrors []errors.ValidationErrorCollection
+	var coercionErrors []errors.ValidationError
 	var originalItems []any
 
 	switch inputKind {
@@ -430,9 +394,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		// Input is already a channel
 		inputVal := reflect.ValueOf(input)
 		if inputVal.IsNil() {
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil",
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil")
 		}
 
 		// Convert to receive-only channel
@@ -443,18 +405,15 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		case chan T:
 			recvChan = ch
 		default:
-			// Type assertion failed
 			expectedType := reflect.TypeOf((*T)(nil)).Elem()
 			actualType := inputVal.Type().Elem()
-			return errors.Collection(errors.Error(errors.CodeType,
-				ctx, expectedType.String(), actualType.String(),
-			))
+			return errors.Error(errors.CodeType, ctx, expectedType.String(), actualType.String())
 		}
 		inputChan = recvChan
 	case reflect.Slice, reflect.Array:
 		inputChan, originalItems, coercionErrors = v.newInputChan(ctx, valueOf)
 	default:
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "array", inputKind.String()))
+		return errors.Error(errors.CodeType, ctx, "array", inputKind.String())
 	}
 
 	// Determine output channel and setup
@@ -475,10 +434,7 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		case chan T:
 			sendChan = ch
 		default:
-			// Should not happen - we validated earlier, but handle gracefully
-			return errors.Collection(errors.Errorf(
-				errors.CodeInternal, ctx, "internal error", "Output channel type assertion failed",
-			))
+			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel type assertion failed")
 		}
 		outputChan = sendChan
 		closeOutputChan = false // Caller manages the channel
@@ -537,8 +493,8 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 	return v.finishApply(ctx, outputItems, itemErrors, coercionErrors)
 }
 
-// Evaluate performs validation of a RuleSet against a slice type and returns a ValidationErrorCollection.
-func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationErrorCollection {
+// Evaluate performs validation of a RuleSet against a slice type and returns a ValidationError.
+func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationError {
 	var out any
 	return ruleSet.Apply(ctx, value, &out)
 }

@@ -139,8 +139,8 @@ func TestDurationRuleSet_WithRounding_NoRounding(t *testing.T) {
 	err := ruleSet.Apply(context.TODO(), 5*internalTime.Second+500*internalTime.Millisecond, &output)
 	if err == nil {
 		t.Error("Expected error for non-evenly divisible duration")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 
 	// 5 seconds (exact) should work
@@ -164,8 +164,8 @@ func TestDurationRuleSet_WithRounding_RangeError(t *testing.T) {
 	err := ruleSet.Apply(context.TODO(), 200*internalTime.Second, &output)
 	if err == nil {
 		t.Error("Expected range error for value that doesn't fit in int8")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 }
 
@@ -192,8 +192,8 @@ func TestDurationRuleSet_WithRounding_InterfaceWithNumeric(t *testing.T) {
 	err := ruleSet.Apply(context.TODO(), 5*internalTime.Second+500*internalTime.Millisecond, &output)
 	if err == nil {
 		t.Error("Expected error for non-evenly divisible duration with interface output")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 
 	// 5 seconds (exact) should work
@@ -233,8 +233,8 @@ func TestDurationRuleSet_WithRounding_NilPointerInput(t *testing.T) {
 	err := ruleSet.Apply(context.TODO(), input, &output)
 	if err == nil {
 		t.Error("Expected error for nil *time.Duration input")
-	} else if err.First().Code() != errors.CodeType {
-		t.Errorf("Expected CodeType, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeType {
+		t.Errorf("Expected CodeType, got %s", err.Code())
 	}
 }
 
@@ -309,8 +309,8 @@ func TestDurationRuleSet_WithRounding_UnsignedOutput(t *testing.T) {
 	err = ruleSet.Apply(context.TODO(), -5*internalTime.Second, &outputUint64)
 	if err == nil {
 		t.Error("Expected error for negative duration to unsigned type")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 
 	// Overflow for uint8
@@ -318,8 +318,8 @@ func TestDurationRuleSet_WithRounding_UnsignedOutput(t *testing.T) {
 	err = ruleSet.Apply(context.TODO(), 300*internalTime.Second, &outputUint8)
 	if err == nil {
 		t.Error("Expected range error for overflow")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 
 	// Test interface containing unsigned int
@@ -337,7 +337,7 @@ func TestDurationRuleSet_WithRounding_UnsignedOutput(t *testing.T) {
 	err = ruleSet.Apply(context.TODO(), -5*internalTime.Second, &outputInterface)
 	if err == nil {
 		t.Error("Expected error for negative duration to interface containing unsigned type")
-	} else if err.First().Code() != errors.CodeRange {
-		t.Errorf("Expected CodeRange, got %s", err.First().Code())
+	} else if err.Code() != errors.CodeRange {
+		t.Errorf("Expected CodeRange, got %s", err.Code())
 	}
 }

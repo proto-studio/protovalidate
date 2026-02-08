@@ -42,7 +42,7 @@ type ipPublicPrivateRule struct {
 }
 
 // Evaluate validates that the IP address matches the public/private requirement.
-func (rule *ipPublicPrivateRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func (rule *ipPublicPrivateRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
 		return nil
 	}
@@ -50,15 +50,10 @@ func (rule *ipPublicPrivateRule) Evaluate(ctx context.Context, ip net.IP) errors
 	isPrivate := isPrivateIP(ip)
 
 	if rule.publicOnly && isPrivate {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "private IP addresses are not allowed",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "private IP addresses are not allowed")
 	}
-
 	if rule.privateOnly && !isPrivate {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "public IP addresses are not allowed",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "public IP addresses are not allowed")
 	}
 
 	return nil

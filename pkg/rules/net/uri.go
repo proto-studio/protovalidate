@@ -35,7 +35,7 @@ func isHex(c rune) bool {
 	return (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 }
 
-func percentEncodingRule(ctx context.Context, value string) errors.ValidationErrorCollection {
+func percentEncodingRule(ctx context.Context, value string) errors.ValidationError {
 	runes := []rune(value)
 
 	l := len(runes)
@@ -45,9 +45,7 @@ func percentEncodingRule(ctx context.Context, value string) errors.ValidationErr
 		}
 
 		if i >= l-2 || !isHex(runes[i+1]) || !isHex(runes[i+2]) {
-			return errors.Collection(
-				errors.Errorf(errors.CodeEncoding, ctx, "invalid encoding", "value is not properly URI encoded"),
-			)
+			return errors.Errorf(errors.CodeEncoding, ctx, "invalid encoding", "value is not properly URI encoded")
 		}
 	}
 
@@ -299,8 +297,8 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 }
 
 // Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationErrorCollection if any validation errors occur.
-func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationErrorCollection {
+// It returns a ValidationError if any validation errors occur.
+func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
 	// Add error config to context for error customization
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
@@ -312,7 +310,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Collection(errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String()))
+		return errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String())
 	}
 
 	// Perform the validation
@@ -324,9 +322,7 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 
 	// Check if the output is a non-nil pointer
 	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer",
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
 	}
 
 	// Dereference the pointer to get the actual value that needs to be set
@@ -338,31 +334,28 @@ func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) err
 	case reflect.Interface:
 		outputElem.Set(reflect.ValueOf(valueStr))
 	default:
-		return errors.Collection(errors.Errorf(
-			errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output,
-		))
+		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output)
 	}
 
 	return nil
 }
 
 // evaluateScheme evaluates the scheme portion of the URI and also returns a context with the scheme set.
-func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateScheme(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyScheme, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "scheme")
 
 	if value == "" {
 		if !ruleSet.relative {
-			return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "required", "scheme is required"))
+			return newCtx, errors.Errorf(errors.CodeRequired, subContext, "required", "scheme is required")
 		}
 		return newCtx, nil
 	}
-
 	return newCtx, ruleSet.schemeRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateUser evaluates the user portion of the userinfo in the URI and also returns a context with the user set.
-func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyUser, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "user")
 
@@ -370,7 +363,7 @@ func (ruleSet *URIRuleSet) evaluateUser(ctx context.Context, value string) (cont
 }
 
 // evaluatePassword evaluates the password portion of the userinfo in the URI and also returns a context with the password set.
-func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyPassword, value)
 
 	if value == "" && !ruleSet.passwordRuleSet.Required() {
@@ -383,7 +376,7 @@ func (ruleSet *URIRuleSet) evaluatePassword(ctx context.Context, value string) (
 }
 
 // evaluateAuthorityPart takes a context, a authority part name, and its value and returns any validation errors and a modified context.
-func (ruleSet *URIRuleSet) evaluateUserinfoPart(ctx context.Context, name, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateUserinfoPart(ctx context.Context, name, value string) (context.Context, errors.ValidationError) {
 	switch name {
 	case "user":
 		return ruleSet.evaluateUser(ctx, value)
@@ -394,7 +387,7 @@ func (ruleSet *URIRuleSet) evaluateUserinfoPart(ctx context.Context, name, value
 }
 
 // evaluateUserinfo evaluates the userinfo portion of the URI and also returns a context with the userinfo set.
-func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	const userinfoRegex = `^` +
 		`(?P<user>[^:]*)` + // User
 		`([:]?)(?P<password>.*)` + // Password
@@ -403,53 +396,39 @@ func (ruleSet *URIRuleSet) evaluateUserinfo(ctx context.Context, value string) (
 	newCtx := context.WithValue(ctx, URIContextKeyUserinfo, value)
 
 	if value == "" {
-		var verr errors.ValidationErrorCollection
-
+		var errs errors.ValidationError
 		if ruleSet.passwordRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "password")
-			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 		}
 		if ruleSet.userRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "user")
-			verr = append(verr, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
 		}
-
-		if len(verr) > 0 {
-			return newCtx, verr
-		}
-		return newCtx, nil
+		return newCtx, errs
 	}
 
-	allErrors := errors.Collection()
+	var errs errors.ValidationError
 	r := regexp.MustCompile(userinfoRegex)
 	match := r.FindStringSubmatch(value)
-
-	var verr errors.ValidationErrorCollection
-
-	// Regex always matches
 	for i, name := range r.SubexpNames() {
-		// User is implicit but if there is no ':' we treat password as missing.
-		// The match right before password should be a colon or empty
 		if name == "password" && match[i-1] == "" {
 			if ruleSet.passwordRuleSet.Required() {
 				subContext := ruleSet.deepErrorContext(newCtx, "password")
-				return newCtx, errors.Collection(errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
+				return newCtx, errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 			}
 		}
-
+		var verr errors.ValidationError
 		newCtx, verr = ruleSet.evaluateUserinfoPart(newCtx, name, match[i])
-		allErrors = append(allErrors, verr...)
+		if verr != nil {
+			errs = errors.Join(errs, verr)
+		}
 	}
-
-	if len(allErrors) > 0 {
-		return newCtx, allErrors
-	}
-
-	return newCtx, nil
+	return newCtx, errs
 }
 
 // evaluateHost evaluates the host portion of the URI and also returns a context with the host set.
-func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyHost, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "host")
 
@@ -457,7 +436,7 @@ func (ruleSet *URIRuleSet) evaluateHost(ctx context.Context, value string) (cont
 }
 
 // evaluatePort evaluates the port portion of the URI and also returns a context with the port set.
-func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyPort, value)
 
 	if value == "" && !ruleSet.portRuleSet.Required() {
@@ -472,7 +451,7 @@ func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (cont
 }
 
 // evaluateAuthorityPart takes a context, a authority part name, and its value and returns any validation errors and a modified context.
-func (ruleSet *URIRuleSet) evaluateAuthorityPart(ctx context.Context, name, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateAuthorityPart(ctx context.Context, name, value string) (context.Context, errors.ValidationError) {
 	switch name {
 	case "userinfo":
 		return ruleSet.evaluateUserinfo(ctx, value)
@@ -485,31 +464,28 @@ func (ruleSet *URIRuleSet) evaluateAuthorityPart(ctx context.Context, name, valu
 }
 
 // evaluateAuthority evaluates the authority portion of the URI and also returns a context with the authority, host, port, and userinfo set.
-func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
-	allErrors := errors.Collection()
+func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationError) {
+	var errs errors.ValidationError
 	newCtx := context.WithValue(ctx, URIContextKeyAuthority, value)
 
 	// Authority can be omitted from the URI.
 	// If it is, that means that any required parts that are inside of the authority are missing.
-	// That means that we should trigger validation errors for any missing but required parts.
-	// Note: this is the ONLY way that host can be missing. All other parts are tested later as well.
-	// Previous value should be "//" if the authority is present
 	if missing {
 		if ruleSet.userRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "user")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "user is required"))
 		}
 		if ruleSet.passwordRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "password")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "password is required"))
 		}
 		if ruleSet.hostRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "host")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "host is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "host is required"))
 		}
 		if ruleSet.portRuleSet.Required() {
 			subContext := ruleSet.deepErrorContext(newCtx, "port")
-			allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
+			errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
 		}
 
 		// These are usually set in evaluateURIPart but we are skipping that
@@ -518,10 +494,9 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 		newCtx = context.WithValue(newCtx, URIContextKeyPassword, "")
 		newCtx = context.WithValue(newCtx, URIContextKeyHost, "")
 		newCtx = context.WithValue(newCtx, URIContextKeyPort, "")
-		return newCtx, allErrors
+		return newCtx, errs
 	}
 
-	// Authority can be empty
 	const authorityRegex = `^` +
 		`(:?(?P<userinfo>[^@]*)@)?` + // Userinfo
 		`(?P<host>[^:]*)` + // Host
@@ -530,32 +505,25 @@ func (ruleSet *URIRuleSet) evaluateAuthority(ctx context.Context, value string, 
 
 	r := regexp.MustCompile(authorityRegex)
 	match := r.FindStringSubmatch(value)
-
-	var verr errors.ValidationErrorCollection
-
-	// Regex always matches since all parts are optional
 	for i, name := range r.SubexpNames() {
 		if name == "port" && match[i-1] == "" {
 			if ruleSet.portRuleSet.Required() {
 				subContext := ruleSet.deepErrorContext(newCtx, "port")
-				allErrors = append(allErrors, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
+				errs = errors.Join(errs, errors.Errorf(errors.CodeRequired, subContext, "required", "port is required"))
 				continue
 			}
 		}
-
+		var verr errors.ValidationError
 		newCtx, verr = ruleSet.evaluateAuthorityPart(newCtx, name, match[i])
-		allErrors = append(allErrors, verr...)
+		if verr != nil {
+			errs = errors.Join(errs, verr)
+		}
 	}
-
-	if len(allErrors) > 0 {
-		return newCtx, allErrors
-	}
-
-	return newCtx, nil
+	return newCtx, errs
 }
 
 // evaluatePath evaluates the path portion of the URI and also returns a context with the path set.
-func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyPath, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "path")
 
@@ -563,23 +531,19 @@ func (ruleSet *URIRuleSet) evaluatePath(ctx context.Context, value string) (cont
 }
 
 // evaluateQuery evaluates the query portion of the URI and also returns a context with the query set.
-func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyQuery, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "query")
 
 	if missing {
 		if ruleSet.queryRuleSet.Required() {
-			return newCtx, errors.Collection(
-				errors.Errorf(errors.CodeRequired, subContext, "required", "query is required"),
-			)
+			return newCtx, errors.Errorf(errors.CodeRequired, subContext, "required", "query is required")
 		}
 		return newCtx, nil
 	}
 	values, parseErr := url.ParseQuery(value)
 	if parseErr != nil {
-		return newCtx, errors.Collection(
-			errors.Errorf(errors.CodeEncoding, subContext, "invalid query", "query string could not be parsed: %v", parseErr),
-		)
+		return newCtx, errors.Errorf(errors.CodeEncoding, subContext, "invalid query", "query string could not be parsed: %v", parseErr)
 	}
 	if err := ruleSet.queryRuleSet.Evaluate(subContext, values); err != nil {
 		return newCtx, err
@@ -588,24 +552,21 @@ func (ruleSet *URIRuleSet) evaluateQuery(ctx context.Context, value string, miss
 }
 
 // evaluateFragment evaluates the fragment portion of the URI and also returns a context with the fragment set.
-func (ruleSet *URIRuleSet) evaluateFragment(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateFragment(ctx context.Context, value string, missing bool) (context.Context, errors.ValidationError) {
 	newCtx := context.WithValue(ctx, URIContextKeyFragment, value)
 	subContext := ruleSet.deepErrorContext(newCtx, "fragment")
 
 	if missing {
 		if ruleSet.fragmentRuleSet.Required() {
-			return newCtx, errors.Collection(
-				errors.Errorf(errors.CodeRequired, subContext, "required", "fragment is required"),
-			)
+			return newCtx, errors.Errorf(errors.CodeRequired, subContext, "required", "fragment is required")
 		}
 		return newCtx, nil
 	}
-
 	return newCtx, ruleSet.fragmentRuleSet.Evaluate(subContext, value)
 }
 
 // evaluateURIPart takes a context, a URI part name, and its value and returns any validation errors and a modified context.
-func (ruleSet *URIRuleSet) evaluateURIPart(ctx context.Context, name, value, previousValue string) (context.Context, errors.ValidationErrorCollection) {
+func (ruleSet *URIRuleSet) evaluateURIPart(ctx context.Context, name, value, previousValue string) (context.Context, errors.ValidationError) {
 	switch name {
 	case "scheme":
 		return ruleSet.evaluateScheme(ctx, value)
@@ -622,8 +583,8 @@ func (ruleSet *URIRuleSet) evaluateURIPart(ctx context.Context, name, value, pre
 }
 
 // Evaluate performs a validation of a RuleSet against a string and returns an object value of the
-// same type or a ValidationErrorCollection.
-func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+// same type or a ValidationError.
+func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) errors.ValidationError {
 	const URIRegex = `^` +
 		`(?:(?P<scheme>[^:/?#]+):)?` + // Scheme
 		`(?:(//)(?P<authority>[^/?#]*))?` + // Authority
@@ -634,37 +595,27 @@ func (ruleSet *URIRuleSet) Evaluate(ctx context.Context, value string) errors.Va
 
 	r := regexp.MustCompile(URIRegex)
 	match := r.FindStringSubmatch(value)
-
-	allErrors := errors.Collection()
-
+	var errs errors.ValidationError
 	currentRuleSet := ruleSet
 	ctx = rulecontext.WithRuleSet(ctx, ruleSet)
-
-	var verr errors.ValidationErrorCollection
-
-	// Regex always matches
 	prevMatch := ""
 	for i, name := range r.SubexpNames() {
+		var verr errors.ValidationError
 		ctx, verr = ruleSet.evaluateURIPart(ctx, name, match[i], prevMatch)
-		allErrors = append(allErrors, verr...)
+		if verr != nil {
+			errs = errors.Join(errs, verr)
+		}
 		prevMatch = match[i]
 	}
-
 	for currentRuleSet != nil {
 		if currentRuleSet.rule != nil {
-			if errs := currentRuleSet.rule.Evaluate(ctx, value); errs != nil {
-				allErrors = append(allErrors, errs...)
+			if e := currentRuleSet.rule.Evaluate(ctx, value); e != nil {
+				errs = errors.Join(errs, e)
 			}
 		}
-
 		currentRuleSet = currentRuleSet.parent
 	}
-
-	if len(allErrors) > 0 {
-		return allErrors
-	}
-
-	return nil
+	return errs
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

@@ -15,7 +15,7 @@ type ipVersionRule struct {
 }
 
 // Evaluate validates that the IP address matches the allowed IP version(s).
-func (rule *ipVersionRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationErrorCollection {
+func (rule *ipVersionRule) Evaluate(ctx context.Context, ip net.IP) errors.ValidationError {
 	if ip == nil {
 		return nil
 	}
@@ -24,15 +24,10 @@ func (rule *ipVersionRule) Evaluate(ctx context.Context, ip net.IP) errors.Valid
 	isIPv6 := !isIPv4 && ip.To16() != nil
 
 	if isIPv4 && !rule.allowIPv4 {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "IPv4 addresses are not allowed",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "IPv4 addresses are not allowed")
 	}
-
 	if isIPv6 && !rule.allowIPv6 {
-		return errors.Collection(errors.Errorf(
-			errors.CodePattern, ctx, "invalid format", "IPv6 addresses are not allowed",
-		))
+		return errors.Errorf(errors.CodePattern, ctx, "invalid format", "IPv6 addresses are not allowed")
 	}
 
 	return nil

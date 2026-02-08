@@ -14,11 +14,9 @@ type stringMaxExclusiveRule struct {
 }
 
 // Evaluate takes a context and string value and returns an error if it is lexicographically greater than or equal to the specified value.
-func (rule *stringMaxExclusiveRule) Evaluate(ctx context.Context, value string) errors.ValidationErrorCollection {
+func (rule *stringMaxExclusiveRule) Evaluate(ctx context.Context, value string) errors.ValidationError {
 	if value >= rule.max {
-		return errors.Collection(
-			errors.Error(errors.CodeMaxExclusive, ctx, util.TruncateString(rule.max)),
-		)
+		return errors.Error(errors.CodeMaxExclusive, ctx, util.TruncateString(rule.max))
 	}
 
 	return nil
