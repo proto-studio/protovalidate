@@ -39,17 +39,14 @@ func TestTimeRuleSet_WithMax_Conflict(t *testing.T) {
 	// Create an initial rule set with a max and min
 	ruleSet := time.Time().WithMax(tm).WithMin(before)
 
-	// Prepare an output variable for Apply
-	var output internalTime.Time
-
 	// Apply with a time after the max, expecting an error
-	err := ruleSet.Apply(context.TODO(), after, &output)
+	_, err := ruleSet.Apply(context.TODO(), after)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a time exactly at the max, expecting no error
-	err = ruleSet.Apply(context.TODO(), tm, &output)
+	_, err = ruleSet.Apply(context.TODO(), tm)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -58,7 +55,7 @@ func TestTimeRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMax(after)
 
 	// Apply with a time exactly at the new max, expecting no error
-	err = ruleSet2.Apply(context.TODO(), after, &output)
+	_, err = ruleSet2.Apply(context.TODO(), after)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

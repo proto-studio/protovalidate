@@ -38,17 +38,14 @@ func TestDurationRuleSet_WithMin_Conflict(t *testing.T) {
 	// Create an initial rule set with min and max values
 	ruleSet := time.Duration().WithMin(min).WithMax(after)
 
-	// Prepare an output variable for Apply
-	var output internalTime.Duration
-
 	// Apply with a duration before the min, expecting an error
-	err := ruleSet.Apply(context.TODO(), before, &output)
+	_, err := ruleSet.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a duration exactly at the min, expecting no error
-	err = ruleSet.Apply(context.TODO(), min, &output)
+	_, err = ruleSet.Apply(context.TODO(), min)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -57,7 +54,7 @@ func TestDurationRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMin(before)
 
 	// Apply with a duration exactly at the new min, expecting no error
-	err = ruleSet2.Apply(context.TODO(), before, &output)
+	_, err = ruleSet2.Apply(context.TODO(), before)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -85,16 +82,14 @@ func TestDurationRuleSet_WithMin_WithMinExclusiveConflict(t *testing.T) {
 	// Adding WithMinExclusive should conflict and replace WithMin
 	ruleSet2 := ruleSet.WithMinExclusive(before)
 
-	var output internalTime.Duration
-
 	// Original rule set should still have WithMin
-	err := ruleSet.Apply(context.TODO(), min, &output)
+	_, err := ruleSet.Apply(context.TODO(), min)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}
 
 	// New rule set should have WithMinExclusive (exclusive, so before should fail)
-	err = ruleSet2.Apply(context.TODO(), before, &output)
+	_, err = ruleSet2.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
@@ -116,16 +111,14 @@ func TestDurationRuleSet_WithMinExclusive_WithMinConflict(t *testing.T) {
 	// Adding WithMin should conflict and replace WithMinExclusive
 	ruleSet2 := ruleSet.WithMin(min)
 
-	var output internalTime.Duration
-
 	// Original rule set should still have WithMinExclusive
-	err := ruleSet.Apply(context.TODO(), before, &output)
+	_, err := ruleSet.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMin (inclusive, so min should pass)
-	err = ruleSet2.Apply(context.TODO(), min, &output)
+	_, err = ruleSet2.Apply(context.TODO(), min)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}

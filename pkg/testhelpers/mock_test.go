@@ -113,10 +113,9 @@ func TestMockRuleSet_Apply(t *testing.T) {
 	ctx := context.Background()
 
 	// Assigning mockRuleSet.OutputValue to output
-	var outputInt int
 	overrideValue := 456
 	mockRuleSet := &testhelpers.MockRuleSet[int]{OutputValue: &overrideValue}
-	err := mockRuleSet.Apply(ctx, 123, &outputInt)
+	outputInt, err := mockRuleSet.Apply(ctx, 123)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
 	}
@@ -126,7 +125,7 @@ func TestMockRuleSet_Apply(t *testing.T) {
 
 	// mockRuleSet.OutputValue is nil, fallback to input assignment
 	mockRuleSet = &testhelpers.MockRuleSet[int]{}
-	err = mockRuleSet.Apply(ctx, 789, &outputInt)
+	outputInt, err = mockRuleSet.Apply(ctx, 789)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
 	}
@@ -134,33 +133,21 @@ func TestMockRuleSet_Apply(t *testing.T) {
 		t.Errorf("expected outputInt to be 789, got %d", outputInt)
 	}
 
-	// Output is not a pointer
-	outputNonPtr := 0
-	err = mockRuleSet.Apply(ctx, 123, outputNonPtr)
-	if err == nil {
-		t.Errorf("expected an error when output is not a pointer, got nil")
-	}
-
-	// Error case when mockRuleSet.OutputValue is not assignable to output
-	var outputMismatch string
+	// When OutputValue is set, Apply returns it
 	mockRuleSet = &testhelpers.MockRuleSet[int]{OutputValue: &overrideValue}
-	err = mockRuleSet.Apply(ctx, 123, &outputMismatch)
-	if err == nil {
-		t.Errorf("expected an error when mockRuleSet.OutputValue is not assignable to output, got nil")
+	outputInt, err = mockRuleSet.Apply(ctx, 123)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+	if outputInt != overrideValue {
+		t.Errorf("expected outputInt to be %d (OutputValue), got %d", overrideValue, outputInt)
 	}
 
-	// Error case when input value is not assignable to output and mockRuleSet.OutputValue is nil
+	// Error case when input value is not assignable to T and OutputValue is nil
 	mockRuleSet = &testhelpers.MockRuleSet[int]{}
-	err = mockRuleSet.Apply(ctx, 123, &outputMismatch)
+	_, err = mockRuleSet.Apply(ctx, "not an int")
 	if err == nil {
-		t.Errorf("expected an error when mockRuleSet.OutputValue is not assignable to output, got nil")
-	}
-
-	// Output is nil
-	mockRuleSet = &testhelpers.MockRuleSet[int]{}
-	err = mockRuleSet.Apply(ctx, 123, nil)
-	if err == nil {
-		t.Errorf("expected non-nil error")
+		t.Errorf("expected an error when input is not assignable to T")
 	}
 }
 

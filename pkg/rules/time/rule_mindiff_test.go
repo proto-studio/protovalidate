@@ -36,17 +36,14 @@ func TestTimeRuleSet_WithMinDiff_Conflict(t *testing.T) {
 	// Create an initial rule set with min and max differences
 	ruleSet := time.Time().WithMinDiff(0).WithMaxDiff(10 * internalTime.Minute)
 
-	// Prepare an output variable for Apply
-	var output internalTime.Time
-
 	// Apply with a time before the min difference, expecting an error
-	err := ruleSet.Apply(context.TODO(), before, &output)
+	_, err := ruleSet.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a time exactly at the max difference, expecting no error
-	err = ruleSet.Apply(context.TODO(), now, &output)
+	_, err = ruleSet.Apply(context.TODO(), now)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -55,7 +52,7 @@ func TestTimeRuleSet_WithMinDiff_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMinDiff(-20 * internalTime.Minute)
 
 	// Apply with a time within the new min difference, expecting no error
-	err = ruleSet2.Apply(context.TODO(), before, &output)
+	_, err = ruleSet2.Apply(context.TODO(), before)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

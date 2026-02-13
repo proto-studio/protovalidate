@@ -142,37 +142,34 @@ func TestDurationRuleSet_WithUnit_Conflict(t *testing.T) {
 	// Create an initial rule set with seconds unit
 	ruleSet := time.Duration().WithUnit(internalTime.Second)
 
-	// Prepare an output variable for Apply (numeric output)
-	var output int64
-
-	// Apply with 5 seconds as duration, expecting 5 as numeric output
-	err := ruleSet.Apply(context.TODO(), 5*internalTime.Second, &output)
+	// Apply with 5 seconds as duration
+	output, err := ruleSet.Apply(context.TODO(), 5*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
-	if output != 5 {
-		t.Errorf("Expected 5, got %d", output)
+	if output != 5*internalTime.Second {
+		t.Errorf("Expected 5s, got %s", output)
 	}
 
 	// Create a new rule set with minutes unit
 	ruleSet2 := ruleSet.WithUnit(internalTime.Minute)
 
-	// Apply with 5 minutes as duration, expecting 5 as numeric output
-	err = ruleSet2.Apply(context.TODO(), 5*internalTime.Minute, &output)
+	// Apply with 5 minutes as duration
+	output, err = ruleSet2.Apply(context.TODO(), 5*internalTime.Minute)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
-	if output != 5 {
-		t.Errorf("Expected 5, got %d", output)
+	if output != 5*internalTime.Minute {
+		t.Errorf("Expected 5m, got %s", output)
 	}
 
 	// Verify original rule set still uses seconds
-	err = ruleSet.Apply(context.TODO(), 5*internalTime.Second, &output)
+	output, err = ruleSet.Apply(context.TODO(), 5*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
-	if output != 5 {
-		t.Errorf("Expected 5, got %d", output)
+	if output != 5*internalTime.Second {
+		t.Errorf("Expected 5s, got %s", output)
 	}
 
 	// Verify string representation
@@ -212,25 +209,23 @@ func TestDurationRuleSet_WithUnit_Chained(t *testing.T) {
 		WithMin(1 * internalTime.Second).
 		WithMax(60 * internalTime.Second)
 
-	var output int64
-
-	// Test valid value (30 seconds as duration, expecting 30 as numeric output)
-	err := ruleSet.Apply(context.TODO(), 30*internalTime.Second, &output)
+	// Test valid value (30 seconds as duration)
+	output, err := ruleSet.Apply(context.TODO(), 30*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if output != 30 {
-		t.Errorf("Expected 30, got %d", output)
+	if output != 30*internalTime.Second {
+		t.Errorf("Expected 30s, got %s", output)
 	}
 
 	// Test value below min (0 seconds)
-	err = ruleSet.Apply(context.TODO(), 0, &output)
+	_, err = ruleSet.Apply(context.TODO(), 0)
 	if err == nil {
 		t.Error("Expected error for value below minimum")
 	}
 
 	// Test value above max (100 seconds)
-	err = ruleSet.Apply(context.TODO(), 100, &output)
+	_, err = ruleSet.Apply(context.TODO(), 100*internalTime.Second)
 	if err == nil {
 		t.Error("Expected error for value above maximum")
 	}
@@ -244,15 +239,13 @@ func TestDurationRuleSet_WithUnit_ParentChain(t *testing.T) {
 	withUnit := base.WithUnit(internalTime.Second)
 	withMin := withUnit.WithMin(1 * internalTime.Second)
 
-	var output int64
-
 	// Apply should use the unit from the parent chain
-	err := withMin.Apply(context.TODO(), 30*internalTime.Second, &output)
+	output, err := withMin.Apply(context.TODO(), 30*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if output != 30 {
-		t.Errorf("Expected 30, got %d", output)
+	if output != 30*internalTime.Second {
+		t.Errorf("Expected 30s, got %s", output)
 	}
 }
 
@@ -262,27 +255,23 @@ func TestDurationRuleSet_WithUnit_ParentChain(t *testing.T) {
 func TestDurationRuleSet_WithUnit_OutputDurationType(t *testing.T) {
 	ruleSet := time.Duration().WithUnit(internalTime.Second)
 
-	// Test with duration input and numeric output - should convert using unit
-	var output int64
-	err := ruleSet.Apply(context.TODO(), 5*internalTime.Second, &output)
+	// Test with duration input - Apply returns duration
+	output, err := ruleSet.Apply(context.TODO(), 5*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	// Input 5 seconds should become 5 in numeric output
-	if output != 5 {
-		t.Errorf("Expected output to be 5, got %d", output)
+	if output != 5*internalTime.Second {
+		t.Errorf("Expected 5s, got %s", output)
 	}
 
-	// Test with duration input and no unit - should default to nanoseconds
+	// Test with duration input and no unit
 	ruleSetNoUnit := time.Duration()
-	var output2 int64
-	err = ruleSetNoUnit.Apply(context.TODO(), 5*internalTime.Second, &output2) // 5 seconds = 5000000000 nanoseconds
+	output2, err := ruleSetNoUnit.Apply(context.TODO(), 5*internalTime.Second)
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	expected2 := int64(5 * internalTime.Second / internalTime.Nanosecond)
-	if output2 != expected2 {
-		t.Errorf("Expected output to be %d, got %d", expected2, output2)
+	if output2 != 5*internalTime.Second {
+		t.Errorf("Expected 5s, got %s", output2)
 	}
 
 	// Test with duration input - should pass through unchanged (covered by TestDurationRuleSet_WithUnit_DurationInput)

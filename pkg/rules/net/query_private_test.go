@@ -83,13 +83,12 @@ func TestQueryRuleSet_Evaluate_NilRuleSet(t *testing.T) {
 func TestQueryRuleSet_Apply_ParseError(t *testing.T) {
 	ctx := context.Background()
 	rs := Query()
-	var out string
 	saved := queryParser
 	defer func() { queryParser = saved }()
 	queryParser = func(string) (url.Values, error) {
 		return nil, errors.New("injected parse error")
 	}
-	err := rs.Apply(ctx, "a=b", &out)
+	_, err := rs.Apply(ctx, "a=b")
 	if err == nil {
 		t.Fatal("expected error when queryParser fails")
 	}
@@ -109,8 +108,7 @@ func TestQueryRuleSet_Clone_WithOptions(t *testing.T) {
 	// Chained clone with option
 	rs2 := base.WithParam("q", rules.String().Any()).WithDocsURI("https://example.com")
 	ctx := context.Background()
-	var out string
-	if err := rs2.Apply(ctx, "q=1", &out); err != nil {
+	if _, err := rs2.Apply(ctx, "q=1"); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 }
@@ -153,13 +151,12 @@ func TestQueryRuleSet_Evaluate_ParamRuleSetReturnsError(t *testing.T) {
 func TestQueryRuleSet_Apply_WithURLValuesInput(t *testing.T) {
 	ctx := context.Background()
 	rs := Query()
-	var out string
 	vals := url.Values{"a": {"b"}}
-	err := rs.Apply(ctx, vals, &out)
+	out, err := rs.Apply(ctx, vals)
 	if err != nil {
 		t.Fatalf("Apply with url.Values: %v", err)
 	}
-	if out != "a=b" {
-		t.Errorf("expected a=b, got %q", out)
+	if out.Encode() != "a=b" {
+		t.Errorf("expected a=b, got %q", out.Encode())
 	}
 }

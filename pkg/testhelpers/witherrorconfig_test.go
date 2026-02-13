@@ -308,14 +308,14 @@ type MockCallbackBrokenError struct {
 	callback  errors.ErrorCallback
 }
 
-func (m *MockCallbackBrokenError) Apply(ctx context.Context, input, output any) errors.ValidationError {
+func (m *MockCallbackBrokenError) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
 	if input == nil {
 		if m.callback != nil {
-			return m.callback(ctx, m.brokenErr)
+			return 0, m.callback(ctx, m.brokenErr)
 		}
-		return m.brokenErr
+		return 0, m.brokenErr
 	}
-	return m.MockRuleSet.Apply(ctx, input, output)
+	return m.MockRuleSet.Apply(ctx, input)
 }
 
 func (m *MockCallbackBrokenError) WithErrorMessage(short, long string) *MockCallbackBrokenError {
@@ -347,8 +347,8 @@ func (m *MockCallbackBrokenError) WithErrorCallback(fn errors.ErrorCallback) *Mo
 // MockNoErrors has Apply that succeeds even when it should fail (doesn't return errors for nil)
 type MockNoErrors struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNoErrors) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	return nil // Always succeeds - broken for testing nil error handling
+func (m *MockNoErrors) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
+	return 0, nil // Always succeeds - broken for testing nil error handling
 }
 
 func (m *MockNoErrors) WithErrorMessage(short, long string) *MockNoErrors {

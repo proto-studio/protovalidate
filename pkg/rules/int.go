@@ -250,79 +250,24 @@ func (v *IntRuleSet[T]) WithNil() *IntRuleSet[T] {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to T, evaluates all rules, and returns the result.
+func (ruleSet *IntRuleSet[T]) Apply(ctx context.Context, input any) (T, errors.ValidationError) {
+	var zero T
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return zero, err
 	}
 
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Attempt to coerce the input value to an integer
 	intval, validationErr := ruleSet.coerceInt(input, ctx)
 	if validationErr != nil {
-		return validationErr
+		return zero, validationErr
 	}
 
-	// Handle setting the value in output
-	outputElem := outputVal.Elem()
-
-	var assignable bool
-
-	// Format the integer as a string using the same base as input parsing
-	strVal := formatInt(intval, ruleSet.base)
-
-	// Check if output is a string type
-	if outputElem.Kind() == reflect.String {
-		outputElem.SetString(strVal)
-		assignable = true
-	} else if outputElem.Kind() == reflect.Ptr && outputElem.Type().Elem().Kind() == reflect.String {
-		// Handle pointer to string
-		if outputElem.IsNil() {
-			newStrPtr := reflect.New(outputElem.Type().Elem())
-			newStrPtr.Elem().SetString(strVal)
-			outputElem.Set(newStrPtr)
-		} else {
-			outputElem.Elem().SetString(strVal)
-		}
-		assignable = true
-	} else if outputElem.Kind() == reflect.Bool {
-		// Handle bool output: non-zero values are true, zero is false
-		outputElem.SetBool(intval != 0)
-		assignable = true
-	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
-		(outputElem.Kind() == reflect.Int || outputElem.Kind() == reflect.Int8 ||
-			outputElem.Kind() == reflect.Int16 || outputElem.Kind() == reflect.Int32 ||
-			outputElem.Kind() == reflect.Int64 || outputElem.Type().AssignableTo(reflect.TypeOf(intval))) {
-
-		// If output is a nil interface, or an assignable type, set it directly to the new integer value
-		outputElem.Set(reflect.ValueOf(intval))
-		assignable = true
+	if errs := ruleSet.Evaluate(ctx, intval); errs != nil {
+		return zero, errs
 	}
-
-	// If the types are incompatible, return an error
-	if !assignable {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", intval, outputElem.Interface())
-	}
-
-	var errs errors.ValidationError
-	for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.rule != nil {
-			if err := currentRuleSet.rule.Evaluate(ctx, intval); err != nil {
-				errs = errors.Join(errs, err)
-			}
-		}
-	}
-	return errs
+	return intval, nil
 }
 
 // Evaluate performs validation of a RuleSet against an integer value and returns a ValidationError.

@@ -15,12 +15,10 @@ import (
 // - Implements interface.
 func TestDomainRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
-	var output string
-
 	example := "example.com"
 
 	// Apply with a valid domain string
-	err := net.Domain().Apply(context.TODO(), example, &output)
+	output, err := net.Domain().Apply(context.TODO(), example)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -97,13 +95,10 @@ func TestDomainRuleSet_WithRequired(t *testing.T) {
 func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
-	// Prepare the output variable for Apply
-	var output string
-
 	// Apply with a mock rule that should trigger an error
-	err := net.Domain().
+	_, err := net.Domain().
 		WithRuleFunc(mock.Function()).
-		Apply(context.TODO(), "example.com", &output)
+		Apply(context.TODO(), "example.com")
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -118,9 +113,9 @@ func TestDomainRuleSet_WithRuleFunc(t *testing.T) {
 	rule := testhelpers.NewMockRule[string]()
 
 	// Apply with a mock rule that should pass without errors
-	err = net.Domain().
+	_, err = net.Domain().
 		WithRuleFunc(rule.Function()).
-		Apply(context.TODO(), "example.com", &output)
+		Apply(context.TODO(), "example.com")
 
 	if err != nil {
 		t.Error("Expected errors to be empty")

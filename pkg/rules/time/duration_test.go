@@ -17,12 +17,8 @@ import (
 func TestDurationRuleSet_Apply(t *testing.T) {
 	dur := 1 * internalTime.Hour
 
-	// Prepare an output variable for Apply
-	var output internalTime.Duration
-
 	// Use Apply to validate the duration
-	err := time.Duration().Apply(context.TODO(), dur, &output)
-
+	output, err := time.Duration().Apply(context.TODO(), dur)
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
 	}
@@ -190,13 +186,12 @@ func TestDurationRuleSet_NoConflict_ParentNil(t *testing.T) {
 	ruleSet2 := ruleSet.WithMin(2 * internalTime.Hour)
 	
 	// Verify the new min is in effect
-	var output internalTime.Duration
-	err := ruleSet2.Apply(context.TODO(), 1*internalTime.Hour, &output)
+	_, err := ruleSet2.Apply(context.TODO(), 1*internalTime.Hour)
 	if err == nil {
 		t.Error("Expected error for 1h (below new min of 2h)")
 	}
-	
-	err = ruleSet2.Apply(context.TODO(), 2*internalTime.Hour, &output)
+
+	_, err = ruleSet2.Apply(context.TODO(), 2*internalTime.Hour)
 	if err != nil {
 		t.Errorf("Expected no error for 2h (at new min), got %s", err)
 	}
@@ -215,20 +210,19 @@ func TestDurationRuleSet_NoConflict_ParentChanged(t *testing.T) {
 	newMin := withMax.WithMin(30 * internalTime.Minute)
 	
 	// Verify the new rule set has the new min
-	var output internalTime.Duration
-	err := newMin.Apply(context.TODO(), 30*internalTime.Minute, &output)
+	_, err := newMin.Apply(context.TODO(), 30*internalTime.Minute)
 	if err != nil {
 		t.Errorf("Expected no error for new min threshold, got %s", err)
 	}
-	
+
 	// Verify the old min is gone (30m should pass with new min of 30m)
-	err = newMin.Apply(context.TODO(), 1*internalTime.Hour, &output)
+	_, err = newMin.Apply(context.TODO(), 1*internalTime.Hour)
 	if err != nil {
 		t.Errorf("Expected no error for 1h (above new min), got %s", err)
 	}
-	
+
 	// Verify the max is still there
-	err = newMin.Apply(context.TODO(), 3*internalTime.Hour, &output)
+	_, err = newMin.Apply(context.TODO(), 3*internalTime.Hour)
 	if err == nil {
 		t.Error("Expected error for 3h (above max of 2h)")
 	}
@@ -253,11 +247,11 @@ func TestDurationRuleSet_Replaces_NonDurationRuleSet(t *testing.T) {
 	
 	// Verify both are evaluated
 	dur := 1 * internalTime.Hour
-	var output internalTime.Duration
-	err := ruleSet2.Apply(context.TODO(), dur, &output)
+	output, err := ruleSet2.Apply(context.TODO(), dur)
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
+	_ = output
 	
 	// The mock rule should have been called
 	if mockRule.EvaluateCallCount() != 1 {

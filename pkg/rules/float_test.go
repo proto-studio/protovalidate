@@ -14,9 +14,7 @@ import (
 // - Correctly applies float validation
 // - Returns the correct value
 func TestFloatRuleSet_Apply(t *testing.T) {
-	var floatval float64
-	err := rules.Float64().Apply(context.Background(), 123.0, &floatval)
-
+	floatval, err := rules.Float64().Apply(context.Background(), 123.0)
 	if err != nil {
 		t.Error("Expected errors to be empty")
 		return
@@ -38,8 +36,7 @@ func TestFloatRuleSet_Apply(t *testing.T) {
 
 // TestFloatRuleSet_Apply_StrictError tests:
 func TestFloatRuleSet_Apply_StrictError(t *testing.T) {
-	var out float64
-	err := rules.Float64().WithStrict().Apply(context.Background(), "123.0", &out)
+	_, err := rules.Float64().WithStrict().Apply(context.Background(), "123.0")
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -48,8 +45,7 @@ func TestFloatRuleSet_Apply_StrictError(t *testing.T) {
 }
 
 func tryFloatCoercion(t *testing.T, val interface{}, expected float64) {
-	var actual float64
-	err := rules.Float64().Apply(context.Background(), val, &actual)
+	actual, err := rules.Float64().Apply(context.Background(), val)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -90,10 +86,9 @@ func TestFloatRuleSet_WithRequired(t *testing.T) {
 // - Custom rules can return errors
 // - Rule evaluation is called correctly
 func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
-	var out float64
-	err := rules.Float64().
+	_, err := rules.Float64().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[float64](1).Function()).
-		Apply(context.Background(), "123.0", &out)
+		Apply(context.Background(), "123.0")
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -102,9 +97,9 @@ func TestFloatRuleSet_WithRuleFunc(t *testing.T) {
 
 	rule := testhelpers.NewMockRule[float64]()
 
-	err = rules.Float64().
+	_, err = rules.Float64().
 		WithRuleFunc(rule.Function()).
-		Apply(context.Background(), 123.0, &out)
+		Apply(context.Background(), 123.0)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -186,29 +181,27 @@ func TestFloatRuleSet_WithNil(t *testing.T) {
 }
 
 // TestFloatRuleSet_Apply_StringOutput tests:
-// - Outputs string values when output is a string type
-// - Uses appropriate precision
+// - Apply returns float64 with correct numeric value and precision
 func TestFloatRuleSet_Apply_StringOutput(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    interface{}
-		expected string
+		expected float64
 	}{
-		{"DefaultPrecision", rules.Float64(), 123.456789012345, "123.456789012345"},
-		{"WithFixedOutput2", rules.Float64().WithFixedOutput(2), 123.456789, "123.46"},
-		{"WithFixedOutput0", rules.Float64().WithFixedOutput(0), 123.456789, "123"},
-		{"WithFixedOutput5", rules.Float64().WithFixedOutput(5), 123.456789, "123.45679"},
-		{"IntegerValue", rules.Float64(), 42.0, "42"},
-		{"Negative", rules.Float64(), -123.456, "-123.456"},
-		{"Zero", rules.Float64(), 0.0, "0"},
-		{"SmallValue", rules.Float64(), 0.001, "0.001"},
+		{"DefaultPrecision", rules.Float64(), 123.456789012345, 123.456789012345},
+		{"WithFixedOutput2", rules.Float64().WithFixedOutput(2), 123.456789, 123.46},
+		{"WithFixedOutput0", rules.Float64().WithFixedOutput(0), 123.456789, 123},
+		{"WithFixedOutput5", rules.Float64().WithFixedOutput(5), 123.456789, 123.45679},
+		{"IntegerValue", rules.Float64(), 42.0, 42},
+		{"Negative", rules.Float64(), -123.456, -123.456},
+		{"Zero", rules.Float64(), 0.0, 0},
+		{"SmallValue", rules.Float64(), 0.001, 0.001},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -216,108 +209,77 @@ func TestFloatRuleSet_Apply_StringOutput(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
 // TestFloatRuleSet_Apply_PointerToStringOutput tests:
-// - Outputs string values when output is a pointer to string type
-// - Handles nil pointer by creating a new string
+// - Apply returns correct float64 for various inputs and fixed precision
 func TestFloatRuleSet_Apply_PointerToStringOutput(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    interface{}
-		expected string
+		expected float64
 	}{
-		{"DefaultPrecision", rules.Float64(), 123.456, "123.456"},
-		{"WithFixedOutput2", rules.Float64().WithFixedOutput(2), 123.456, "123.46"},
-		{"Negative", rules.Float64(), -42.5, "-42.5"},
+		{"DefaultPrecision", rules.Float64(), 123.456, 123.456},
+		{"WithFixedOutput2", rules.Float64().WithFixedOutput(2), 123.456, 123.46},
+		{"Negative", rules.Float64(), -42.5, -42.5},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name+"_NilPointer", func(t *testing.T) {
-			var out *string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
 				return
 			}
 
-			if out == nil {
-				t.Error("Expected pointer to be non-nil")
-				return
-			}
-
-			if *out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, *out)
-			}
-		})
-
-		t.Run(tt.name+"_ExistingPointer", func(t *testing.T) {
-			existing := "existing"
-			out := &existing
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
-
-			if err != nil {
-				t.Errorf("Expected no errors, got: %v", err)
-				return
-			}
-
-			if out == nil {
-				t.Error("Expected pointer to be non-nil")
-				return
-			}
-
-			if *out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, *out)
+			if out != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
 // TestFloatRuleSet_Apply_StringOutput_Float32 tests:
-// - String output works with float32 type
+// - Float32 rule set returns float32 value
 func TestFloatRuleSet_Apply_StringOutput_Float32(t *testing.T) {
-	var out string
-	err := rules.Float32().Apply(context.Background(), float32(123.456), &out)
+	out, err := rules.Float32().Apply(context.Background(), float32(123.456))
 
 	if err != nil {
 		t.Errorf("Expected no errors, got: %v", err)
 		return
 	}
 
-	// Float32 should format with appropriate precision
-	if out == "" {
-		t.Error("Expected non-empty string")
+	if out != float32(123.456) {
+		t.Errorf("Expected 123.456, got %v", out)
 	}
 }
 
 // TestFloatRuleSet_Apply_StringOutput_WithRounding tests:
-// - When rounding is applied, the value is rounded first
-// - Output formatting uses 'g' format by default (no trailing zeros)
+// - When rounding is applied, the value is rounded correctly
 func TestFloatRuleSet_Apply_StringOutput_WithRounding(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    float64
-		expected string
+		expected float64
 	}{
-		{"RoundingHalfEven_Precision2", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 123.456, "123.46"},
-		{"RoundingHalfUp_Precision2", rules.Float64().WithRounding(rules.RoundingHalfUp, 2), 123.455, "123.46"},
-		{"RoundingDown_Precision2", rules.Float64().WithRounding(rules.RoundingDown, 2), 123.456, "123.45"},
-		{"RoundingUp_Precision2", rules.Float64().WithRounding(rules.RoundingUp, 2), 123.451, "123.46"},
-		{"RoundingHalfEven_Precision0", rules.Float64().WithRounding(rules.RoundingHalfEven, 0), 123.5, "124"},
-		{"RoundingDown_Precision0", rules.Float64().WithRounding(rules.RoundingDown, 0), 123.9, "123"},
+		{"RoundingHalfEven_Precision2", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 123.456, 123.46},
+		{"RoundingHalfUp_Precision2", rules.Float64().WithRounding(rules.RoundingHalfUp, 2), 123.455, 123.46},
+		{"RoundingDown_Precision2", rules.Float64().WithRounding(rules.RoundingDown, 2), 123.456, 123.45},
+		{"RoundingUp_Precision2", rules.Float64().WithRounding(rules.RoundingUp, 2), 123.451, 123.46},
+		{"RoundingHalfEven_Precision0", rules.Float64().WithRounding(rules.RoundingHalfEven, 0), 123.5, 124},
+		{"RoundingDown_Precision0", rules.Float64().WithRounding(rules.RoundingDown, 0), 123.9, 123},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -325,35 +287,33 @@ func TestFloatRuleSet_Apply_StringOutput_WithRounding(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
 // TestFloatRuleSet_WithFixedOutput tests:
-// - WithFixedOutput controls string output precision
-// - Values are zero-padded to the specified precision
+// - WithFixedOutput controls numeric output precision (rounding)
 func TestFloatRuleSet_WithFixedOutput(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    float64
-		expected string
+		expected float64
 	}{
-		{"Precision0", rules.Float64().WithFixedOutput(0), 123.456, "123"},
-		{"Precision1", rules.Float64().WithFixedOutput(1), 123.456, "123.5"},
-		{"Precision2", rules.Float64().WithFixedOutput(2), 123.456, "123.46"},
-		{"Precision3", rules.Float64().WithFixedOutput(3), 123.456, "123.456"},
-		{"Precision4_ZeroPad", rules.Float64().WithFixedOutput(4), 123.4, "123.4000"},
-		{"Precision2_Integer", rules.Float64().WithFixedOutput(2), 42.0, "42.00"},
-		{"Precision2_Negative", rules.Float64().WithFixedOutput(2), -123.456, "-123.46"},
+		{"Precision0", rules.Float64().WithFixedOutput(0), 123.456, 123},
+		{"Precision1", rules.Float64().WithFixedOutput(1), 123.456, 123.5},
+		{"Precision2", rules.Float64().WithFixedOutput(2), 123.456, 123.46},
+		{"Precision3", rules.Float64().WithFixedOutput(3), 123.456, 123.456},
+		{"Precision4_ZeroPad", rules.Float64().WithFixedOutput(4), 123.4, 123.4},
+		{"Precision2_Integer", rules.Float64().WithFixedOutput(2), 42.0, 42},
+		{"Precision2_Negative", rules.Float64().WithFixedOutput(2), -123.456, -123.46},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -361,7 +321,7 @@ func TestFloatRuleSet_WithFixedOutput(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
@@ -369,26 +329,22 @@ func TestFloatRuleSet_WithFixedOutput(t *testing.T) {
 
 // TestFloatRuleSet_WithFixedOutput_WithRounding tests:
 // - WithFixedOutput and WithRounding can be combined
-// - Rounding is applied first, then output is formatted with fixed precision
+// - Rounding is applied first, then fixed precision
 func TestFloatRuleSet_WithFixedOutput_WithRounding(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    float64
-		expected string
+		expected float64
 	}{
-		// Rounding to 2 decimal places, output with 2 decimal places
-		{"Round2_Output2", rules.Float64().WithRounding(rules.RoundingHalfEven, 2).WithFixedOutput(2), 123.456, "123.46"},
-		// Rounding to 2 decimal places, output with 4 decimal places (zero-padded)
-		{"Round2_Output4", rules.Float64().WithRounding(rules.RoundingHalfEven, 2).WithFixedOutput(4), 123.456, "123.4600"},
-		// Rounding to 0 decimal places, output with 2 decimal places (zero-padded)
-		{"Round0_Output2", rules.Float64().WithRounding(rules.RoundingHalfEven, 0).WithFixedOutput(2), 123.456, "123.00"},
+		{"Round2_Output2", rules.Float64().WithRounding(rules.RoundingHalfEven, 2).WithFixedOutput(2), 123.456, 123.46},
+		{"Round2_Output4", rules.Float64().WithRounding(rules.RoundingHalfEven, 2).WithFixedOutput(4), 123.456, 123.46},
+		{"Round0_Output2", rules.Float64().WithRounding(rules.RoundingHalfEven, 0).WithFixedOutput(2), 123.456, 123},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -396,7 +352,7 @@ func TestFloatRuleSet_WithFixedOutput_WithRounding(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
@@ -413,35 +369,25 @@ func TestFloatRuleSet_String_WithFixedOutput(t *testing.T) {
 	}
 }
 
-// TestFloatRuleSet_WithFixedOutput_EdgeCases tests edge cases for WithFixedOutput:
-// - Zero-padding when value has no decimals
-// - Precision 0 with integer values
-// - Values that already have exact precision
+// TestFloatRuleSet_WithFixedOutput_EdgeCases tests edge cases for WithFixedOutput
 func TestFloatRuleSet_WithFixedOutput_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    float64
-		expected string
+		expected float64
 	}{
-		// Zero-padding integer values
-		{"ZeroPad_Integer", rules.Float64().WithFixedOutput(3), 100.0, "100.000"},
-		// Precision 0 with integer (no decimal point in formatted output)
-		{"Precision0_Integer", rules.Float64().WithFixedOutput(0), 100.0, "100"},
-		// Value already has exact precision needed (no padding required)
-		{"ExactPrecision_NoPadding", rules.Float64().WithFixedOutput(2), 123.45, "123.45"},
-		// Value with exact precision from rounding
-		{"ExactPrecision_FromFormat", rules.Float64().WithFixedOutput(6), 123.456789, "123.456789"},
-		// Zero value with padding
-		{"Zero_WithPadding", rules.Float64().WithFixedOutput(3), 0.0, "0.000"},
-		// Small value with extra padding
-		{"Small_WithPadding", rules.Float64().WithFixedOutput(5), 0.1, "0.10000"},
+		{"ZeroPad_Integer", rules.Float64().WithFixedOutput(3), 100.0, 100},
+		{"Precision0_Integer", rules.Float64().WithFixedOutput(0), 100.0, 100},
+		{"ExactPrecision_NoPadding", rules.Float64().WithFixedOutput(2), 123.45, 123.45},
+		{"ExactPrecision_FromFormat", rules.Float64().WithFixedOutput(6), 123.456789, 123.456789},
+		{"Zero_WithPadding", rules.Float64().WithFixedOutput(3), 0.0, 0},
+		{"Small_WithPadding", rules.Float64().WithFixedOutput(5), 0.1, 0.1},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -449,34 +395,28 @@ func TestFloatRuleSet_WithFixedOutput_EdgeCases(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
-// TestFloatRuleSet_WithRounding_TrailingZeros tests that trailing zeros are trimmed after rounding:
-// - Rounding to a precision where result ends in zeros
-// - Integer results after rounding
+// TestFloatRuleSet_WithRounding_TrailingZeros tests rounding behavior
 func TestFloatRuleSet_WithRounding_TrailingZeros(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    float64
-		expected string
+		expected float64
 	}{
-		// Rounding results in trailing zeros that should be trimmed
-		{"TrailingZeros_Trimmed", rules.Float64().WithRounding(rules.RoundingHalfEven, 3), 123.400, "123.4"},
-		// Rounding to integer (all decimals become zero)
-		{"AllZeros_Trimmed", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 100.00, "100"},
-		// No trailing zeros to trim
-		{"NoTrailingZeros", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 123.45, "123.45"},
+		{"TrailingZeros_Trimmed", rules.Float64().WithRounding(rules.RoundingHalfEven, 3), 123.400, 123.4},
+		{"AllZeros_Trimmed", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 100.00, 100},
+		{"NoTrailingZeros", rules.Float64().WithRounding(rules.RoundingHalfEven, 2), 123.45, 123.45},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -484,31 +424,29 @@ func TestFloatRuleSet_WithRounding_TrailingZeros(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
-// TestFloatRuleSet_Float32_StringOutput tests string output with float32 type:
-// - Exercises the float32 branch in formatFloat
+// TestFloatRuleSet_Float32_StringOutput tests float32 rule set return values
 func TestFloatRuleSet_Float32_StringOutput(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float32]
 		input    float32
-		expected string
+		expected float32
 	}{
-		{"Default", rules.Float32(), float32(123.456), "123.456"},
-		{"WithFixedOutput", rules.Float32().WithFixedOutput(2), float32(123.456), "123.46"},
-		{"WithRounding", rules.Float32().WithRounding(rules.RoundingHalfEven, 1), float32(123.456), "123.5"},
-		{"Integer", rules.Float32(), float32(42.0), "42"},
+		{"Default", rules.Float32(), float32(123.456), float32(123.456)},
+		{"WithFixedOutput", rules.Float32().WithFixedOutput(2), float32(123.456), float32(123.46)},
+		{"WithRounding", rules.Float32().WithRounding(rules.RoundingHalfEven, 1), float32(123.456), float32(123.5)},
+		{"Integer", rules.Float32(), float32(42.0), float32(42)},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -516,29 +454,23 @@ func TestFloatRuleSet_Float32_StringOutput(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
-// TestFloatRuleSet_WithFixedOutput_PointerToString tests pointer to string output with fixed precision
+// TestFloatRuleSet_WithFixedOutput_PointerToString tests fixed precision numeric output
 func TestFloatRuleSet_WithFixedOutput_PointerToString(t *testing.T) {
-	var out *string
-	err := rules.Float64().WithFixedOutput(2).Apply(context.Background(), 123.4, &out)
+	out, err := rules.Float64().WithFixedOutput(2).Apply(context.Background(), 123.4)
 
 	if err != nil {
 		t.Errorf("Expected no errors, got: %v", err)
 		return
 	}
 
-	if out == nil {
-		t.Error("Expected pointer to be non-nil")
-		return
-	}
-
-	if *out != "123.40" {
-		t.Errorf("Expected string %q, got %q", "123.40", *out)
+	if out != 123.4 {
+		t.Errorf("Expected 123.4, got %v", out)
 	}
 }
 
@@ -558,8 +490,7 @@ func TestFloatRuleSet_Apply_CoerceFromBool(t *testing.T) {
 // TestFloatRuleSet_Apply_CoerceFromBool_Strict tests:
 // - Strict mode rejects bool values
 func TestFloatRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
-	var out float64
-	err := rules.Float64().WithStrict().Apply(context.Background(), true, &out)
+	_, err := rules.Float64().WithStrict().Apply(context.Background(), true)
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -568,26 +499,25 @@ func TestFloatRuleSet_Apply_CoerceFromBool_Strict(t *testing.T) {
 }
 
 // TestFloatRuleSet_Apply_BoolOutput tests:
-// - Outputs bool values when output is a bool type (non-zero = true, zero = false)
+// - Apply returns float64 (non-zero for truthy inputs, 0 for zero)
 func TestFloatRuleSet_Apply_BoolOutput(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.FloatRuleSet[float64]
 		input    interface{}
-		expected bool
+		expected float64
 	}{
-		{"NonZero", rules.Float64(), 42.5, true},
-		{"Zero", rules.Float64(), 0.0, false},
-		{"Negative", rules.Float64(), -1.0, true},
-		{"One", rules.Float64(), 1.0, true},
-		{"SmallPositive", rules.Float64(), 0.001, true},
-		{"SmallNegative", rules.Float64(), -0.001, true},
+		{"NonZero", rules.Float64(), 42.5, 42.5},
+		{"Zero", rules.Float64(), 0.0, 0},
+		{"Negative", rules.Float64(), -1.0, -1},
+		{"One", rules.Float64(), 1.0, 1},
+		{"SmallPositive", rules.Float64(), 0.001, 0.001},
+		{"SmallNegative", rules.Float64(), -0.001, -0.001},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out bool
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -595,7 +525,7 @@ func TestFloatRuleSet_Apply_BoolOutput(t *testing.T) {
 			}
 
 			if out != tt.expected {
-				t.Errorf("Expected bool %v, got %v", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}

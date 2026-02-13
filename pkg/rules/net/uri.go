@@ -296,48 +296,23 @@ func (ruleSet *URIRuleSet) WithRelative() *URIRuleSet {
 	return newRuleSet
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationError if any validation errors occur.
-func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to string, evaluates all URI rules, and returns the result.
+func (ruleSet *URIRuleSet) Apply(ctx context.Context, input any) (string, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return "", err
 	}
 
-	// Attempt to cast the input to a string
 	valueStr, ok := input.(string)
 	if !ok {
-		return errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String())
+		return "", errors.Error(errors.CodeType, ctx, "string", reflect.ValueOf(input).Kind().String())
 	}
 
-	// Perform the validation
 	if err := ruleSet.Evaluate(ctx, valueStr); err != nil {
-		return err
+		return "", err
 	}
-
-	outputVal := reflect.ValueOf(output)
-
-	// Check if the output is a non-nil pointer
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
-	}
-
-	// Dereference the pointer to get the actual value that needs to be set
-	outputElem := outputVal.Elem()
-
-	switch outputElem.Kind() {
-	case reflect.String:
-		outputElem.SetString(valueStr)
-	case reflect.Interface:
-		outputElem.Set(reflect.ValueOf(valueStr))
-	default:
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign string to %T", output)
-	}
-
-	return nil
+	return valueStr, nil
 }
 
 // evaluateScheme evaluates the scheme portion of the URI and also returns a context with the scheme set.
@@ -445,8 +420,7 @@ func (ruleSet *URIRuleSet) evaluatePort(ctx context.Context, value string) (cont
 
 	subContext := ruleSet.deepErrorContext(newCtx, "port")
 
-	var output int
-	err := ruleSet.portRuleSet.Apply(subContext, value, &output)
+	_, err := ruleSet.portRuleSet.Apply(subContext, value)
 	return newCtx, err
 }
 

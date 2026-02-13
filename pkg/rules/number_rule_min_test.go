@@ -41,16 +41,14 @@ func TestFloatRuleSet_WithMin(t *testing.T) {
 func TestIntRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMin(3).WithMax(10)
 
-	var output int
-
 	// Test validation with a value below the min (should return an error)
-	err := ruleSet.Apply(context.TODO(), 2, &output)
+	_, err := ruleSet.Apply(context.TODO(), 2)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value at the min (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 3, &output)
+	_, err = ruleSet.Apply(context.TODO(), 3)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -59,7 +57,7 @@ func TestIntRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMin(2)
 
 	// Test validation with a value at the new min (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 2, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 2)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -85,16 +83,14 @@ func TestIntRuleSet_WithMin_Conflict(t *testing.T) {
 func TestFloatRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMin(3.0).WithMax(10.0)
 
-	var output float64
-
 	// Test validation with a value below the min (should return an error)
-	err := ruleSet.Apply(context.TODO(), 2.0, &output)
+	_, err := ruleSet.Apply(context.TODO(), 2.0)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value at the min (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 3.0, &output)
+	_, err = ruleSet.Apply(context.TODO(), 3.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -103,7 +99,7 @@ func TestFloatRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMin(2.0)
 
 	// Test validation with a value at the new min (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 2.0, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 2.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

@@ -14,11 +14,8 @@ import (
 // - Correctly applies string validation
 // - Returns the correct value
 func TestStringRuleSet_Apply(t *testing.T) {
-	// Prepare the output variable for Apply
-	var str string
-
 	// Use Apply instead of Validate
-	err := rules.String().Apply(context.TODO(), "test", &str)
+	str, err := rules.String().Apply(context.TODO(), "test")
 
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
@@ -50,11 +47,8 @@ func TestStringRuleSet_RuleInterface(t *testing.T) {
 // TestStringRuleSet_Apply_TypeError tests:
 // - Returns error when strict mode is enabled and input is not a string
 func TestStringRuleSet_Apply_TypeError(t *testing.T) {
-	// Prepare the output variable for Apply
-	var str string
-
 	// Use Apply instead of Validate
-	err := rules.String().WithStrict().Apply(context.TODO(), 123, &str)
+	_, err := rules.String().WithStrict().Apply(context.TODO(), 123)
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -135,13 +129,10 @@ func TestStringRuleSet_WithRequired(t *testing.T) {
 // - Custom rules can return errors
 // - Rule evaluation is called correctly
 func TestStringRuleSet_WithRuleFunc(t *testing.T) {
-	// Prepare the output variable for Apply
-	var out string
-
 	// Test with a rule that is expected to produce an error
-	err := rules.String().
+	_, err := rules.String().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[string](1).Function()).
-		Apply(context.TODO(), "123", &out)
+		Apply(context.TODO(), "123")
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -151,9 +142,9 @@ func TestStringRuleSet_WithRuleFunc(t *testing.T) {
 	// Test with a rule that is not expected to produce an error
 	rule := testhelpers.NewMockRule[string]()
 
-	err = rules.String().
+	_, err = rules.String().
 		WithRuleFunc(rule.Function()).
-		Apply(context.TODO(), "123", &out)
+		Apply(context.TODO(), "123")
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -248,12 +239,12 @@ func TestStringRuleSet_ErrorConfig_WithRuleFunc(t *testing.T) {
 // TestStringRuleSet_ErrorConfig_CoercionError tests:
 // - ErrorConfig is applied to coercion errors
 func TestStringRuleSet_ErrorConfig_CoercionError(t *testing.T) {
-	var out string
 	ruleSet := rules.String().
 		WithStrict(). // Strict mode disables coercion
 		WithErrorMessage("type error", "expected a string")
 
-	errs := errors.Unwrap(ruleSet.Apply(context.Background(), 123, &out))
+	_, err := ruleSet.Apply(context.Background(), 123)
+	errs := errors.Unwrap(err)
 
 	if len(errs) == 0 {
 		t.Fatal("Expected coercion error")
@@ -267,12 +258,12 @@ func TestStringRuleSet_ErrorConfig_CoercionError(t *testing.T) {
 // TestStringRuleSet_ErrorConfig_WithMinLen tests:
 // - ErrorConfig is applied to errors from built-in WithMinLen rule
 func TestStringRuleSet_ErrorConfig_WithMinLen(t *testing.T) {
-	var out string
 	ruleSet := rules.String().
 		WithMinLen(5).
 		WithErrorMessage("custom short", "custom long")
 
-	errs := errors.Unwrap(ruleSet.Apply(context.Background(), "ab", &out))
+	_, err := ruleSet.Apply(context.Background(), "ab")
+	errs := errors.Unwrap(err)
 
 	if len(errs) == 0 {
 		t.Fatal("Expected validation error")

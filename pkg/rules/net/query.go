@@ -186,9 +186,8 @@ func (q *QueryRuleSet) Evaluate(ctx context.Context, values url.Values) errors.V
 // queryParser is used by Apply to parse a query string; tests may override to trigger the parse-error branch.
 var queryParser = url.ParseQuery
 
-// Apply coerces input to url.Values (string is parsed; parse error becomes a validation error), validates, and writes to output.
-// Output may be *string, *url.Values, or *any.
-func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
+// Apply coerces input to url.Values (string is parsed; parse error becomes a validation error), validates, and returns the result.
+func (q *QueryRuleSet) Apply(ctx context.Context, input any) (url.Values, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, q.errorConfig)
 
 	var values url.Values
@@ -197,43 +196,18 @@ func (q *QueryRuleSet) Apply(ctx context.Context, input any, output any) errors.
 		var parseErr error
 		values, parseErr = queryParser(v)
 		if parseErr != nil {
-			return errors.Errorf(errors.CodeEncoding, ctx, "invalid query", "query string could not be parsed: %v", parseErr)
+			return nil, errors.Errorf(errors.CodeEncoding, ctx, "invalid query", "query string could not be parsed: %v", parseErr)
 		}
 	case url.Values:
 		values = v
 	default:
-		return errors.Errorf(errors.CodeType, ctx, "string or url.Values", reflect.ValueOf(input).Kind().String())
+		return nil, errors.Errorf(errors.CodeType, ctx, "string or url.Values", reflect.ValueOf(input).Kind().String())
 	}
 
 	if err := q.Evaluate(ctx, values); err != nil {
-		return err
+		return nil, err
 	}
-
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
-	}
-	elem := outputVal.Elem()
-
-	switch elem.Kind() {
-	case reflect.String:
-		elem.SetString(values.Encode())
-		return nil
-	case reflect.Interface:
-		elem.Set(reflect.ValueOf(values))
-		return nil
-	case reflect.Map:
-		if elem.Type() == reflect.TypeOf(url.Values(nil)) {
-			if elem.IsNil() {
-				elem.Set(reflect.MakeMap(elem.Type()))
-			}
-			for k, v := range values {
-				elem.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(v))
-			}
-			return nil
-		}
-	}
-	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "query output must be *string, *url.Values, or *any, got %T", output)
+	return values, nil
 }
 
 // String returns a string representation of the rule set for debugging.

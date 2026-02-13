@@ -38,16 +38,14 @@ func TestStringRuleSet_WithMin(t *testing.T) {
 func TestStringRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMin("c").WithMax("z")
 
-	var output string
-
 	// Test validation with a value below the min (should return an error)
-	err := ruleSet.Apply(context.TODO(), "a", &output)
+	_, err := ruleSet.Apply(context.TODO(), "a")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value at the min (should not return an error)
-	err = ruleSet.Apply(context.TODO(), "c", &output)
+	_, err = ruleSet.Apply(context.TODO(), "c")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -56,7 +54,7 @@ func TestStringRuleSet_WithMin_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMin("b")
 
 	// Test validation with a value at the new min (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), "b", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "b")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -104,8 +102,7 @@ func TestStringRuleSet_WithMin_Truncation(t *testing.T) {
 	ruleSet := rules.String().WithMin(longString).Any()
 
 	// Test that the error message contains truncated string with ellipsis
-	var output string
-	err := ruleSet.Apply(context.TODO(), "a", &output)
+	_, err := ruleSet.Apply(context.TODO(), "a")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 		return

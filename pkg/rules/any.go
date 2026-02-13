@@ -2,7 +2,6 @@ package rules
 
 import (
 	"context"
-	"reflect"
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
@@ -91,41 +90,18 @@ func (v *AnyRuleSet) WithNil() *AnyRuleSet {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the value to the output.
-// Apply returns a ValidationError.
-func (v *AnyRuleSet) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply validates input and returns it unchanged (any accepts any type).
+func (v *AnyRuleSet) Apply(ctx context.Context, input any) (any, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, input); handled {
+		return nil, err
 	}
 
-	err := v.Evaluate(ctx, input)
-	if err != nil {
-		return err
+	if err := v.Evaluate(ctx, input); err != nil {
+		return nil, err
 	}
-
-	// Ensure output is a pointer
-	rv := reflect.ValueOf(output)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Get the element the pointer points to
-	elem := rv.Elem()
-
-	// Convert input to reflect.Value
-	inputValue := reflect.ValueOf(input)
-
-	// Check if the input can be assigned to the output
-	if inputValue.Type().AssignableTo(elem.Type()) {
-		elem.Set(inputValue)
-		return nil
-	}
-
-	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output)
+	return input, nil
 }
 
 // Evaluate performs validation of a RuleSet against a value and returns a ValidationError.

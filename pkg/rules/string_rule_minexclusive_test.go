@@ -37,22 +37,20 @@ func TestStringRuleSet_WithMinExclusive(t *testing.T) {
 func TestStringRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMinExclusive("c").WithMaxExclusive("z")
 
-	var output string
-
 	// Test validation with a value equal to the threshold (should return an error)
-	err := ruleSet.Apply(context.TODO(), "c", &output)
+	_, err := ruleSet.Apply(context.TODO(), "c")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value below the threshold (should return an error)
-	err = ruleSet.Apply(context.TODO(), "b", &output)
+	_, err = ruleSet.Apply(context.TODO(), "b")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value above the threshold (should not return an error)
-	err = ruleSet.Apply(context.TODO(), "d", &output)
+	_, err = ruleSet.Apply(context.TODO(), "d")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -61,13 +59,13 @@ func TestStringRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMinExclusive("b")
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
-	err = ruleSet2.Apply(context.TODO(), "b", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "b")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value above the new threshold (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), "c", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "c")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

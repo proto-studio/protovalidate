@@ -50,10 +50,7 @@ func checkAlways(_, _ any) error {
 func MustApplyFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutput any, fn func(a, b any) error) (any, error) {
 	t.Helper()
 
-	// Initialize the actual output variable
-	var actualOutput any
-	err := ruleSet.Apply(context.TODO(), input, &actualOutput)
-
+	actualOutput, err := ruleSet.Apply(context.TODO(), input)
 	if err != nil {
 		str := "Expected error to be nil"
 		for _, inner := range errors.Unwrap(err) {
@@ -66,7 +63,8 @@ func MustApplyFunc(t testing.TB, ruleSet rules.RuleSet[any], input, expectedOutp
 
 		t.Error(str)
 		return actualOutput, err
-	} else if err := fn(expectedOutput, actualOutput); err != nil {
+	}
+	if err := fn(expectedOutput, actualOutput); err != nil {
 		t.Error(err)
 		return actualOutput, err
 	}
@@ -101,13 +99,12 @@ func MustApplyMutation(t testing.TB, ruleSet rules.RuleSet[any], input, output a
 func MustNotApply(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode errors.ErrorCode) error {
 	t.Helper()
 
-	var output any
-	err := ruleSet.Apply(context.TODO(), input, &output)
-
+	_, err := ruleSet.Apply(context.TODO(), input)
 	if err == nil {
 		t.Error("Expected error to not be nil")
 		return nil
-	} else if err.Code() != errorCode {
+	}
+	if err.Code() != errorCode {
 		t.Errorf("Expected error code of %s, got %s (%s)", errorCode, err.Code(), err)
 		return nil
 	}
@@ -115,72 +112,18 @@ func MustNotApply(t testing.TB, ruleSet rules.RuleSet[any], input any, errorCode
 	return err
 }
 
-// MustApplyTypes checks to make sure apply supports the various output types expected all rule sets.
-// It is recommended all RuleSet implementations pass this assertion.
-//
-// Output types tested are:
-// - Pointer to any.
-// - Pointer to correct type.
-// - Non-pointer (should error).
-// - Pointer to nil (should error).
-// - Nil (should error).
-//
-// Be sure to use an input that should not error if the types are correct.
-// Note that Apply may implement output types other than these but these are bare minimum for any public RuleSet.
+// MustApplyTypes checks that Apply returns (value, nil) for valid input.
+// Use an input that should not error if the types are correct.
 func MustApplyTypes[T any](t testing.TB, ruleSet rules.RuleSet[T], input T) {
 	t.Helper()
 
-	// Do not use MustApply and MustNotApply as these require .Any() which may invalidate the test.
-
-	// Pointer to any
-	var outputAny any
-	err := ruleSet.Apply(context.TODO(), input, &outputAny)
+	output, err := ruleSet.Apply(context.TODO(), input)
 	if err != nil {
-		t.Errorf("Expected error to be nil on `any` output, got: %s", err)
+		t.Errorf("Expected error to be nil for valid input, got: %s", err)
+		return
 	}
-
-	// Pointer to correct type
-	var outputPtr *T = new(T)
-	err = ruleSet.Apply(context.TODO(), input, outputPtr)
-	if err != nil {
-		t.Errorf("Expected error to be nil on `%T` output, got: %s", outputPtr, err)
-	}
-
-	// Non-pointer to correct type
-	var outputNonPointer T
-	err = ruleSet.Apply(context.TODO(), input, outputNonPointer)
-	if err == nil {
-		t.Errorf("Expected error to not be nil on `%T` output", outputNonPointer)
-	} else if code := err.Code(); code != errors.CodeInternal {
-		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `%T` output, got: %s", errors.CodeInternal, outputNonPointer, code)
-	}
-
-	// Pointer to nil
-	var outputPointerToNil *T
-	err = ruleSet.Apply(context.TODO(), input, outputPointerToNil)
-	if err == nil {
-		t.Error("Expected error to not be nil on pointer to `nil` output")
-	} else if code := err.Code(); code != errors.CodeInternal {
-		t.Errorf("Expected error code to be %s (errors.CodeInternal) on pointer to `nil` output, got: %s", errors.CodeInternal, code)
-	}
-
-	// Incompatible type
-	var outputIncompatible neverAssignable = &neverAssignableImpl{privProp: 1}
-	outputIncompatible.priv()
-	err = ruleSet.Apply(context.TODO(), input, outputIncompatible)
-	if err == nil {
-		t.Error("Expected error to not be nil on incompatible output")
-	} else if code := err.Code(); code != errors.CodeInternal {
-		t.Errorf("Expected error code to be %s (errors.CodeInternal) on incompatible output, got: %s", errors.CodeInternal, code)
-	}
-
-	// Nil value
-	err = ruleSet.Apply(context.TODO(), input, nil)
-	if err == nil {
-		t.Error("Expected error to not be nil on `nil` output")
-	} else if code := err.Code(); code != errors.CodeInternal {
-		t.Errorf("Expected error code to be %s (errors.CodeInternal) on `nil` output, got: %s", errors.CodeInternal, code)
-	}
+	// Basic sanity: returned value should be usable (type matches)
+	_ = output
 }
 
 // MustEvaluate is a test helper that expects a Rule to return nil for an error.

@@ -40,6 +40,16 @@ func (ct conflictType) Replaces(r any) bool {
 	return false
 }
 
+// SliceStreamResult is a single result from ApplyStream or EvaluateStream.
+// Index is the item index (0-based). Use Index == -1 for slice-level errors (e.g. min/max length, whole-slice rules).
+// Value is the validated item (zero value when Err is set for that item, or for slice-level errors).
+// Err is the validation error for this result, if any.
+type SliceStreamResult[T any] struct {
+	Index int
+	Value T
+	Err   errors.ValidationError
+}
+
 // Implementation of RuleSet for arrays of a given type.
 type SliceRuleSet[T any] struct {
 	NoConflict[[]T]
@@ -165,15 +175,11 @@ func (v *SliceRuleSet[T]) finishApply(ctx context.Context, outputItems []T, item
 	return errs
 }
 
-// newInputChan converts a slice or array to a channel and returns the channel, original items, and coercion errors.
+// newInputChan converts a slice or array to a channel and returns the channel, original items, and coercion errors by index.
 // originalItems is populated when itemRuleSet exists, allowing it to process items that couldn't be cast to T.
-// coercionErrors is populated when no itemRuleSet exists, tracking items that couldn't be cast.
+// coercionByIndex has length valueOf.Len(); coercionByIndex[i] is non-nil when coercion failed for index i.
 func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Value) (<-chan T, []any, []errors.ValidationError) {
-	// Convert slice/array to channel
-	// Note: maxLen is checked at the end as a top-level rule (after all items are processed)
-	// Send all items - if they can't be cast to T, send zero value
-	// Track original items for itemRuleSet processing
-	// Use unbuffered channel (size 0) - no need to buffer all items upfront
+	n := valueOf.Len()
 	ch := make(chan T)
 	var itemRuleSet RuleSet[T]
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
@@ -184,29 +190,25 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 	}
 
 	var originalItems []any
-	var coercionErrors []errors.ValidationError
+	coercionByIndex := make([]errors.ValidationError, n)
 
-	// If we have itemRuleSet, track original items for items that can't be cast
 	if itemRuleSet != nil {
-		originalItems = make([]any, valueOf.Len())
+		originalItems = make([]any, n)
 	}
 
 	go func() {
 		defer close(ch)
-		for i := 0; i < valueOf.Len(); i++ {
+		for i := 0; i < n; i++ {
 			item := valueOf.Index(i)
 			itemInterface := item.Interface()
 			var castItem T
 			if c, ok := itemInterface.(T); ok {
 				castItem = c
 			} else {
-				// Cast failed - send zero value
-				// Store original item for itemRuleSet processing
 				if originalItems != nil {
 					originalItems[i] = itemInterface
 				}
 			}
-			// Always send, even if cast failed (zero value)
 			select {
 			case <-ctx.Done():
 				return
@@ -215,53 +217,32 @@ func (v *SliceRuleSet[T]) newInputChan(ctx context.Context, valueOf reflect.Valu
 		}
 	}()
 
-	// If no itemRuleSet, track coercion errors during conversion
 	if itemRuleSet == nil {
 		expectedType := reflect.TypeOf((*T)(nil)).Elem()
-		for i := 0; i < valueOf.Len(); i++ {
+		for i := 0; i < n; i++ {
 			item := valueOf.Index(i)
 			itemInterface := item.Interface()
 			if _, ok := itemInterface.(T); !ok {
 				subContext := rulecontext.WithPathString(ctx, strconv.Itoa(i))
 				actual := item.Kind().String()
-				coercionErrors = append(coercionErrors, errors.Error(errors.CodeType, subContext, expectedType.Name(), actual))
+				coercionByIndex[i] = errors.Error(errors.CodeType, subContext, expectedType.Name(), actual)
 			}
 		}
 	}
 
-	return ch, originalItems, coercionErrors
+	return ch, originalItems, coercionByIndex
 }
 
-// applyChan performs streaming validation from an input channel to an output channel.
-// Items are validated and written to output as they are read from input.
-// All errors are collected and returned at once.
-// originalItems is optional - if provided, it contains the original items before casting
-// (used when itemRuleSet needs to process original items that couldn't be cast to T)
+// applyChan performs streaming validation from an input channel.
+// All errors are collected and returned at once. Always returns the collected slice.
+// originalItems is optional - if provided, it contains the original items before casting.
 // applyChan does NOT close channels - they are managed by the caller.
-// applyChan returns the collected items and errors. Top-level rules are NOT applied here.
-func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output chan<- T, originalItems []any) ([]T, errors.ValidationError) {
+func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, originalItems []any) ([]T, errors.ValidationError) {
 	var errs errors.ValidationError
-	var outputItems []T
+	outputItems := make([]T, 0)
 	var index int
 
-	// Get maxLen from current rule set (0 means no limit)
-	// maxLen is copied to clones, so we only need to check the current rule set
 	maxLen := v.maxLen
-
-	// Check if we need to collect items for top-level rules or minLen
-	var hasTopLevelRules bool
-	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.rule != nil {
-			hasTopLevelRules = true
-			break
-		}
-	}
-
-	// Allocate outputItems if we have top-level rules or minLen (minLen needs to check length at the end)
-	// minLen is copied to clones, so we only need to check the current rule set
-	if hasTopLevelRules || v.minLen > 0 {
-		outputItems = make([]T, 0)
-	}
 
 	// Check for an item RuleSet
 	var itemRuleSet RuleSet[T]
@@ -280,6 +261,9 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 			return outputItems, errs
 		case item, ok := <-input:
 			if !ok {
+				if ctx.Err() != nil {
+					errs = errors.Join(errs, contextErrorToValidation(ctx))
+				}
 				return outputItems, errs
 			}
 
@@ -298,7 +282,7 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 				if originalItems != nil && index < len(originalItems) && originalItems[index] != nil {
 					itemInput = originalItems[index]
 				}
-				itemErr = itemRuleSet.Apply(subContext, itemInput, &itemOutput)
+				itemOutput, itemErr = itemRuleSet.Apply(subContext, itemInput)
 				if itemErr != nil {
 					itemOutput = item
 					errs = errors.Join(errs, itemErr)
@@ -308,96 +292,113 @@ func (v *SliceRuleSet[T]) applyChan(ctx context.Context, input <-chan T, output 
 				itemOutput = item
 			}
 
-			// Write to output channel immediately
-			select {
-			case <-ctx.Done():
-				errs = errors.Join(errs, contextErrorToValidation(ctx))
-				return outputItems, errs
-			case output <- itemOutput:
-				// Append to outputItems if we need it for top-level rules or minLen
-				if hasTopLevelRules || v.minLen > 0 {
-					outputItems = append(outputItems, itemOutput)
-				}
-				index++
-			}
+			outputItems = append(outputItems, itemOutput)
+			index++
 		}
 	}
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-//
-// Apply supports channels as both input and output. When using channels:
-// - Input channel: reads values until closed, max length is hit, or context times out
-// - Output channel: writes validated values in the same order as input
-// - All errors are collected and returned at once
-// - Items are streamed (validated and written immediately, not collected upfront)
-func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// applyChanStream reads from input, validates each item, and sends SliceStreamResult to output.
+// coercionByIndex[i] is the coercion error for index i (nil if no error); may be nil when no coercion errors.
+// output is closed when done. Slice-level errors are sent with Index == -1.
+func (v *SliceRuleSet[T]) applyChanStream(ctx context.Context, input <-chan T, originalItems []any, coercionByIndex []errors.ValidationError, output chan<- SliceStreamResult[T]) {
+	var outputItems []T
+	index := 0
+	maxLen := v.maxLen
+
+	var itemRuleSet RuleSet[T]
+	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+		if currentRuleSet.itemRules != nil {
+			itemRuleSet = currentRuleSet.itemRules
+			break
+		}
+	}
+
+	defer close(output)
+
+	for {
+		select {
+		case <-ctx.Done():
+			output <- SliceStreamResult[T]{Index: -1, Err: contextErrorToValidation(ctx)}
+			return
+		case item, ok := <-input:
+			if !ok {
+				// Input exhausted; run slice-level validation and send any errors with Index -1
+				var sliceLevelErr errors.ValidationError
+				if v.minLen > 0 && len(outputItems) < v.minLen {
+					sliceLevelErr = errors.Join(sliceLevelErr, errors.Error(errors.CodeMinLen, ctx, v.minLen))
+				}
+				if len(outputItems) > 0 {
+					for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
+						if currentRuleSet.rule != nil {
+							if err := currentRuleSet.rule.Evaluate(ctx, outputItems); err != nil {
+								sliceLevelErr = errors.Join(sliceLevelErr, err)
+							}
+						}
+					}
+				}
+				if sliceLevelErr != nil {
+					output <- SliceStreamResult[T]{Index: -1, Err: sliceLevelErr}
+				}
+				return
+			}
+
+			if maxLen > 0 && index >= maxLen {
+				output <- SliceStreamResult[T]{Index: -1, Err: errors.Error(errors.CodeMaxLen, ctx, maxLen)}
+				return
+			}
+
+			if coercionByIndex != nil && index < len(coercionByIndex) && coercionByIndex[index] != nil {
+				var zero T
+				output <- SliceStreamResult[T]{Index: index, Err: coercionByIndex[index]}
+				outputItems = append(outputItems, zero)
+			} else {
+				var itemOutput T
+				var itemErr errors.ValidationError
+				if itemRuleSet != nil {
+					subContext := rulecontext.WithPathIndex(ctx, index)
+					itemInput := any(item)
+					if originalItems != nil && index < len(originalItems) && originalItems[index] != nil {
+						itemInput = originalItems[index]
+					}
+					itemOutput, itemErr = itemRuleSet.Apply(subContext, itemInput)
+					if itemErr != nil {
+						itemOutput = item
+					}
+				} else {
+					itemOutput = item
+				}
+				output <- SliceStreamResult[T]{Index: index, Value: itemOutput, Err: itemErr}
+				outputItems = append(outputItems, itemOutput)
+			}
+			index++
+		}
+	}
+}
+
+// Apply coerces input to []T, evaluates item and slice-level rules, and returns the result.
+// Input may be a slice, array, or receive-only channel of T.
+func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any) ([]T, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
-		return err
-	}
-
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	outputElem := outputVal.Elem()
-	outputElemKind := outputElem.Kind()
-
-	// Validate output type early (before processing input)
-	expectedType := reflect.TypeOf((*T)(nil)).Elem()
-	expectedSliceType := reflect.TypeOf([]T(nil))
-
-	switch outputElemKind {
-	case reflect.Chan:
-		// Validate channel element type
-		if outputElem.IsNil() {
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel cannot be nil")
-		}
-		actualType := outputElem.Type().Elem()
-		if !actualType.AssignableTo(expectedType) {
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel element type %s is not compatible with %s", actualType.String(), expectedType.String())
-		}
-	case reflect.Interface:
-		// Interface output: check if []T is assignable to the interface type
-		// If nil, it's valid (we'll set it). If not nil, check assignability.
-		if !outputElem.IsNil() {
-			if !expectedSliceType.AssignableTo(outputElem.Type()) {
-				return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface())
-			}
-		}
-	case reflect.Slice:
-		if !expectedSliceType.AssignableTo(outputElem.Type()) {
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", []T(nil), outputElem.Interface())
-		}
-	default:
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a slice or channel, got %s", outputElemKind)
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, input); handled {
+		return nil, err
 	}
 
 	valueOf := reflect.ValueOf(input)
 	typeOf := valueOf.Type()
 	inputKind := typeOf.Kind()
 
-	// Determine input channel
 	var inputChan <-chan T
 	var coercionErrors []errors.ValidationError
 	var originalItems []any
 
 	switch inputKind {
 	case reflect.Chan:
-		// Input is already a channel
 		inputVal := reflect.ValueOf(input)
 		if inputVal.IsNil() {
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil")
+			return nil, errors.Errorf(errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil")
 		}
-
-		// Convert to receive-only channel
 		var recvChan <-chan T
 		switch ch := input.(type) {
 		case <-chan T:
@@ -407,96 +408,82 @@ func (v *SliceRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		default:
 			expectedType := reflect.TypeOf((*T)(nil)).Elem()
 			actualType := inputVal.Type().Elem()
-			return errors.Error(errors.CodeType, ctx, expectedType.String(), actualType.String())
+			return nil, errors.Error(errors.CodeType, ctx, expectedType.String(), actualType.String())
 		}
 		inputChan = recvChan
 	case reflect.Slice, reflect.Array:
 		inputChan, originalItems, coercionErrors = v.newInputChan(ctx, valueOf)
 	default:
-		return errors.Error(errors.CodeType, ctx, "array", inputKind.String())
+		return nil, errors.Error(errors.CodeType, ctx, "array", inputKind.String())
 	}
 
-	// Determine output channel and setup
-	var outputChan chan<- T
-	var outputSlice *[]T
-	var outputSliceInterface []T
-	var done chan struct{}
-	var closeOutputChan bool
-
-	switch outputElemKind {
-	case reflect.Chan:
-		// Output is already a channel - convert to send-only
-		// We already validated the channel type earlier
-		var sendChan chan<- T
-		switch ch := outputElem.Interface().(type) {
-		case chan<- T:
-			sendChan = ch
-		case chan T:
-			sendChan = ch
-		default:
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output channel type assertion failed")
-		}
-		outputChan = sendChan
-		closeOutputChan = false // Caller manages the channel
-	case reflect.Interface:
-		// For interface{} output, create a slice and assign it
-		ch := make(chan T, 100) // Buffered to allow streaming
-		outputChan = ch
-		outputSliceInterface = make([]T, 0)
-		closeOutputChan = true // We created it
-
-		// Collect results synchronously in background
-		done = make(chan struct{})
-		go func() {
-			defer close(done)
-			for item := range ch {
-				outputSliceInterface = append(outputSliceInterface, item)
-			}
-		}()
-	case reflect.Slice:
-		// Slice output
-		ch := make(chan T, 100) // Buffered to allow streaming
-		outputChan = ch
-		outputSlice = outputElem.Addr().Interface().(*[]T)
-		*outputSlice = make([]T, 0)
-		closeOutputChan = true // We created it
-
-		// Collect results synchronously in background
-		done = make(chan struct{})
-		go func() {
-			defer close(done)
-			for item := range ch {
-				*outputSlice = append(*outputSlice, item)
-			}
-		}()
-	}
-
-	// Use applyChan for streaming validation
-	outputItems, itemErrors := v.applyChan(ctx, inputChan, outputChan, originalItems)
-
-	// Close output channel only if we created it
-	// For caller-provided channels, we don't close - the caller manages it
-	// Completion is signaled by returning from Apply, not by closing the channel
-	if closeOutputChan {
-		close(outputChan)
-		// Wait for collection to complete
-		<-done
-	}
-
-	// Assign the slice to interface{} if needed
-	switch outputElemKind {
-	case reflect.Interface:
-		outputElem.Set(reflect.ValueOf(outputSliceInterface))
-	}
-
-	// Merge coercion errors and apply top-level rules (shared logic)
-	return v.finishApply(ctx, outputItems, itemErrors, coercionErrors)
+	outputItems, itemErrors := v.applyChan(ctx, inputChan, originalItems)
+	errs := v.finishApply(ctx, outputItems, itemErrors, coercionErrors)
+	return outputItems, errs
 }
 
 // Evaluate performs validation of a RuleSet against a slice type and returns a ValidationError.
 func (ruleSet *SliceRuleSet[T]) Evaluate(ctx context.Context, value []T) errors.ValidationError {
-	var out any
-	return ruleSet.Apply(ctx, value, &out)
+	_, err := ruleSet.Apply(ctx, value)
+	return err
+}
+
+// ApplyStream coerces input to a stream of T, validates each item, and sends results on the returned channel.
+// Each result includes Index (0-based), Value, and Err. Slice-level errors use Index == -1.
+// The channel is closed when processing is complete. Input may be a slice, array, or receive-only channel of T.
+func (v *SliceRuleSet[T]) ApplyStream(ctx context.Context, input any) (<-chan SliceStreamResult[T], errors.ValidationError) {
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, input); handled {
+		return nil, err
+	}
+
+	valueOf := reflect.ValueOf(input)
+	typeOf := valueOf.Type()
+	inputKind := typeOf.Kind()
+
+	var inputChan <-chan T
+	var coercionByIndex []errors.ValidationError
+	var originalItems []any
+
+	switch inputKind {
+	case reflect.Chan:
+		inputVal := reflect.ValueOf(input)
+		if inputVal.IsNil() {
+			return nil, errors.Errorf(errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil")
+		}
+		switch ch := input.(type) {
+		case chan T:
+			inputChan = ch
+		case <-chan T:
+			inputChan = ch
+		default:
+			expectedType := reflect.TypeOf((*T)(nil)).Elem()
+			actualType := inputVal.Type().Elem()
+			return nil, errors.Error(errors.CodeType, ctx, expectedType.String(), actualType.String())
+		}
+	case reflect.Slice, reflect.Array:
+		inputChan, originalItems, coercionByIndex = v.newInputChan(ctx, valueOf)
+	default:
+		return nil, errors.Error(errors.CodeType, ctx, "array", inputKind.String())
+	}
+
+	output := make(chan SliceStreamResult[T])
+	go v.applyChanStream(ctx, inputChan, originalItems, coercionByIndex, output)
+	return output, nil
+}
+
+// EvaluateStream validates a stream of T (from the given channel) and sends results on the returned channel.
+// Each result includes Index (0-based), Value, and Err. Slice-level errors use Index == -1.
+// The returned channel is closed when the input channel is closed and slice-level validation has run.
+func (v *SliceRuleSet[T]) EvaluateStream(ctx context.Context, input <-chan T) (<-chan SliceStreamResult[T], errors.ValidationError) {
+	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
+	if input == nil {
+		return nil, errors.Errorf(errors.CodeInternal, ctx, "internal error", "Input channel cannot be nil")
+	}
+	output := make(chan SliceStreamResult[T])
+	go v.applyChanStream(ctx, input, nil, nil, output)
+	return output, nil
 }
 
 // sliceConflictTypeReplacesWrapper wraps a conflict type to implement Replaces[[]T]

@@ -15,8 +15,7 @@ import (
 // - Correctly applies boolean validation
 // - Returns the correct value
 func TestBoolRuleSet_Apply(t *testing.T) {
-	var boolval bool
-	err := rules.Bool().Apply(context.Background(), true, &boolval)
+	boolval, err := rules.Bool().Apply(context.Background(), true)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -40,8 +39,7 @@ func TestBoolRuleSet_Apply(t *testing.T) {
 // TestBoolRuleSet_Apply_StrictError tests:
 // - Returns error when strict mode is enabled and input is not a boolean
 func TestBoolRuleSet_Apply_StrictError(t *testing.T) {
-	var out bool
-	err := rules.Bool().WithStrict().Apply(context.Background(), "true", &out)
+	_, err := rules.Bool().WithStrict().Apply(context.Background(), "true")
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -50,8 +48,7 @@ func TestBoolRuleSet_Apply_StrictError(t *testing.T) {
 }
 
 func tryBoolCoercion(t *testing.T, val interface{}, expected bool) {
-	var actual bool
-	err := rules.Bool().Apply(context.Background(), val, &actual)
+	actual, err := rules.Bool().Apply(context.Background(), val)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -83,8 +80,7 @@ func TestBoolRuleSet_Apply_CoerceFromString(t *testing.T) {
 // TestBoolRuleSet_Apply_CoerceFromString_Invalid tests:
 // - Returns error for invalid string values
 func TestBoolRuleSet_Apply_CoerceFromString_Invalid(t *testing.T) {
-	var out bool
-	err := rules.Bool().Apply(context.Background(), "invalid", &out)
+	_, err := rules.Bool().Apply(context.Background(), "invalid")
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -142,9 +138,7 @@ func TestBoolRuleSet_Apply_CoerceFromBool(t *testing.T) {
 // TestBoolRuleSet_Apply_StrictMode_Bool tests:
 // - Strict mode allows bool values
 func TestBoolRuleSet_Apply_StrictMode_Bool(t *testing.T) {
-	var out bool
-	err := rules.Bool().WithStrict().Apply(context.Background(), true, &out)
-
+	out, err := rules.Bool().WithStrict().Apply(context.Background(), true)
 	if err != nil {
 		t.Error("Expected errors to be empty")
 		return
@@ -159,8 +153,7 @@ func TestBoolRuleSet_Apply_StrictMode_Bool(t *testing.T) {
 // TestBoolRuleSet_Apply_StrictMode_Int tests:
 // - Strict mode rejects integer values
 func TestBoolRuleSet_Apply_StrictMode_Int(t *testing.T) {
-	var out bool
-	err := rules.Bool().WithStrict().Apply(context.Background(), 1, &out)
+	_, err := rules.Bool().WithStrict().Apply(context.Background(), 1)
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -171,8 +164,7 @@ func TestBoolRuleSet_Apply_StrictMode_Int(t *testing.T) {
 // TestBoolRuleSet_Apply_StrictMode_Float tests:
 // - Strict mode rejects float values
 func TestBoolRuleSet_Apply_StrictMode_Float(t *testing.T) {
-	var out bool
-	err := rules.Bool().WithStrict().Apply(context.Background(), 1.0, &out)
+	_, err := rules.Bool().WithStrict().Apply(context.Background(), 1.0)
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -191,20 +183,18 @@ func TestBoolRuleSet_WithRequired(t *testing.T) {
 // - Custom rules can return errors
 // - Rule evaluation is called correctly
 func TestBoolRuleSet_WithRuleFunc(t *testing.T) {
-	var out bool
-	err := rules.Bool().
+	_, err := rules.Bool().
 		WithRuleFunc(testhelpers.NewMockRuleWithErrors[bool](1).Function()).
-		Apply(context.Background(), true, &out)
-
+		Apply(context.Background(), true)
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
 	}
 
 	rule := testhelpers.NewMockRule[bool]()
-	err = rules.Bool().
+	_, err = rules.Bool().
 		WithRuleFunc(rule.Function()).
-		Apply(context.Background(), true, &out)
+		Apply(context.Background(), true)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -277,80 +267,47 @@ func TestBoolRuleSet_Apply_StringOutput(t *testing.T) {
 		name     string
 		ruleSet  *rules.BoolRuleSet
 		input    interface{}
-		expected string
+		expected bool
 	}{
-		{"True", rules.Bool(), true, "true"},
-		{"False", rules.Bool(), false, "false"},
+		{"True", rules.Bool(), true, true},
+		{"False", rules.Bool(), false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
-
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
 				return
 			}
-
 			if out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, out)
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
 }
 
-// TestBoolRuleSet_Apply_PointerToStringOutput tests:
-// - Outputs string values when output is a pointer to string type
-// - Handles nil pointer by creating a new string
-func TestBoolRuleSet_Apply_PointerToStringOutput(t *testing.T) {
+// TestBoolRuleSet_Apply_ReturnsBool tests that Apply returns the correct bool value.
+func TestBoolRuleSet_Apply_ReturnsBool(t *testing.T) {
 	tests := []struct {
 		name     string
 		ruleSet  *rules.BoolRuleSet
 		input    interface{}
-		expected string
+		expected bool
 	}{
-		{"True", rules.Bool(), true, "true"},
-		{"False", rules.Bool(), false, "false"},
+		{"True", rules.Bool(), true, true},
+		{"False", rules.Bool(), false, false},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name+"_NilPointer", func(t *testing.T) {
-			var out *string
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
-
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
 				return
 			}
-
-			if out == nil {
-				t.Error("Expected pointer to be non-nil")
-				return
-			}
-
-			if *out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, *out)
-			}
-		})
-
-		t.Run(tt.name+"_ExistingPointer", func(t *testing.T) {
-			existing := "existing"
-			out := &existing
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
-
-			if err != nil {
-				t.Errorf("Expected no errors, got: %v", err)
-				return
-			}
-
-			if out == nil {
-				t.Error("Expected pointer to be non-nil")
-				return
-			}
-
-			if *out != tt.expected {
-				t.Errorf("Expected string %q, got %q", tt.expected, *out)
+			if out != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, out)
 			}
 		})
 	}
@@ -371,8 +328,7 @@ func TestBoolRuleSet_Apply_VariantTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var out any
-			err := tt.ruleSet.Apply(context.Background(), tt.input, &out)
+			out, err := tt.ruleSet.Apply(context.Background(), tt.input)
 
 			if err != nil {
 				t.Errorf("Expected no errors, got: %v", err)
@@ -405,7 +361,7 @@ func TestBoolRuleSet_Apply_PointerToBool(t *testing.T) {
 	falseVal := false
 
 	var out bool
-	err := rules.Bool().Apply(context.Background(), &trueVal, &out)
+	out, err := rules.Bool().Apply(context.Background(), &trueVal)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -417,7 +373,7 @@ func TestBoolRuleSet_Apply_PointerToBool(t *testing.T) {
 		return
 	}
 
-	err = rules.Bool().Apply(context.Background(), &falseVal, &out)
+	out, err = rules.Bool().Apply(context.Background(), &falseVal)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -433,9 +389,8 @@ func TestBoolRuleSet_Apply_PointerToBool(t *testing.T) {
 // TestBoolRuleSet_Apply_PointerToBool_Nil tests:
 // - Handles nil pointer to bool input
 func TestBoolRuleSet_Apply_PointerToBool_Nil(t *testing.T) {
-	var out bool
 	var nilBool *bool
-	err := rules.Bool().Apply(context.Background(), nilBool, &out)
+	_, err := rules.Bool().Apply(context.Background(), nilBool)
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -488,8 +443,7 @@ func TestBoolRuleSet_noConflict_EdgeCases(t *testing.T) {
 // - coerceBool handles various edge cases
 func TestBoolRuleSet_coerceBool_EdgeCases(t *testing.T) {
 	// Test with unsupported type in strict mode
-	var out bool
-	err := rules.Bool().WithStrict().Apply(context.Background(), []int{1, 2, 3}, &out)
+	_, err := rules.Bool().WithStrict().Apply(context.Background(), []int{1, 2, 3})
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
@@ -497,7 +451,7 @@ func TestBoolRuleSet_coerceBool_EdgeCases(t *testing.T) {
 	}
 
 	// Test with unsupported type in non-strict mode
-	err = rules.Bool().Apply(context.Background(), []int{1, 2, 3}, &out)
+	_, err = rules.Bool().Apply(context.Background(), []int{1, 2, 3})
 
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")

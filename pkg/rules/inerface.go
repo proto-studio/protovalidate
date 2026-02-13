@@ -98,48 +98,37 @@ func (v *InterfaceRuleSet[T]) WithNil() *InterfaceRuleSet[T] {
 	return newRuleSet
 }
 
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationError if any validation errors occur.
-func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to T, evaluates all rules, and returns the result.
+func (ruleSet *InterfaceRuleSet[T]) Apply(ctx context.Context, input any) (T, errors.ValidationError) {
+	var zero T
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return zero, err
 	}
 
-	// Ensure output is a pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Attempt to cast the input value directly to the expected type T
 	if v, ok := input.(T); ok {
-		inputValue := reflect.ValueOf(v)
-		if !inputValue.Type().AssignableTo(outputVal.Elem().Type()) {
-			return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign `%T` to `%T`", input, output)
+		if errs := ruleSet.Evaluate(ctx, v); errs != nil {
+			return zero, errs
 		}
-		outputVal.Elem().Set(inputValue)
-		return ruleSet.Evaluate(ctx, v)
+		return v, nil
 	}
 
-	// Iterate through the rule sets to find a valid cast function
 	for curRuleSet := ruleSet; curRuleSet != nil; curRuleSet = curRuleSet.parent {
 		if curRuleSet.cast != nil {
 			if v, errs := curRuleSet.cast(ctx, input); any(v) != nil || errs != nil {
 				if errs != nil {
-					return errs
+					return zero, errs
 				}
-				outputVal.Elem().Set(reflect.ValueOf(v))
-				return ruleSet.Evaluate(ctx, v)
+				if evalErrs := ruleSet.Evaluate(ctx, v); evalErrs != nil {
+					return zero, evalErrs
+				}
+				return v, nil
 			}
 		}
 	}
 
-	// If casting fails, return a coercion error
-	return errors.Error(errors.CodeType,
+	return zero, errors.Error(errors.CodeType,
 		ctx,
 		reflect.TypeOf(new(T)).Elem().Name(),
 		reflect.ValueOf(input).Kind().String(),

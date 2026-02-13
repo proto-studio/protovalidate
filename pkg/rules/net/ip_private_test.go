@@ -97,41 +97,6 @@ func TestParseIP_InvalidStringPointer(t *testing.T) {
 	}
 }
 
-// TestSetOutput_InvalidOutputType tests:
-//   - setOutput returns error for invalid output type
-func TestSetOutput_InvalidOutputType(t *testing.T) {
-	ip := net.ParseIP("192.168.1.1")
-	var output int // Invalid output type
-
-	err := setOutput(context.TODO(), &output, ip)
-	if err == nil {
-		t.Error("Expected error for invalid output type")
-	}
-}
-
-// TestSetOutput_NilPointer tests:
-//   - setOutput returns error for nil pointer
-func TestSetOutput_NilPointer(t *testing.T) {
-	ip := net.ParseIP("192.168.1.1")
-
-	err := setOutput(context.TODO(), nil, ip)
-	if err == nil {
-		t.Error("Expected error for nil pointer")
-	}
-}
-
-// TestSetOutput_NonPointer tests:
-//   - setOutput returns error for non-pointer
-func TestSetOutput_NonPointer(t *testing.T) {
-	ip := net.ParseIP("192.168.1.1")
-	output := "not a pointer"
-
-	err := setOutput(context.TODO(), output, ip)
-	if err == nil {
-		t.Error("Expected error for non-pointer")
-	}
-}
-
 // TestIPVersionRule_Evaluate_NilIP tests:
 //   - ipVersionRule.Evaluate handles nil IP
 func TestIPVersionRule_Evaluate_NilIP(t *testing.T) {
@@ -413,24 +378,6 @@ func TestIPConflictType_Replaces_NotIPRuleSet(t *testing.T) {
 	rule := &ipVersionRule{}
 	if checker.Replaces(rule) {
 		t.Error("Expected Replaces to return false for non-IPRuleSet rule")
-	}
-}
-
-// TestSetOutput_InterfaceAssignable tests:
-//   - setOutput handles interface output where type is assignable to net.IP
-func TestSetOutput_InterfaceAssignable(t *testing.T) {
-	ip := net.ParseIP("192.168.1.1")
-
-	// Create a pointer to an interface that can hold any value
-	var output interface{}
-	err := setOutput(context.TODO(), &output, ip)
-	if err != nil {
-		t.Errorf("Expected no error, got: %v", err)
-	}
-
-	// The output should be set (as a string since interface{} is not assignable to net.IP)
-	if output == nil {
-		t.Error("Expected output to be set")
 	}
 }
 

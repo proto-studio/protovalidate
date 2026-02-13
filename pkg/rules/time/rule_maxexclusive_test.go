@@ -44,23 +44,20 @@ func TestTimeRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	// Create an initial rule set with before and after values
 	ruleSet := time.Time().WithMaxExclusive(tm).WithMinExclusive(before)
 
-	// Prepare an output variable for Apply
-	var output internalTime.Time
-
 	// Apply with a time equal to the threshold, expecting an error (exclusive)
-	err := ruleSet.Apply(context.TODO(), tm, &output)
+	_, err := ruleSet.Apply(context.TODO(), tm)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a time after the threshold, expecting an error
-	err = ruleSet.Apply(context.TODO(), after, &output)
+	_, err = ruleSet.Apply(context.TODO(), after)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a time before the threshold, expecting no error
-	err = ruleSet.Apply(context.TODO(), before.Add(30*internalTime.Second), &output)
+	_, err = ruleSet.Apply(context.TODO(), before.Add(30*internalTime.Second))
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -69,13 +66,13 @@ func TestTimeRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMaxExclusive(after)
 
 	// Apply with a time exactly at the new threshold, expecting an error (exclusive)
-	err = ruleSet2.Apply(context.TODO(), after, &output)
+	_, err = ruleSet2.Apply(context.TODO(), after)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a time before the new threshold, expecting no error
-	err = ruleSet2.Apply(context.TODO(), tm, &output)
+	_, err = ruleSet2.Apply(context.TODO(), tm)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -103,16 +100,14 @@ func TestTimeRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	// Adding WithMaxExclusive should conflict and replace WithMax
 	ruleSet2 := ruleSet.WithMaxExclusive(after)
 
-	var output internalTime.Time
-
 	// Original rule set should still have WithMax
-	err := ruleSet.Apply(context.TODO(), tm, &output)
+	_, err := ruleSet.Apply(context.TODO(), tm)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}
 
 	// New rule set should have WithMaxExclusive (exclusive, so after should fail)
-	err = ruleSet2.Apply(context.TODO(), after, &output)
+	_, err = ruleSet2.Apply(context.TODO(), after)
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
@@ -134,16 +129,14 @@ func TestTimeRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	// Adding WithMax should conflict and replace WithMaxExclusive
 	ruleSet2 := ruleSet.WithMax(tm)
 
-	var output internalTime.Time
-
 	// Original rule set should still have WithMaxExclusive
-	err := ruleSet.Apply(context.TODO(), after, &output)
+	_, err := ruleSet.Apply(context.TODO(), after)
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMax (inclusive, so tm should pass)
-	err = ruleSet2.Apply(context.TODO(), tm, &output)
+	_, err = ruleSet2.Apply(context.TODO(), tm)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}

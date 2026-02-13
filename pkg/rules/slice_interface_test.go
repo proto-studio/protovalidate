@@ -35,11 +35,8 @@ func TestInterfaceSlice(t *testing.T) {
 
 	ruleSet := rules.Slice[MyTestInterface]().WithItemRuleSet(innerRuleSet)
 
-	// Prepare an output variable for Apply
-	var output []MyTestInterface
-
 	// Use Apply instead of Run
-	errs := ruleSet.Apply(context.TODO(), []any{123, "abc"}, &output)
+	output, errs := ruleSet.Apply(context.TODO(), []any{123, "abc"})
 
 	if errs != nil {
 		t.Errorf("Expected errors to be empty %s", errs.Error())

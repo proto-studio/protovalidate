@@ -2,44 +2,20 @@ package util
 
 import (
 	"context"
-	"reflect"
 
 	"proto.zip/studio/validate/pkg/errors"
 )
 
-// TrySetNilIfAllowed attempts to set the output to nil if withNil is true and input is nil.
-// It returns true if nil was successfully set (and the caller should return), false if normal processing should continue,
-// and an error if there was a problem setting nil or if nil is not allowed.
-func TrySetNilIfAllowed(ctx context.Context, withNil bool, input, output any) (handled bool, err errors.ValidationError) {
-	// If input is not nil, continue with normal processing
+// TryNilIfAllowed reports whether input is nil and how to handle it.
+// When input is nil and withNil is true, returns (true, nil)—caller should return (zero value, nil).
+// When input is nil and withNil is false, returns (true, CodeNull error)—caller should return (zero, err).
+// When input is not nil, returns (false, nil)—caller should continue with normal processing.
+func TryNilIfAllowed(ctx context.Context, withNil bool, input any) (handled bool, err errors.ValidationError) {
 	if input != nil {
 		return false, nil
 	}
-
-	// Input is nil - check if nil is allowed
 	if !withNil {
-		// Nil is not allowed, return error
 		return true, errors.Error(errors.CodeNull, ctx)
 	}
-
-	// Nil is allowed - ensure output is a pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return false, errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
-	}
-
-	// Get the element the pointer points to
-	elem := outputVal.Elem()
-
-	// Check if the element type supports nil (pointer, interface, slice, map, channel, function)
-	elemKind := elem.Kind()
-	if elemKind == reflect.Ptr || elemKind == reflect.Interface || elemKind == reflect.Slice ||
-		elemKind == reflect.Map || elemKind == reflect.Chan || elemKind == reflect.Func {
-		// Set to nil
-		elem.Set(reflect.Zero(elem.Type()))
-		return true, nil
-	}
-
-	// Element type doesn't support nil, continue with normal processing
-	return false, nil
+	return true, nil
 }

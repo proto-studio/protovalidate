@@ -38,16 +38,14 @@ func TestStringRuleSet_WithMax(t *testing.T) {
 func TestStringRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMax("z").WithMin("a")
 
-	var output string
-
 	// Test validation with a value that exceeds the max (should return an error)
-	err := ruleSet.Apply(context.TODO(), "zzz", &output)
+	_, err := ruleSet.Apply(context.TODO(), "zzz")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value within the range (should not return an error)
-	err = ruleSet.Apply(context.TODO(), "m", &output)
+	_, err = ruleSet.Apply(context.TODO(), "m")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -56,7 +54,7 @@ func TestStringRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMax("y")
 
 	// Test validation with a value that is within the new max (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), "x", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "x")
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -105,8 +103,7 @@ func TestStringRuleSet_WithMax_Truncation(t *testing.T) {
 
 	// Test that the error message contains truncated string with ellipsis
 	// Use a value that exceeds the max
-	var output string
-	err := ruleSet.Apply(context.TODO(), longString+"z", &output)
+	_, err := ruleSet.Apply(context.TODO(), longString+"z")
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 		return

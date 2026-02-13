@@ -14,16 +14,14 @@ func TestStringRuleSet_WithMin_WithMinExclusiveConflict(t *testing.T) {
 	// Adding WithMinExclusive should conflict and replace WithMin
 	ruleSet2 := ruleSet.WithMinExclusive("c")
 
-	var output string
-
 	// Original rule set should still have WithMin
-	err := ruleSet.Apply(context.TODO(), "b", &output)
+	_, err := ruleSet.Apply(context.TODO(), "b")
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}
 
 	// New rule set should have WithMinExclusive (exclusive, so "c" should fail)
-	err = ruleSet2.Apply(context.TODO(), "c", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "c")
 	if err == nil {
 		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
@@ -42,16 +40,14 @@ func TestStringRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	// Adding WithMaxExclusive should conflict and replace WithMax
 	ruleSet2 := ruleSet.WithMaxExclusive("x")
 
-	var output string
-
 	// Original rule set should still have WithMax
-	err := ruleSet.Apply(context.TODO(), "y", &output)
+	_, err := ruleSet.Apply(context.TODO(), "y")
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}
 
 	// New rule set should have WithMaxExclusive (exclusive, so "x" should fail)
-	err = ruleSet2.Apply(context.TODO(), "x", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "x")
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
@@ -70,16 +66,14 @@ func TestStringRuleSet_WithMinExclusive_WithMinConflict(t *testing.T) {
 	// Adding WithMin should conflict and replace WithMinExclusive
 	ruleSet2 := ruleSet.WithMin("c")
 
-	var output string
-
 	// Original rule set should still have WithMinExclusive
-	err := ruleSet.Apply(context.TODO(), "b", &output)
+	_, err := ruleSet.Apply(context.TODO(), "b")
 	if err == nil {
 		t.Errorf("Expected error for WithMinExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMin (inclusive, so "c" should pass)
-	err = ruleSet2.Apply(context.TODO(), "c", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "c")
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMin at threshold, got %s", err)
 	}
@@ -98,16 +92,14 @@ func TestStringRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	// Adding WithMax should conflict and replace WithMaxExclusive
 	ruleSet2 := ruleSet.WithMax("x")
 
-	var output string
-
 	// Original rule set should still have WithMaxExclusive
-	err := ruleSet.Apply(context.TODO(), "y", &output)
+	_, err := ruleSet.Apply(context.TODO(), "y")
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMax (inclusive, so "x" should pass)
-	err = ruleSet2.Apply(context.TODO(), "x", &output)
+	_, err = ruleSet2.Apply(context.TODO(), "x")
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}

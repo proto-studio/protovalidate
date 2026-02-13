@@ -13,19 +13,20 @@ import (
 func TestQueryRuleSet_WithParam(t *testing.T) {
 	ctx := context.Background()
 
-	// Rule set without required param: can validate and output as *string, *url.Values, or *any
+	// Rule set without required param
 	rsOptional := net.Query().WithParam("q", rules.String().Any())
-	var out string
-	err := rsOptional.Apply(ctx, "q=hello", &out)
+	out, err := rsOptional.Apply(ctx, "q=hello")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if out != "q=hello" {
-		t.Errorf("expected out=%q, got %q", "q=hello", out)
+	if out == nil {
+		t.Fatal("expected non-nil output")
+	}
+	if out.Get("q") != "hello" {
+		t.Errorf("expected q=hello, got %v", out)
 	}
 
-	var vals url.Values
-	err = rsOptional.Apply(ctx, "q=hello&x=1", &vals)
+	vals, err := rsOptional.Apply(ctx, "q=hello&x=1")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -33,22 +34,21 @@ func TestQueryRuleSet_WithParam(t *testing.T) {
 		t.Errorf("expected q=hello x=1, got %v", vals)
 	}
 
-	var vAny any
-	err = rsOptional.Apply(ctx, "a=b", &vAny)
+	vAny, err := rsOptional.Apply(ctx, "a=b")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if v, ok := vAny.(url.Values); !ok || v.Get("a") != "b" {
+	if vAny.Get("a") != "b" {
 		t.Errorf("expected url.Values with a=b, got %v", vAny)
 	}
 
 	// Rule set with required param: missing param fails
 	rsRequired := net.Query().WithParam("q", rules.String().WithRequired().Any())
-	err = rsRequired.Apply(ctx, "q=hello", &out)
+	_, err = rsRequired.Apply(ctx, "q=hello")
 	if err != nil {
 		t.Fatalf("expected nil error when param present, got %v", err)
 	}
-	err = rsRequired.Apply(ctx, "", &out)
+	_, err = rsRequired.Apply(ctx, "")
 	if err == nil {
 		t.Fatal("expected error when required param missing")
 	}
@@ -87,12 +87,11 @@ func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 		}
 		return nil
 	})
-	var out string
-	err := rs.Apply(ctx, "a=b", &out)
+	_, err := rs.Apply(ctx, "a=b")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	err = rs.Apply(ctx, "forbidden=1", &out)
+	_, err = rs.Apply(ctx, "forbidden=1")
 	if err == nil {
 		t.Fatal("expected error when custom rule fails")
 	}
@@ -106,11 +105,11 @@ func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 		}
 		return nil
 	}))
-	err = rs2.Apply(ctx, "", &out)
+	_, err = rs2.Apply(ctx, "")
 	if err == nil {
 		t.Fatal("expected error when query empty and rule requires non-empty")
 	}
-	err = rs2.Apply(ctx, "x=1", &out)
+	_, err = rs2.Apply(ctx, "x=1")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -119,10 +118,9 @@ func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 	ctx := context.Background()
 	rs := net.Query()
-	var out string
 
 	// Invalid input type
-	err := rs.Apply(ctx, 123, &out)
+	_, err := rs.Apply(ctx, 123)
 	if err == nil {
 		t.Fatal("expected error for non-string/url.Values input")
 	}
@@ -130,25 +128,8 @@ func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 		t.Errorf("expected CodeType, got %s", err.Code())
 	}
 
-	// Nil output pointer
-	err = rs.Apply(ctx, "a=b", nil)
-	if err == nil {
-		t.Fatal("expected error for nil output")
-	}
-	if err.Code() != errors.CodeInternal {
-		t.Errorf("expected CodeInternal for nil output, got %s", err.Code())
-	}
-
-	// Non-pointer output
-	var notPtr string
-	err = rs.Apply(ctx, "a=b", notPtr)
-	if err == nil {
-		t.Fatal("expected error for non-pointer output")
-	}
-
-	// Output *url.Values (map branch): nil map
-	var vals url.Values
-	err = rs.Apply(ctx, "a=b", &vals)
+	// Success: Apply returns url.Values
+	vals, err := rs.Apply(ctx, "a=b")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -156,33 +137,20 @@ func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 		t.Errorf("expected a=b, got %v", vals)
 	}
 
-	// Output *url.Values (map branch): non-nil pre-allocated map
-	vals2 := make(url.Values)
-	err = rs.Apply(ctx, "x=y", &vals2)
+	vals2, err := rs.Apply(ctx, "x=y")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if vals2.Get("x") != "y" {
 		t.Errorf("expected x=y, got %v", vals2)
 	}
-
-	// Invalid output type (e.g. *int)
-	var i int
-	err = rs.Apply(ctx, "a=b", &i)
-	if err == nil {
-		t.Fatal("expected error for invalid output type")
-	}
-	if err.Code() != errors.CodeInternal {
-		t.Errorf("expected CodeInternal for wrong output type, got %s", err.Code())
-	}
 }
 
 func TestQueryRuleSet_Apply_parseError(t *testing.T) {
 	ctx := context.Background()
 	rs := net.Query()
-	var out string
 	// Invalid percent encoding: % not followed by two hex digits can make ParseQuery return an error (e.g. "a=%" or "a=%z")
-	err := rs.Apply(ctx, "a=%", &out)
+	_, err := rs.Apply(ctx, "a=%")
 	if err == nil {
 		// ParseQuery may or may not fail depending on Go version; if it fails we get CodeEncoding
 		return
@@ -222,8 +190,7 @@ func TestQueryRuleSet_String_Any(t *testing.T) {
 	// Any() returns RuleSet[any]; Apply through it
 	anyRS := base.WithParam("k", rules.String().Any()).Any()
 	ctx := context.Background()
-	var v any
-	err := anyRS.Apply(ctx, "k=v", &v)
+	v, err := anyRS.Apply(ctx, "k=v")
 	if err != nil {
 		t.Fatalf("Any().Apply expected nil error, got %v", err)
 	}
@@ -243,12 +210,11 @@ func TestQueryRuleSet_WithErrorConfig(t *testing.T) {
 		WithErrorMeta("key", "val").
 		WithErrorCallback(func(ctx context.Context, err errors.ValidationError) errors.ValidationError { return err })
 	ctx := context.Background()
-	var out string
-	err := rs.Apply(ctx, "a=b", &out)
+	vals, err := rs.Apply(ctx, "a=b")
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if out != "a=b" {
-		t.Errorf("expected a=b, got %q", out)
+	if vals.Encode() != "a=b" {
+		t.Errorf("expected a=b, got %q", vals.Encode())
 	}
 }

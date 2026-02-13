@@ -100,36 +100,24 @@ func (ruleSet *ConstantRuleSet[T]) WithNil() *ConstantRuleSet[T] {
 	return newRuleSet
 }
 
-// Apply validates a RuleSet against an input value and assigns the validated value to output.
-// Apply returns a ValidationError.
-func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to T, evaluates the constant rule, and returns the result.
+func (ruleSet *ConstantRuleSet[T]) Apply(ctx context.Context, input any) (T, errors.ValidationError) {
+	var zero T
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return zero, err
 	}
 
-	// Attempt to coerce input to type T.
 	v, ok := input.(T)
 	if !ok {
-		// Return a coercion error if input is not of type T.
-		return errors.Error(errors.CodeType, ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String())
+		return zero, errors.Error(errors.CodeType, ctx, reflect.TypeOf(ruleSet.empty).String(), reflect.TypeOf(input).String())
 	}
 
-	// Ensure the output is assignable to the coerced value.
-	outVal := reflect.ValueOf(output)
-	if outVal.Kind() != reflect.Ptr || outVal.IsNil() || !reflect.ValueOf(v).Type().AssignableTo(outVal.Elem().Type()) {
-		// Return an error if the output is not assignable.
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", input, output)
+	if err := ruleSet.Evaluate(ctx, v); err != nil {
+		return zero, err
 	}
-
-	// Assign the validated value to the output.
-	outVal.Elem().Set(reflect.ValueOf(v))
-
-	// Evaluate the RuleSet and return any validation errors.
-	return ruleSet.Evaluate(ctx, v)
+	return v, nil
 }
 
 // Evaluate performs validation of a RuleSet against a value and returns any errors.
