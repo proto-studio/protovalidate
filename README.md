@@ -7,7 +7,6 @@
 [![License](https://img.shields.io/badge/License-BSD%203%20Clause-blue.svg)](https://github.com/proto-studio/protovalidate/blob/main/LICENSE)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/proto.zip/studio/validate)
 [![codecov](https://codecov.io/gh/proto-studio/protovalidate/graph/badge.svg?token=K6MR10DKYX)](https://codecov.io/gh/proto-studio/protovalidate)
-[![Go Report Card](https://goreportcard.com/badge/proto.zip/studio/validate)](https://goreportcard.com/report/proto.zip/studio/validate)
 [![Discord Chat](https://img.shields.io/badge/Discord-chat-blue?logo=Discord&logoColor=white)](https://proto.studio/social/discord)
 
 ProtoValidate is a fluent data validation library for Go.
@@ -43,11 +42,17 @@ Supported data types out of the box:
 - `uint` / `uint8` / `uint16` / `uint32` / `uint64`
 - `float32` / `float64`
 - `struct` / `map` / `[]`
-- `time.Time`
+- `time.Time` / `time.Duration`
 - Email addresses
 - Domains
+- IPs / CIDR blocks
 
 Easily customize to support your own data types.
+
+## Projects Using ProtoValidate
+
+- [jsonapi](https://github.com/proto-studio/jsonapi) A Json:API implementation in Go.
+- [jose](https://github.com/proto-studio/jose) A Jose implementation suporting JWT/JWS signing and validating.
 
 ## Versioning
 
