@@ -15,10 +15,12 @@ import (
 // Used by MustApplyTypes and not exported.
 type neverAssignable interface{ priv() }
 
-// neverAssignableI is an implementation of neverAssignable for use in MustApplyTypes
+// neverAssignableImpl is an implementation of neverAssignable for use in MustApplyTypes
 type neverAssignableImpl struct{ privProp int }
 
-func (na *neverAssignableImpl) priv() {}
+func (na *neverAssignableImpl) priv() { _ = na.privProp }
+
+var _ neverAssignable = (*neverAssignableImpl)(nil)
 
 // CheckRuleSetInterface checks to see if the RuleSet interface is implemented for an interface and returns true if it is.
 func CheckRuleSetInterface[T any](v any) bool {
