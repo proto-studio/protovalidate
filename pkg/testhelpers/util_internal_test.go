@@ -1,6 +1,7 @@
 package testhelpers
 
 import (
+	"context"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/rules"
@@ -54,7 +55,7 @@ func TestNewMockRuleSetWithErrors_ApplyCallCount(t *testing.T) {
 	if c := mock.ApplyCallCount(); c != 0 {
 		t.Errorf("ApplyCallCount: expected 0 before Apply, got %d", c)
 	}
-	_, err := mock.Apply(nil, 10)
+	_, err := mock.Apply(context.TODO(), 10)
 	if err == nil {
 		t.Error("expected error from MockRuleSetWithErrors")
 	}
