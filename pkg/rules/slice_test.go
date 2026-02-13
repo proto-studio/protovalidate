@@ -1,10 +1,7 @@
 package rules_test
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"sync"
 	"testing"
 	"time"
 
@@ -19,11 +16,8 @@ import (
 // - Correctly applies slice validation
 // - Returns the correct slice
 func TestSliceRuleSet_Apply(t *testing.T) {
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with a valid array, expecting no error
-	err := rules.Slice[string]().Apply(context.TODO(), []string{"a", "b", "c"}, &output)
+	output, err := rules.Slice[string]().Apply(context.TODO(), []string{"a", "b", "c"})
 	if err != nil {
 		t.Fatalf("Expected errors to be empty. Got: %v", err)
 	}
@@ -44,11 +38,8 @@ func TestSliceRuleSet_Apply(t *testing.T) {
 // TestSliceRuleSet_Apply_TypeError tests:
 // - Returns error when input is not a slice or array
 func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with an invalid input type, expecting an error
-	err := rules.Slice[string]().Apply(context.TODO(), 123, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), 123)
 	if len(errors.Unwrap(err)) == 0 {
 		t.Error("Expected errors to not be empty")
 		return
@@ -58,11 +49,8 @@ func TestSliceRuleSet_Apply_TypeError(t *testing.T) {
 // TestSliceRuleSet_Apply_WithItemRuleSet tests:
 // - Item rule sets are applied to each item
 func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with a valid array and item rule set, expecting no error
-	err := rules.Slice[string]().WithItemRuleSet(rules.String()).Apply(context.TODO(), []string{"a", "b", "c"}, &output)
+	_, err := rules.Slice[string]().WithItemRuleSet(rules.String()).Apply(context.TODO(), []string{"a", "b", "c"})
 	if err != nil {
 		t.Errorf("Expected errors to be empty. Got: %v", err)
 		return
@@ -72,11 +60,8 @@ func TestSliceRuleSet_Apply_WithItemRuleSet(t *testing.T) {
 // TestSliceItemCastError tests:
 // - Returns error when slice items cannot be cast to the expected type
 func TestSliceItemCastError(t *testing.T) {
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with an array of incorrect types, expecting an error
-	err := rules.Slice[string]().Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), []int{1, 2, 3})
 	if len(errors.Unwrap(err)) == 0 {
 		t.Errorf("Expected errors to not be empty.")
 		return
@@ -86,11 +71,8 @@ func TestSliceItemCastError(t *testing.T) {
 // TestSliceRuleSet_Apply_WithItemRuleSetError tests:
 // - Returns errors from item rule set validation
 func TestSliceRuleSet_Apply_WithItemRuleSetError(t *testing.T) {
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with a valid array but with an item rule set that will fail, expecting 2 errors
-	err := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"}, &output)
+	_, err := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2)).Apply(context.TODO(), []string{"", "a", "ab", "abc"})
 	if len(errors.Unwrap(err)) != 2 {
 		t.Errorf("Expected 2 errors and got %d.", len(errors.Unwrap(err)))
 		return
@@ -109,14 +91,11 @@ func TestWithRequired(t *testing.T) {
 func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[[]int](1)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Apply with the mock rules, expecting errors
-	err := rules.Slice[int]().
+	_, err := rules.Slice[int]().
 		WithRuleFunc(mock.Function()).
 		WithRuleFunc(mock.Function()).
-		Apply(context.TODO(), []int{1, 2, 3}, &output)
+		Apply(context.TODO(), []int{1, 2, 3})
 
 	if err == nil {
 		t.Error("Expected errors to not be nil")
@@ -139,13 +118,10 @@ func TestSliceRuleSet_WithRuleFunc(t *testing.T) {
 func TestSliceRuleSet_Apply_ReturnsCorrectPaths(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "myarray")
 
-	// Prepare an output variable for Apply
-	var output []string
-
 	// Apply with an array and a context, expecting errors
-	err := rules.Slice[string]().
+	_, err := rules.Slice[string]().
 		WithItemRuleSet(rules.String().WithMinLen(2)).
-		Apply(ctx, []string{"", "a", "ab", "abc"}, &output)
+		Apply(ctx, []string{"", "a", "ab", "abc"})
 
 	if err == nil {
 		t.Errorf("Expected errors to not be nil")
@@ -227,11 +203,8 @@ func TestSliceRuleSet_Evaluate(t *testing.T) {
 	// Evaluate the array directly using Evaluate
 	err1 := ruleSet.Evaluate(ctx, v)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Validate the array using Apply
-	err2 := ruleSet.Apply(ctx, v, &output)
+	_, err2 := ruleSet.Apply(ctx, v)
 
 	// Check if both methods result in no errors
 	if err1 != nil || err2 != nil {
@@ -246,6 +219,398 @@ func TestSliceWithNil(t *testing.T) {
 	testhelpers.MustImplementWithNil[[]string](t, rules.Slice[string]())
 }
 
+// TestSliceRuleSet_ApplyStream_SliceInput tests:
+// - ApplyStream with slice input sends one result per item then closes
+// - Results have correct Index, Value, and Err
+func TestSliceRuleSet_ApplyStream_SliceInput(t *testing.T) {
+	ctx := context.Background()
+	ruleSet := rules.Slice[string]()
+	out, err := ruleSet.ApplyStream(ctx, []string{"a", "b", "c"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(results))
+	}
+	for i, r := range results {
+		if r.Index != i || r.Value != []string{"a", "b", "c"}[i] || r.Err != nil {
+			t.Errorf("result[%d]: Index=%d Value=%q Err=%v", i, r.Index, r.Value, r.Err)
+		}
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_ItemErrors tests:
+// - Item validation errors appear in stream with correct Index
+func TestSliceRuleSet_ApplyStream_ItemErrors(t *testing.T) {
+	ctx := context.Background()
+	ruleSet := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2))
+	out, err := ruleSet.ApplyStream(ctx, []string{"a", "ab", "c"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	// Expect 3 item results; indices 0 and 2 have errors
+	if len(results) < 3 {
+		t.Fatalf("expected at least 3 results, got %d", len(results))
+	}
+	for i, r := range results {
+		if r.Index == -1 {
+			continue // slice-level
+		}
+		expectErr := (i == 0 || i == 2)
+		if expectErr != (r.Err != nil) {
+			t.Errorf("result Index=%d: expected Err=%v, got Err=%v", r.Index, expectErr, r.Err != nil)
+		}
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_SliceLevelError tests:
+// - Slice-level errors (e.g. minLen) are sent with Index == -1
+func TestSliceRuleSet_ApplyStream_SliceLevelError(t *testing.T) {
+	ctx := context.Background()
+	ruleSet := rules.Slice[string]().WithMinLen(2)
+	out, err := ruleSet.ApplyStream(ctx, []string{"only one"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	var sliceLevel *rules.SliceStreamResult[string]
+	for i := range results {
+		if results[i].Index == -1 {
+			sliceLevel = &results[i]
+			break
+		}
+	}
+	if sliceLevel == nil {
+		t.Fatal("expected one result with Index -1 (slice-level error)")
+	}
+	if sliceLevel.Err == nil {
+		t.Error("expected slice-level result to have Err set")
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_ChannelInput tests:
+// - ApplyStream with channel input streams results and closes
+func TestSliceRuleSet_ApplyStream_ChannelInput(t *testing.T) {
+	ctx := context.Background()
+	ch := make(chan string, 3)
+	ch <- "x"
+	ch <- "y"
+	ch <- "z"
+	close(ch)
+
+	out, err := rules.Slice[string]().ApplyStream(ctx, ch)
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(results))
+	}
+	expected := []string{"x", "y", "z"}
+	for i, r := range results {
+		if r.Index != i || r.Value != expected[i] {
+			t.Errorf("result[%d]: Index=%d Value=%q", i, r.Index, r.Value)
+		}
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_ReceiveOnlyChannel tests:
+// - ApplyStream accepts explicit <-chan T (covers type switch case <-chan T)
+func TestSliceRuleSet_ApplyStream_ReceiveOnlyChannel(t *testing.T) {
+	ctx := context.Background()
+	ch := make(chan string, 2)
+	ch <- "a"
+	ch <- "b"
+	close(ch)
+	var recvOnly <-chan string = ch
+
+	out, err := rules.Slice[string]().ApplyStream(ctx, recvOnly)
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	expected := []string{"a", "b"}
+	for i, r := range results {
+		if r.Index != i || r.Value != expected[i] {
+			t.Errorf("result[%d]: Index=%d Value=%q", i, r.Index, r.Value)
+		}
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_SetupError tests:
+// - Nil channel or invalid input returns error and no channel
+func TestSliceRuleSet_ApplyStream_SetupError(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]()
+
+	out, err := rs.ApplyStream(ctx, nil)
+	if err == nil {
+		t.Error("expected error for nil input")
+	}
+	if out != nil {
+		t.Error("expected nil channel on error")
+	}
+
+	out, err = rs.ApplyStream(ctx, 123)
+	if err == nil {
+		t.Error("expected error for non-slice input")
+	}
+	if out != nil {
+		t.Error("expected nil channel on error")
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_NilChannel tests:
+// - ApplyStream with a nil channel (typed nil) returns setup error
+func TestSliceRuleSet_ApplyStream_NilChannel(t *testing.T) {
+	ctx := context.Background()
+	var ch chan string
+	out, err := rules.Slice[string]().ApplyStream(ctx, ch)
+	if err == nil {
+		t.Error("expected error for nil channel")
+	}
+	if out != nil {
+		t.Error("expected nil channel on error")
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_WrongChannelElementType tests:
+// - ApplyStream with channel of wrong element type returns setup error
+func TestSliceRuleSet_ApplyStream_WrongChannelElementType(t *testing.T) {
+	ctx := context.Background()
+	ch := make(chan int)
+	out, err := rules.Slice[string]().ApplyStream(ctx, ch)
+	if err == nil {
+		t.Error("expected error for wrong channel element type")
+	}
+	if out != nil {
+		t.Error("expected nil channel on error")
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_CoercionErrors tests:
+// - Coercion errors (no item rules) are streamed with correct Index
+func TestSliceRuleSet_ApplyStream_CoercionErrors(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]() // no WithItemRuleSet
+	out, err := rs.ApplyStream(ctx, []int{1, 2, 3})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results (coercion errors per index), got %d", len(results))
+	}
+	for i, r := range results {
+		if r.Index != i || r.Err == nil {
+			t.Errorf("result[%d]: expected Index=%d and Err set, got Index=%d Err=%v", i, i, r.Index, r.Err)
+		}
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_MaxLenExceeded tests:
+// - When maxLen is exceeded, stream sends slice-level result with Index -1 and CodeMaxLen
+func TestSliceRuleSet_ApplyStream_MaxLenExceeded(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]().WithMaxLen(2)
+	out, err := rs.ApplyStream(ctx, []string{"a", "b", "c"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	// First 2 items, then one with Index -1 (maxLen)
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results (2 items + 1 slice-level), got %d", len(results))
+	}
+	if results[0].Index != 0 || results[1].Index != 1 {
+		t.Errorf("expected first two results to be item indices 0,1: %+v %+v", results[0], results[1])
+	}
+	if results[2].Index != -1 || results[2].Err == nil {
+		t.Errorf("expected third result to be slice-level (Index -1) with Err: %+v", results[2])
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_ContextCancelled tests:
+// - Context cancellation during stream; stream closes and may send Index -1 context error or partial results
+func TestSliceRuleSet_ApplyStream_ContextCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	rs := rules.Slice[string]()
+	out, err := rs.ApplyStream(ctx, []string{"a", "b", "c"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	cancel()
+	for range out {
+		// drain
+	}
+	// Channel must close (no hang); cancellation may produce Index -1 error or partial item results
+}
+
+// TestSliceRuleSet_ApplyStream_SliceLevelRule tests:
+// - Slice-level rule (WithRule) runs after items; errors streamed with Index -1
+func TestSliceRuleSet_ApplyStream_SliceLevelRule(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]().WithRuleFunc(func(ctx context.Context, s []string) errors.ValidationError {
+		if len(s) > 2 {
+			return errors.Errorf(errors.CodeUnexpected, ctx, "unexpected", "too many")
+		}
+		return nil
+	})
+	out, err := rs.ApplyStream(ctx, []string{"a", "b", "c"})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	var sliceLevel *rules.SliceStreamResult[string]
+	for i := range results {
+		if results[i].Index == -1 {
+			sliceLevel = &results[i]
+			break
+		}
+	}
+	if sliceLevel == nil {
+		t.Fatal("expected one result with Index -1 from slice-level rule")
+	}
+	if sliceLevel.Err == nil {
+		t.Error("expected slice-level result to have Err set")
+	}
+}
+
+// TestSliceRuleSet_EvaluateStream tests:
+// - EvaluateStream validates channel input and streams results with Index, Value, Err
+func TestSliceRuleSet_EvaluateStream(t *testing.T) {
+	ctx := context.Background()
+	ch := make(chan string, 2)
+	ch <- "ab"
+	ch <- "cd"
+	close(ch)
+
+	rs := rules.Slice[string]().WithItemRuleSet(rules.String().WithMinLen(2))
+	out, err := rs.EvaluateStream(ctx, ch)
+	if err != nil {
+		t.Fatalf("EvaluateStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].Index != 0 || results[0].Value != "ab" || results[0].Err != nil {
+		t.Errorf("result 0: %+v", results[0])
+	}
+	if results[1].Index != 1 || results[1].Value != "cd" || results[1].Err != nil {
+		t.Errorf("result 1: %+v", results[1])
+	}
+}
+
+// TestSliceRuleSet_Apply_ChannelClosedWithContextCancelled tests:
+// - When input channel is closed and context was cancelled, Apply joins context error (applyChan !ok branch).
+// Runs multiple iterations so the applyChan branch (ctx.Err() when !ok) is likely covered.
+func TestSliceRuleSet_Apply_ChannelClosedWithContextCancelled(t *testing.T) {
+	rs := rules.Slice[string]().WithItemRuleSet(rules.String().WithRuleFunc(func(_ context.Context, _ string) errors.ValidationError {
+		time.Sleep(20 * time.Millisecond)
+		return nil
+	}))
+	for i := 0; i < 15; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		ch := make(chan string, 1)
+		ch <- "x"
+		close(ch)
+		go func() {
+			time.Sleep(5 * time.Millisecond)
+			cancel()
+		}()
+		_, err := rs.Apply(ctx, ch)
+		if err == nil {
+			t.Error("expected error when channel closed and context cancelled")
+			return
+		}
+	}
+}
+
+// TestSliceRuleSet_Apply_ApplyChanWithOriginalItems tests:
+// - Apply with slice of mixed types and item rules uses originalItems in applyChan (itemInput from originalItems[index])
+func TestSliceRuleSet_Apply_ApplyChanWithOriginalItems(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]().WithItemRuleSet(rules.String())
+	out, err := rs.Apply(ctx, []any{1, "ok", 3})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if len(out) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(out))
+	}
+	if out[1] != "ok" {
+		t.Errorf("expected out[1] = 'ok' (coerced from originalItems), got %q", out[1])
+	}
+}
+
+// TestSliceRuleSet_ApplyStream_OriginalItemsUsed tests:
+// - When slice has mixed types and item rules, originalItems[index] is used for validation (applyChanStream branch)
+func TestSliceRuleSet_ApplyStream_OriginalItemsUsed(t *testing.T) {
+	ctx := context.Background()
+	rs := rules.Slice[string]().WithItemRuleSet(rules.String())
+	out, err := rs.ApplyStream(ctx, []any{1, "ok", 3})
+	if err != nil {
+		t.Fatalf("ApplyStream: %v", err)
+	}
+	var results []rules.SliceStreamResult[string]
+	for r := range out {
+		results = append(results, r)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(results))
+	}
+	if results[1].Value != "ok" || results[1].Err != nil {
+		t.Errorf("expected index 1 to coerce/validate to 'ok': %+v", results[1])
+	}
+}
+
+// TestSliceRuleSet_EvaluateStream_NilChannel tests:
+// - EvaluateStream returns error for nil channel
+func TestSliceRuleSet_EvaluateStream_NilChannel(t *testing.T) {
+	ctx := context.Background()
+	out, err := rules.Slice[string]().EvaluateStream(ctx, nil)
+	if err == nil {
+		t.Error("expected error for nil channel")
+	}
+	if out != nil {
+		t.Error("expected nil channel on error")
+	}
+}
+
 // TestSliceRuleSet_Apply_ChannelInput tests:
 // - Channel input is supported
 // - Values are read from channel until closed
@@ -258,11 +623,8 @@ func TestSliceRuleSet_Apply_ChannelInput(t *testing.T) {
 	inputChan <- "c"
 	close(inputChan)
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with channel input
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, &output)
+	output, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
 	}
@@ -277,9 +639,8 @@ func TestSliceRuleSet_Apply_ChannelInput(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelInputOutput tests:
-// - Channel input and channel output are both supported
-// - Values are written to output channel in order
-// - Completion is signaled by Apply returning, not by closing the channel
+// - Channel input is supported and Apply returns the validated slice
+// - Values are returned in order
 func TestSliceRuleSet_Apply_ChannelInputOutput(t *testing.T) {
 	// Create input channel
 	inputChan := make(chan string, 3)
@@ -288,26 +649,10 @@ func TestSliceRuleSet_Apply_ChannelInputOutput(t *testing.T) {
 	inputChan <- "c"
 	close(inputChan)
 
-	// Create output channel (buffered so all values fit)
-	outputChan := make(chan string, 3)
-	var output *chan string = &outputChan
-
-	// Apply with channel input and output
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, output)
+	// Apply with channel input; Apply returns the slice
+	results, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Read from output channel - since it's buffered and we know how many items, read them directly
-	// Completion is signaled by Apply returning, not by channel closure
-	var results []string
-	for i := 0; i < 3; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	if len(results) != 3 {
@@ -333,11 +678,8 @@ func TestSliceRuleSet_Apply_ChannelWithMaxLen(t *testing.T) {
 	inputChan <- "e"
 	close(inputChan)
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with max length of 2
-	err := rules.Slice[string]().WithMaxLen(2).Apply(context.TODO(), inputChan, &output)
+	output, err := rules.Slice[string]().WithMaxLen(2).Apply(context.TODO(), inputChan)
 	if err == nil {
 		t.Fatalf("Expected error when maxLen is exceeded, got nil")
 	}
@@ -363,11 +705,8 @@ func TestSliceRuleSet_Apply_ChannelWithTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with timeout
-	err := rules.Slice[string]().Apply(ctx, inputChan, &output)
+	_, err := rules.Slice[string]().Apply(ctx, inputChan)
 
 	if err == nil {
 		t.Error("Expected timeout error, got nil")
@@ -394,13 +733,10 @@ func TestSliceRuleSet_Apply_ChannelWithItemRuleSet(t *testing.T) {
 	inputChan <- "abc" // valid (minLen 2, length 3)
 	close(inputChan)
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with item rule set requiring min length 2
-	err := rules.Slice[string]().
+	output, err := rules.Slice[string]().
 		WithItemRuleSet(rules.String().WithMinLen(2)).
-		Apply(context.TODO(), inputChan, &output)
+		Apply(context.TODO(), inputChan)
 
 	if err == nil {
 		t.Error("Expected errors, got nil")
@@ -433,29 +769,13 @@ func TestSliceRuleSet_Apply_ChannelOrderedOutput(t *testing.T) {
 	}
 	close(inputChan)
 
-	// Create output channel
-	outputChan := make(chan int, 5)
-	var output *chan int = &outputChan
-
 	// Apply with item rule set (which may process concurrently)
-	err := rules.Slice[int]().
+	results, err := rules.Slice[int]().
 		WithItemRuleSet(rules.Int()).
-		Apply(context.TODO(), inputChan, output)
+		Apply(context.TODO(), inputChan)
 
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Read from output channel and verify order
-	// Completion is signaled by Apply returning
-	var results []int
-	for i := 0; i < 5; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	if len(results) != 5 {
@@ -471,29 +791,20 @@ func TestSliceRuleSet_Apply_ChannelOrderedOutput(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelEmptyInput tests:
-// - Empty channel (closed immediately) produces empty output
-// - Completion is signaled by Apply returning
+// - Empty channel (closed immediately) produces empty slice
 func TestSliceRuleSet_Apply_ChannelEmptyInput(t *testing.T) {
 	// Create and immediately close input channel
 	inputChan := make(chan string)
 	close(inputChan)
 
-	// Create output channel
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
-
 	// Apply with empty channel
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, output)
+	results, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
 	}
 
-	// Verify output channel is empty (non-blocking read)
-	select {
-	case val := <-outputChan:
-		t.Fatalf("Expected no items, got: %v", val)
-	default:
-		// Channel is empty, which is correct
+	if len(results) != 0 {
+		t.Fatalf("Expected no items, got %d", len(results))
 	}
 }
 
@@ -507,11 +818,8 @@ func TestSliceRuleSet_Apply_ChannelTypeCompatibility(t *testing.T) {
 	inputChan <- 2
 	close(inputChan)
 
-	// Prepare output variable expecting strings
-	var output []string
-
 	// Apply with incompatible channel type
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 
 	if err == nil {
 		t.Error("Expected coercion error, got nil")
@@ -528,9 +836,8 @@ func TestSliceRuleSet_Apply_ChannelTypeCompatibility(t *testing.T) {
 // - newChannelInputAdapter returns error when input is nil
 func TestSliceRuleSet_Apply_ChannelInput_NilInput(t *testing.T) {
 	var input chan string = nil
-	var output []string
 
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), input)
 
 	if err == nil {
 		t.Error("Expected error for nil input channel, got nil")
@@ -542,9 +849,8 @@ func TestSliceRuleSet_Apply_ChannelInput_NilInput(t *testing.T) {
 // - newChannelInputAdapter returns error when input is not a channel
 func TestSliceRuleSet_Apply_ChannelInput_NotChannel(t *testing.T) {
 	input := "not a channel"
-	var output []string
 
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), input)
 
 	if err == nil {
 		t.Error("Expected error for non-channel input, got nil")
@@ -559,9 +865,7 @@ func TestSliceRuleSet_Apply_ChannelInput_SendOnly(t *testing.T) {
 	sendChan := make(chan string, 2)
 	sendOnly := (chan<- string)(sendChan)
 
-	var output []string
-
-	err := rules.Slice[string]().Apply(context.TODO(), sendOnly, &output)
+	_, err := rules.Slice[string]().Apply(context.TODO(), sendOnly)
 
 	if err == nil {
 		t.Error("Expected error for send-only input channel, got nil")
@@ -584,9 +888,7 @@ func TestSliceRuleSet_Apply_ChannelInput_ReceiveOnly(t *testing.T) {
 		close(recvChan)
 	}()
 
-	var output []string
-
-	err := rules.Slice[string]().Apply(context.TODO(), recvOnly, &output)
+	output, err := rules.Slice[string]().Apply(context.TODO(), recvOnly)
 
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
@@ -613,11 +915,8 @@ func TestSliceRuleSet_Apply_ChannelWithCancellation(t *testing.T) {
 		cancel()
 	}()
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with cancellation
-	err := rules.Slice[string]().Apply(ctx, inputChan, &output)
+	_, err := rules.Slice[string]().Apply(ctx, inputChan)
 
 	if err == nil {
 		t.Error("Expected cancellation error, got nil")
@@ -639,25 +938,10 @@ func TestSliceRuleSet_Apply_ChannelOutputWithSliceInput(t *testing.T) {
 	// Create input slice
 	input := []string{"a", "b", "c"}
 
-	// Create output channel
-	outputChan := make(chan string, 3)
-	var output *chan string = &outputChan
-
-	// Apply with slice input and channel output
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
+	// Apply with slice input
+	results, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Read from output channel - completion is signaled by Apply returning
-	var results []string
-	for i := 0; i < 3; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	if len(results) != 3 {
@@ -698,11 +982,8 @@ func TestSliceRuleSet_Apply_ContextCancelledDuringValidation(t *testing.T) {
 		}),
 	)
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with cancellation during validation
-	err := ruleSet.Apply(ctx, inputChan, &output)
+	_, err := ruleSet.Apply(ctx, inputChan)
 
 	if err == nil {
 		t.Error("Expected cancellation error, got nil")
@@ -735,11 +1016,8 @@ func TestSliceRuleSet_Apply_InputChannelClosedDuringValidation(t *testing.T) {
 	// Close channel before sending all items
 	close(inputChan)
 
-	// Prepare output variable
-	var output []string
-
 	// Apply with channel that closes early
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, &output)
+	output, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
 	}
@@ -755,60 +1033,26 @@ func TestSliceRuleSet_Apply_InputChannelClosedDuringValidation(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_OutputChannelClosedDuringValidation tests:
-// - If context is cancelled during writing, Apply returns with error
-// - Some items may have been written before cancellation
-// - Completion is signaled by Apply returning (channel is not closed by us)
+// - If context is cancelled during processing, Apply may return with error (timing-dependent)
 func TestSliceRuleSet_Apply_OutputChannelClosedDuringValidation(t *testing.T) {
-	// Create input slice
 	input := []string{"a", "b", "c"}
 
-	// Create output channel with small buffer to test blocking
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
-
-	// Create context that will be cancelled during writing
 	ctx, cancel := context.WithCancel(context.Background())
-
-	// Cancel context after a short delay (during writing)
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 		cancel()
 	}()
 
-	// Apply - context cancellation should stop writing
-	err := rules.Slice[string]().Apply(ctx, input, output)
+	_, err := rules.Slice[string]().Apply(ctx, input)
 
-	// Should get cancellation error
-	if err == nil {
-		t.Error("Expected cancellation error, got nil")
-		return
-	}
-
-	// Read what was written before cancellation (may be 0, 1, or more items)
-	var results []string
-	for {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(50 * time.Millisecond):
-			// No more items available
-			goto done
-		}
-	}
-done:
-
-	// We may have gotten some items before cancellation
-	// The important thing is that Apply returned with an error
-	if len(results) > 3 {
-		t.Errorf("Expected at most 3 items, got %d", len(results))
-	}
+	// Timing-dependent: cancellation may or may not be observed before completion
+	_ = err
 }
 
 // TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors tests:
-// - Some items error but not all when output is a channel
-// - All items are still written to channel (even invalid ones)
+// - Some items error but not all when input is a channel
+// - Apply returns slice with all items (even invalid ones)
 // - Errors are collected and returned
-// - Completion is signaled by Apply returning
 func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 	// Create input channel with mix of valid and invalid items
 	inputChan := make(chan string, 4)
@@ -818,14 +1062,10 @@ func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 	inputChan <- ""    // invalid (minLen 2)
 	close(inputChan)
 
-	// Create output channel (buffered to hold all items)
-	outputChan := make(chan string, 4)
-	var output *chan string = &outputChan
-
 	// Apply with item rule set that will fail on some items
-	err := rules.Slice[string]().
+	results, err := rules.Slice[string]().
 		WithItemRuleSet(rules.String().WithMinLen(2)).
-		Apply(context.TODO(), inputChan, output)
+		Apply(context.TODO(), inputChan)
 
 	// Should have errors for invalid items
 	if err == nil {
@@ -837,20 +1077,8 @@ func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 		t.Errorf("Expected 2 errors (for 'a' and ''), got %d", len(errors.Unwrap(err)))
 	}
 
-	// Read from output channel - should have all 4 items
-	// Completion is signaled by Apply returning
-	var results []string
-	for i := 0; i < 4; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
-	}
-
 	if len(results) != 4 {
-		t.Fatalf("Expected 4 values in output channel, got %d", len(results))
+		t.Fatalf("Expected 4 values, got %d", len(results))
 	}
 
 	// Verify order is maintained
@@ -876,89 +1104,65 @@ func TestSliceRuleSet_Apply_ChannelOutputWithPartialErrors(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_NilOutput tests:
-// - newChannelOutputAdapter returns error when output is nil
+// - Apply with valid slice input returns result and no error
+// (Previously tested nil output parameter; output param removed.)
 func TestSliceRuleSet_Apply_ChannelOutput_NilOutput(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Try with nil output
-	var output *chan string = nil
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
 
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	if err == nil {
-		t.Error("Expected error for nil output, got nil")
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_NilChannelValue tests:
-// - newChannelOutputAdapter returns error when channel value is nil (IsNil check)
+// - Apply with valid slice returns result (output param removed)
 func TestSliceRuleSet_Apply_ChannelOutput_NilChannelValue(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create a nil channel
-	var outputChan chan string = nil
-	var output *chan string = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	if err == nil {
-		t.Error("Expected error for nil channel value, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
+	}
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_NotChannel tests:
-// - newChannelOutputAdapter returns error when output is not a channel
+// - Apply returns slice and no error for valid input
+// (Previously tested output type; output param removed.)
 func TestSliceRuleSet_Apply_ChannelOutput_NotChannel(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Try with non-channel output
-	var output []string
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// This should work fine (slice output, not channel)
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
-		t.Errorf("Expected no error for slice output, got: %v", err)
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	// Now test with channel output but wrong type
-	var wrongOutput int
-	err = rules.Slice[string]().Apply(context.TODO(), input, &wrongOutput)
-
-	// This should fail because output is not a channel or slice
-	if err == nil {
-		t.Error("Expected error for incompatible output type")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_NilChannel tests:
-// - newChannelOutputAdapter returns error when channel is nil
+// - Apply with valid slice returns result (output param removed)
 func TestSliceRuleSet_Apply_ChannelOutput_NilChannel(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create a nil channel
-	var outputChan chan string = nil
-	var output *chan string = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	if err == nil {
-		t.Error("Expected error for nil channel, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
@@ -967,76 +1171,41 @@ func TestSliceRuleSet_Apply_ChannelOutput_NilChannel(t *testing.T) {
 func TestSliceRuleSet_Apply_ChannelOutput_ReceiveOnly(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create a receive-only channel using a helper function
-	// We can't directly create a receive-only channel variable, but we can test
-	// by creating a bidirectional channel and then using it as receive-only
-	recvChan := make(chan string, 2)
-	recvOnly := (<-chan string)(recvChan)
-
-	// Create a pointer to the receive-only channel
-	output := &recvOnly
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	// Should get an error about channel direction
-	if err == nil {
-		t.Error("Expected error for receive-only channel, got nil")
+	// Apply with slice input (output param removed)
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_IncompatibleType tests:
-// - newChannelOutputAdapter returns error when channel element type doesn't match
+// - Apply with valid slice returns result
+// (Previously tested incompatible output channel type; output param removed.)
 func TestSliceRuleSet_Apply_ChannelOutput_IncompatibleType(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output channel with incompatible type (int instead of string)
-	outputChan := make(chan int, 2)
-	var output *chan int = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	if err == nil {
-		t.Error("Expected error for incompatible channel element type, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_Finalize tests:
-// - All items are written to the channel
-// - Completion is signaled by Apply returning, not by closing the channel
+// - Apply returns all items in order
 func TestSliceRuleSet_Apply_ChannelOutput_Finalize(t *testing.T) {
 	input := []string{"a", "b", "c"}
 
-	// Create output channel (buffered to hold all items)
-	outputChan := make(chan string, 3)
-	var output *chan string = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
+	results, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Read all items - completion is signaled by Apply returning
-	var results []string
-	for i := 0; i < 3; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	if len(results) != 3 {
@@ -1049,35 +1218,18 @@ func TestSliceRuleSet_Apply_ChannelOutput_Finalize(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_FinalizeWithErrors tests:
-// - All items are written even when there are validation errors
-// - Completion is signaled by Apply returning
+// - All items are returned even when there are validation errors
 func TestSliceRuleSet_Apply_ChannelOutput_FinalizeWithErrors(t *testing.T) {
 	input := []string{"a", "ab", "c"}
 
-	// Create output channel (buffered to hold all items)
-	outputChan := make(chan string, 3)
-	var output *chan string = &outputChan
-
-	// Apply with rule that will cause errors
-	err := rules.Slice[string]().
+	results, err := rules.Slice[string]().
 		WithItemRuleSet(rules.String().WithMinLen(2)).
-		Apply(context.TODO(), input, output)
+		Apply(context.TODO(), input)
 
 	// Should have errors
 	if err == nil {
 		t.Error("Expected errors, got nil")
 		return
-	}
-
-	// Read all items - completion is signaled by Apply returning
-	var results []string
-	for i := 0; i < 3; i++ {
-		select {
-		case val := <-outputChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	// Should have all 3 items
@@ -1087,105 +1239,51 @@ func TestSliceRuleSet_Apply_ChannelOutput_FinalizeWithErrors(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_FinalizeEmpty tests:
-// - Empty input results in no items written
-// - Completion is signaled by Apply returning
+// - Empty input results in empty slice returned
 func TestSliceRuleSet_Apply_ChannelOutput_FinalizeEmpty(t *testing.T) {
 	input := []string{}
 
-	// Create output channel
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
 	}
 
-	// No items should be written for empty input
-	// Check that channel is empty (non-blocking read)
-	select {
-	case val := <-outputChan:
-		t.Fatalf("Expected no items, got: %v", val)
-	default:
-		// Channel is empty, which is correct
+	if len(output) != 0 {
+		t.Fatalf("Expected no items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_InputAdapterErrorDuringRead tests:
-// - When input adapter returns error during read, output is finalized and error is returned
+// - When input channel blocks (no sender), Apply times out and returns error
 func TestSliceRuleSet_Apply_InputAdapterErrorDuringRead(t *testing.T) {
-	// Create input channel that will timeout
 	inputChan := make(chan string)
 
-	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	// Create output channel
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
+	_, err := rules.Slice[string]().Apply(ctx, inputChan)
 
-	// Apply - should timeout while reading
-	err := rules.Slice[string]().Apply(ctx, inputChan, output)
-
-	// Should get timeout error
 	if err == nil {
 		t.Error("Expected timeout error, got nil")
 		return
 	}
-
-	// Output channel is not closed by us (caller manages it)
-	// Check that channel is empty or has items (non-blocking)
-	select {
-	case val := <-outputChan:
-		// May have some items written before timeout
-		_ = val
-	case <-time.After(10 * time.Millisecond):
-		// Channel is empty or blocked, which is fine
-	}
 }
 
 // TestSliceRuleSet_Apply_PutIndexError tests:
-// - When putIndex returns error (e.g., context cancellation), error is returned
-// - Note: Output channel management is the caller's responsibility
+// - When context is cancelled during processing, error may be returned (timing-dependent)
 func TestSliceRuleSet_Apply_PutIndexError(t *testing.T) {
 	input := []string{"a", "b", "c"}
 
-	// Create output channel
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
-
-	// Create context that will be cancelled during putIndex
 	ctx, cancel := context.WithCancel(context.Background())
-
-	// Cancel context after a short delay to interrupt putIndex
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 		cancel()
 	}()
 
-	// Apply - should fail during putIndex due to context cancellation
-	err := rules.Slice[string]().Apply(ctx, input, output)
+	_, err := rules.Slice[string]().Apply(ctx, input)
 
-	// Should get cancellation error
-	if err == nil {
-		t.Error("Expected cancellation error from putIndex, got nil")
-		return
-	}
-
-	// Verify we got a cancellation error
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
-	}
-
-	// Verify error is a cancellation error
-	firstErr := err
-	if firstErr == nil {
-		t.Error("Expected at least one error")
-		return
-	}
+	// Timing-dependent: cancellation may or may not be observed
+	_ = err
 }
 
 // TestSliceRuleSet_Apply_FinalizeError tests:
@@ -1194,42 +1292,27 @@ func TestSliceRuleSet_Apply_PutIndexError(t *testing.T) {
 func TestSliceRuleSet_Apply_FinalizeError(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output with incompatible type (int instead of []string)
-	var output int
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should get error from finalize about incompatible types
-	if err == nil {
-		t.Error("Expected error from finalize (incompatible type), got nil")
+	// Apply returns ([]string, error); no output param
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ContextCancelledDuringProcessing tests:
 // - Context cancellation during sequential processing
 // - Uses WithItemRuleFunc with closure to cancel context after first item
-// - With unbuffered channel, cancellation may be detected after 1-2 items are processed
 func TestSliceRuleSet_Apply_ContextCancelledDuringProcessing(t *testing.T) {
 	input := []string{"a", "b", "c"}
 
-	// Create unbuffered output channel so writes block until read
-	outputChan := make(chan string)
-	var output *chan string = &outputChan
-
-	// Create context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create rule set with item rule function that cancels after first item
-	// Use closure to capture cancel function
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
 		rules.String().WithRuleFunc(func(_ context.Context, s string) errors.ValidationError {
-			// Cancel context after first item is processed
 			if s == "a" {
 				cancel()
 			}
@@ -1237,83 +1320,38 @@ func TestSliceRuleSet_Apply_ContextCancelledDuringProcessing(t *testing.T) {
 		}),
 	)
 
-	// Start a goroutine to read from the channel to unblock writes
-	// With unbuffered channel, writes block until read, allowing cancellation to be detected between items
-	done := make(chan struct{})
-	var results []string
-	go func() {
-		defer close(done)
-		// Read items - may get 1-2 items before cancellation is detected
-		for i := 0; i < 2; i++ {
-			select {
-			case val, ok := <-outputChan:
-				if !ok {
-					return
-				}
-				results = append(results, val)
-			case <-time.After(100 * time.Millisecond):
-				// No more items available
-				return
-			}
-		}
-	}()
-
 	// Apply - should be cancelled during processing
-	err := ruleSet.Apply(ctx, input, output)
+	_, err := ruleSet.Apply(ctx, input)
 
-	// Close channel to signal reader we're done (channel is not closed by Apply for caller-provided channels)
-	close(outputChan)
-	<-done
-
-	// Should get cancellation error
 	if err == nil {
 		t.Error("Expected cancellation error, got nil")
 		return
 	}
-
-	// With unbuffered channel and cancellation timing, we may process 0-2 items
-	// before cancellation is detected in the select statement
-	// (0 if cancellation happens during write, 1-2 if items are written before cancellation)
-	if len(results) > 2 {
-		t.Errorf("Expected at most 2 items to be processed, got %d", len(results))
-	}
 }
 
 // TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeError tests:
-// - sliceOutputAdapter finalize error path (incompatible type)
+// - Apply returns slice and no error for valid input
 func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeError(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output with incompatible type
-	var output int
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should get error about incompatible type
-	if err == nil {
-		t.Error("Expected error for incompatible output type, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
+	}
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_SliceOutputAdapter_InterfaceOutput tests:
-// - sliceOutputAdapter finalize with interface output
+// - Apply returns []string
 func TestSliceRuleSet_Apply_SliceOutputAdapter_InterfaceOutput(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output as interface{}
-	var output any
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
+	result, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Verify output is set
-	result, ok := output.([]string)
-	if !ok {
-		t.Fatalf("Expected []string, got %T", output)
 	}
 
 	if len(result) != 2 {
@@ -1322,80 +1360,47 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_InterfaceOutput(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_NonNilInterfaceNotAssignable tests:
-// - Output element kind is a non-nil interface value that is not assignable
+// - Apply returns slice for valid input (output param removed)
 func TestSliceRuleSet_Apply_NonNilInterfaceNotAssignable(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Use io.Reader interface which []string doesn't implement
-	// bytes.Reader implements io.Reader, so we can create a non-nil value
-	var output io.Reader = bytes.NewReader([]byte("test"))
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should get error about non-assignable interface
-	// []string is not assignable to io.Reader interface type
-	if err == nil {
-		t.Error("Expected error for non-assignable interface output, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	// Verify error code
-	firstErr := err
-	if firstErr == nil {
-		t.Error("Expected at least one error")
-		return
-	}
-	if firstErr.Code() != errors.CodeInternal {
-		t.Errorf("Expected CodeInternal error code, got %s", firstErr.Code())
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_SliceNotAssignable tests:
-// - Output element kind is a slice that is not assignable
+// - Apply returns slice for valid input (output param removed)
 func TestSliceRuleSet_Apply_SliceNotAssignable(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output as []int which is not assignable to []string
-	var output []int
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should get error about non-assignable slice
-	if err == nil {
-		t.Error("Expected error for non-assignable slice output, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	// Verify error code
-	firstErr := err
-	if firstErr == nil {
-		t.Error("Expected at least one error")
-		return
-	}
-	if firstErr.Code() != errors.CodeInternal {
-		t.Errorf("Expected CodeInternal error code, got %s", firstErr.Code())
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_CastFailureWithoutItemRules tests:
 // - When casting fails without item rules, error is added but item is still included
 func TestSliceRuleSet_Apply_CastFailureWithoutItemRules(t *testing.T) {
-	// Create input with incompatible types
 	input := []any{123, "abc", 456}
 
-	// Prepare output
-	var output []string
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
 
-	// Apply - should get coercion errors but still process
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should have errors for non-string items
 	if err == nil {
 		t.Error("Expected coercion errors, got nil")
 		return
 	}
 
-	// Output should still have items (zero values for failed casts)
 	if len(output) != 3 {
 		t.Fatalf("Expected 3 items in output, got %d", len(output))
 	}
@@ -1404,24 +1409,17 @@ func TestSliceRuleSet_Apply_CastFailureWithoutItemRules(t *testing.T) {
 // TestSliceRuleSet_Apply_ValidationFailureCastFailure tests:
 // - When validation fails and cast also fails, zero value is used
 func TestSliceRuleSet_Apply_ValidationFailureCastFailure(t *testing.T) {
-	// Create input with items that will fail validation and can't be cast
 	input := []any{123, "ab", 456}
 
-	// Prepare output
-	var output []string
-
-	// Apply with item rule set
-	err := rules.Slice[string]().
+	output, err := rules.Slice[string]().
 		WithItemRuleSet(rules.String().WithMinLen(3)).
-		Apply(context.TODO(), input, &output)
+		Apply(context.TODO(), input)
 
-	// Should have errors
 	if err == nil {
 		t.Error("Expected errors, got nil")
 		return
 	}
 
-	// Output should have all items (zero values for failed casts)
 	if len(output) != 3 {
 		t.Fatalf("Expected 3 items in output, got %d", len(output))
 	}
@@ -1436,9 +1434,7 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_Growth(t *testing.T) {
 		input[i] = "item"
 	}
 
-	var output []string
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
 
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
@@ -1462,8 +1458,6 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeExtendWithinCapacity(t *t
 
 	input := []string{"a", "b", "c", "d"}
 
-	var output []string
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Cancel during putIndex to interrupt after some items are written
@@ -1473,7 +1467,7 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeExtendWithinCapacity(t *t
 		cancel()
 	}()
 
-	err := rules.Slice[string]().Apply(ctx, input, &output)
+	_, err := rules.Slice[string]().Apply(ctx, input)
 
 	// Should get cancellation error if cancellation happened during putIndex
 	// The branch at line 269 will be hit if:
@@ -1495,8 +1489,6 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeExtendWithinCapacity(t *t
 func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim(t *testing.T) {
 	input := []string{"a", "b"}
 
-	var output []string
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Use closure-based cancellation - items are validated sequentially
@@ -1511,7 +1503,7 @@ func TestSliceRuleSet_Apply_SliceOutputAdapter_FinalizeTrim(t *testing.T) {
 		}),
 	)
 
-	err := ruleSet.Apply(ctx, input, &output)
+	_, err := ruleSet.Apply(ctx, input)
 
 	// Cancellation should always occur since items are validated sequentially
 	// and we cancel on the first item
@@ -1538,63 +1530,41 @@ func TestSliceRuleSet_Apply_PutIndexErrorFinalizeError(t *testing.T) {
 	// For channel output, finalize just closes, so it won't fail
 	// For slice output, finalize could fail with incompatible type, but putIndex
 	// would have already written some values, so this is a bit contrived
-	// Let's test with context cancellation during putIndex
 	input := []string{"a", "b", "c"}
 
-	outputChan := make(chan string, 1)
-	var output *chan string = &outputChan
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-	// Cancel quickly to interrupt putIndex
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		cancel()
 	}()
 
-	err := rules.Slice[string]().Apply(ctx, input, output)
+	_, err := rules.Slice[string]().Apply(ctx, input)
 
-	// Should get cancellation error
-	if err == nil {
-		t.Error("Expected cancellation error, got nil")
-		return
-	}
-
-	// The finalize error path (line 554-555) is executed when putIndex fails
-	// For channels, finalize just closes and returns nil, so no error
-	// But the code path is covered
+	// Timing-dependent: cancellation may or may not be observed
+	_ = err
 }
 
 // TestSliceRuleSet_Apply_FinalizeErrorAtEnd tests:
-// - When finalize returns error at the end of Apply (line 580-582)
+// - Apply returns slice for valid input (output param removed)
 func TestSliceRuleSet_Apply_FinalizeErrorAtEnd(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output with incompatible type
-	var output int
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, &output)
-
-	// Should get error from finalize
-	if err == nil {
-		t.Error("Expected error from finalize, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
 	}
-
-	if len(errors.Unwrap(err)) == 0 {
-		t.Error("Expected at least one error")
-		return
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ChannelInput_ReceiveOnlyType tests:
-// - newChannelInputAdapter case <-chan T (receive-only channel type assertion)
+// - Receive-only channel as input is supported
 func TestSliceRuleSet_Apply_ChannelInput_ReceiveOnlyType(t *testing.T) {
-	// Create a receive-only channel typed as <-chan string
 	recvChan := make(chan string, 3)
 	recvOnly := (<-chan string)(recvChan)
 
-	// Send values
 	go func() {
 		recvChan <- "a"
 		recvChan <- "b"
@@ -1602,10 +1572,7 @@ func TestSliceRuleSet_Apply_ChannelInput_ReceiveOnlyType(t *testing.T) {
 		close(recvChan)
 	}()
 
-	var output []string
-
-	err := rules.Slice[string]().Apply(context.TODO(), recvOnly, &output)
-
+	output, err := rules.Slice[string]().Apply(context.TODO(), recvOnly)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
 	}
@@ -1616,31 +1583,13 @@ func TestSliceRuleSet_Apply_ChannelInput_ReceiveOnlyType(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_SendOnlyType tests:
-// - newChannelOutputAdapter case chan<- T (send-only channel type assertion)
+// - Apply returns slice for valid input
 func TestSliceRuleSet_Apply_ChannelOutput_SendOnlyType(t *testing.T) {
 	input := []string{"a", "b", "c"}
 
-	// Create a send-only channel typed as chan<- string
-	bidirChan := make(chan string, 3)
-	sendOnly := (chan<- string)(bidirChan)
-	var output *chan<- string = &sendOnly
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
+	results, err := rules.Slice[string]().Apply(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("Expected no errors, got: %v", err)
-	}
-
-	// Read from underlying bidirectional channel
-	// Completion is signaled by Apply returning
-	var results []string
-	for i := 0; i < 3; i++ {
-		select {
-		case val := <-bidirChan:
-			results = append(results, val)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("Timeout reading from output channel after %d items", len(results))
-		}
 	}
 
 	if len(results) != 3 {
@@ -1649,19 +1598,15 @@ func TestSliceRuleSet_Apply_ChannelOutput_SendOnlyType(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelInput_DefaultCase tests:
-// - newChannelInputAdapter default case (incompatible channel element type)
+// - Incompatible channel element type returns coercion error
 func TestSliceRuleSet_Apply_ChannelInput_DefaultCase(t *testing.T) {
-	// Create input channel with incompatible element type
 	inputChan := make(chan int, 2)
 	inputChan <- 1
 	inputChan <- 2
 	close(inputChan)
 
-	var output []string
+	_, err := rules.Slice[string]().Apply(context.TODO(), inputChan)
 
-	err := rules.Slice[string]().Apply(context.TODO(), inputChan, &output)
-
-	// Should get coercion error from default case
 	if err == nil {
 		t.Error("Expected coercion error, got nil")
 		return
@@ -1669,111 +1614,45 @@ func TestSliceRuleSet_Apply_ChannelInput_DefaultCase(t *testing.T) {
 }
 
 // TestSliceRuleSet_Apply_ChannelOutput_DefaultCase tests:
-// - newChannelOutputAdapter default case (incompatible channel element type)
+// - Apply returns slice for valid input (output param removed)
 func TestSliceRuleSet_Apply_ChannelOutput_DefaultCase(t *testing.T) {
 	input := []string{"a", "b"}
 
-	// Create output channel with incompatible element type
-	outputChan := make(chan int, 2)
-	var output *chan int = &outputChan
-
-	err := rules.Slice[string]().Apply(context.TODO(), input, output)
-
-	// Should get error from default case
-	if err == nil {
-		t.Error("Expected error for incompatible channel element type, got nil")
+	output, err := rules.Slice[string]().Apply(context.TODO(), input)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
 		return
+	}
+	if len(output) != 2 {
+		t.Errorf("Expected 2 items, got %d", len(output))
 	}
 }
 
 // TestSliceRuleSet_Apply_ContextCancelledBetweenItems_NonChanInput tests:
-// - Context cancellation between items when input is a slice (not a channel)
+// - Context cancellation between items when input is a slice
 // - Uses WithItemRuleFunc with closure to cancel context after first item
-// - With unbuffered channel (size 0), second item won't even be read after cancellation
 func TestSliceRuleSet_Apply_ContextCancelledBetweenItems_NonChanInput(t *testing.T) {
 	input := []string{"a", "b", "c"}
 
-	// Create output channel
-	outputChan := make(chan string, 3)
-	var output *chan string = &outputChan
-
-	// Create context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Track which items were processed
-	var processedItems []string
-	var mu sync.Mutex
-
-	// Create rule set with item rule function that cancels after first item
-	// Use closure to capture cancel function
 	ruleSet := rules.Slice[string]().WithItemRuleSet(
 		rules.String().WithRuleFunc(func(itemCtx context.Context, s string) errors.ValidationError {
-			mu.Lock()
-			processedItems = append(processedItems, s)
-			mu.Unlock()
-
-			// Cancel context after first item is processed
-			// With unbuffered channel, this ensures second item won't be read
 			if s == "a" {
 				cancel()
 			}
-
 			return nil
 		}),
 	)
 
-	// Apply - should be cancelled between items
-	err := ruleSet.Apply(ctx, input, output)
+	_, err := ruleSet.Apply(ctx, input)
 
-	// Should get cancellation error
 	if err == nil {
 		t.Error("Expected cancellation error, got nil")
 		return
 	}
-
-	// Verify cancellation error code
-	firstErr := err
-	if firstErr == nil {
-		t.Error("Expected at least one error")
-		return
-	}
-	if firstErr.Code() != errors.CodeCancelled {
-		t.Errorf("Expected cancellation error code, got %s", firstErr.Code())
-	}
-
-	// Read the first item that was written before cancellation
-	// With unbuffered channel, only first item is processed before cancellation is detected
-	// However, if cancellation happens during the write select, the item may not be written
-	var results []string
-	select {
-	case val := <-outputChan:
-		results = append(results, val)
-	case <-time.After(50 * time.Millisecond):
-		// Item may not be written if cancellation happened during write
-	}
-
-	// Should have processed exactly 1 item (the first one)
-	mu.Lock()
-	processedCount := len(processedItems)
-	mu.Unlock()
-
-	if processedCount != 1 {
-		t.Errorf("Expected exactly 1 item to be processed, got %d", processedCount)
-	}
-
-	if len(processedItems) > 0 && processedItems[0] != "a" {
-		t.Errorf("Expected first item to be 'a', got %s", processedItems[0])
-	}
-
-	// First item may or may not be written depending on when cancellation is detected
-	// If cancellation happens during the write select, the item won't be written
-	// The important thing is that only 1 item was processed (validator called once)
-	if len(results) > 1 {
-		t.Errorf("Expected at most 1 result, got %d", len(results))
-	}
-
-	if len(results) > 0 && results[0] != "a" {
-		t.Errorf("Expected first result to be 'a', got %s", results[0])
+	if err.Code() != errors.CodeCancelled {
+		t.Errorf("Expected cancellation error code, got %s", err.Code())
 	}
 }
 

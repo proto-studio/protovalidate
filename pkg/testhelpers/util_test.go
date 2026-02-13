@@ -3,7 +3,6 @@ package testhelpers_test
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"proto.zip/studio/validate/pkg/errors"
@@ -59,8 +58,8 @@ type ruleSetWithPlainUnwrapError struct {
 	testhelpers.MockRuleSet[any]
 }
 
-func (r *ruleSetWithPlainUnwrapError) Apply(_ context.Context, _ any, _ any) errors.ValidationError {
-	return &errorWithPlainUnwrap{msg: "apply err"}
+func (r *ruleSetWithPlainUnwrapError) Apply(_ context.Context, _ any) (any, errors.ValidationError) {
+	return nil, &errorWithPlainUnwrap{msg: "apply err"}
 }
 
 // TestMustApplyFunc tests:
@@ -178,59 +177,53 @@ func TestMustApplyMutation(t *testing.T) {
 // MockNilOk is a mock rule set that incorrectly succeeds when applying nil
 type MockNilOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	if output == nil {
-		return nil
+func (m *MockNilOk) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
+	if input == nil {
+		return 0, nil
 	}
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	return mockRuleSet.Apply(ctx, input, output)
+	return mockRuleSet.Apply(ctx, input)
 }
 
-// MockNilOk is a mock rule set that incorrectly succeeds when applying a pointer to nil
+// MockNilPtrOk is a mock rule set that incorrectly succeeds when applying a pointer to nil
 type MockNilPtrOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNilPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	if outputPtr, ok := output.(*int); ok && outputPtr == nil {
-		return nil
+func (m *MockNilPtrOk) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
+	if input == nil {
+		return 0, nil
 	}
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	return mockRuleSet.Apply(ctx, input, output)
+	return mockRuleSet.Apply(ctx, input)
 }
 
-// MockNilOk is a mock rule set that incorrectly succeeds when applying a non-pointer that matches the type
+// MockNonPtrOk is a mock rule set that incorrectly succeeds when applying a non-pointer that matches the type
 type MockNonPtrOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockNonPtrOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	if _, ok := output.(int); ok {
-		return nil
+func (m *MockNonPtrOk) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
+	if _, ok := input.(int); ok {
+		return 0, nil
 	}
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	return mockRuleSet.Apply(ctx, input, output)
+	return mockRuleSet.Apply(ctx, input)
 }
 
 // MockWrongTypeOk is a mock rule set that incorrectly succeeds when applying a pointer with the wrong type
 type MockWrongTypeOk struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongTypeOk) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	// Always succeed on non-nil pointer regardless of type
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() == reflect.Ptr && !outputVal.IsNil() {
-		return nil
-	}
-	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	return mockRuleSet.Apply(ctx, input, output)
+func (m *MockWrongTypeOk) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
+	// Always succeed regardless of type
+	return 0, nil
 }
 
 // MockWrongErrorCode is a mock rule set that fails with the incorrect error code
-// errors.CodeInternal should be used and is replaced with errors.CodeUknown
 type MockWrongErrorCode struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) errors.ValidationError {
+func (m *MockWrongErrorCode) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	errs := mockRuleSet.Apply(ctx, input, output)
+	_, errs := mockRuleSet.Apply(ctx, input)
 
 	if errs == nil {
-		return nil
+		return 0, nil
 	}
 	coll := errors.Unwrap(errs)
 	var out []error
@@ -246,21 +239,19 @@ func (m *MockWrongErrorCode) Apply(ctx context.Context, input, output any) error
 			out = append(out, ve)
 		}
 	}
-	return errors.Join(out...)
+	return 0, errors.Join(out...)
 }
 
 // MockAlwaysError is a mock rule set that always fails
 type MockAlwaysError struct{ testhelpers.MockRuleSet[int] }
 
-func (m *MockAlwaysError) Apply(ctx context.Context, input, output any) errors.ValidationError {
+func (m *MockAlwaysError) Apply(ctx context.Context, input any) (int, errors.ValidationError) {
 	mockRuleSet := &testhelpers.MockRuleSet[int]{}
-	errs := mockRuleSet.Apply(ctx, input, output)
-
+	_, errs := mockRuleSet.Apply(ctx, input)
 	if errs != nil {
-		return errs
+		return 0, errs
 	}
-
-	return errors.Join(errors.Errorf(errors.CodeUnknown, ctx, "unknown error", ""))
+	return 0, errors.Errorf(errors.CodeUnknown, ctx, "unknown error", "")
 }
 
 // TestMustApplyTypes tests:
@@ -271,52 +262,12 @@ func TestMustApplyTypes(t *testing.T) {
 	var mockRuleSet rules.RuleSet[int] = &testhelpers.MockRuleSet[int]{}
 	testhelpers.MustApplyTypes[int](t, mockRuleSet, 123)
 
-	// Incorrectly succeeds on nil output only
+	// MustApplyTypes only calls Apply once; mocks that always return error should produce 1 error
 	mockT := &MockT{}
-	mockRuleSet = &MockNilOk{}
-	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected 1 error on mock incorrectly succeeding on nil, got: %d", mockT.errorCount)
-	}
-
-	// Incorrectly succeeds on nil pointer output only
-	mockT = &MockT{}
-	mockRuleSet = &MockNilPtrOk{}
-	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected 1 error on mock incorrectly succeeding on nil pointer, got: %d", mockT.errorCount)
-	}
-
-	// Incorrectly succeeds on non-pointer with correct type output only
-	mockT = &MockT{}
-	mockRuleSet = &MockNonPtrOk{}
-	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected 1 error on mock incorrectly succeeding on non-pointer with correct type, got: %d", mockT.errorCount)
-	}
-
-	// Incorrectly succeeds on incorrect output type
-	mockT = &MockT{}
-	mockRuleSet = &MockWrongTypeOk{}
-	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 1 {
-		t.Errorf("Expected 1 error on mock incorrectly succeeding on pointer of incompatible type, got: %d", mockT.errorCount)
-	}
-
-	// Fails with incorrect error code
-	mockT = &MockT{}
-	mockRuleSet = &MockWrongErrorCode{}
-	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 4 {
-		t.Errorf("Expected 4 errors on mock incorrectly error code, got: %d", mockT.errorCount)
-	}
-
-	// Fail success cases
-	mockT = &MockT{}
 	mockRuleSet = &MockAlwaysError{}
 	testhelpers.MustApplyTypes[int](mockT, mockRuleSet, 123)
-	if mockT.errorCount != 2 {
-		t.Errorf("Expected 2 errors on mock failed success cases, got: %d", mockT.errorCount)
+	if mockT.errorCount != 1 {
+		t.Errorf("Expected 1 error on mock that always returns error, got: %d", mockT.errorCount)
 	}
 }
 

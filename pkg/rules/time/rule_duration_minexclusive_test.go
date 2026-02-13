@@ -44,23 +44,20 @@ func TestDurationRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	// Create an initial rule set with after and before values
 	ruleSet := time.Duration().WithMinExclusive(min).WithMaxExclusive(after)
 
-	// Prepare an output variable for Apply
-	var output internalTime.Duration
-
 	// Apply with a duration equal to the threshold, expecting an error (exclusive)
-	err := ruleSet.Apply(context.TODO(), min, &output)
+	_, err := ruleSet.Apply(context.TODO(), min)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a duration before the threshold, expecting an error
-	err = ruleSet.Apply(context.TODO(), before, &output)
+	_, err = ruleSet.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a duration after the threshold, expecting no error
-	err = ruleSet.Apply(context.TODO(), after-30*internalTime.Minute, &output)
+	_, err = ruleSet.Apply(context.TODO(), after-30*internalTime.Minute)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -69,13 +66,13 @@ func TestDurationRuleSet_WithMinExclusive_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMinExclusive(before)
 
 	// Apply with a duration exactly at the new threshold, expecting an error (exclusive)
-	err = ruleSet2.Apply(context.TODO(), before, &output)
+	_, err = ruleSet2.Apply(context.TODO(), before)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with a duration after the new threshold, expecting no error
-	err = ruleSet2.Apply(context.TODO(), min, &output)
+	_, err = ruleSet2.Apply(context.TODO(), min)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

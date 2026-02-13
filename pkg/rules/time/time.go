@@ -167,30 +167,17 @@ func (ruleSet *TimeRuleSet) WithOutputLayout(layout string) *TimeRuleSet {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to time.Time, evaluates all rules, and returns the result.
+func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any) (time.Time, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
-	}
-
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return time.Time{}, err
 	}
 
 	var t time.Time
 	ok := false
 
-	// Set the default layout
-	layout := time.RFC3339
-
-	// Handle different types of input
 	switch x := input.(type) {
 	case time.Time:
 		t = x
@@ -207,7 +194,6 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 					var err error
 					t, err = time.Parse(l, x)
 					if err == nil {
-						layout = l // Overwrite layout with the one used for parsing
 						ok = true
 						break
 					}
@@ -218,35 +204,16 @@ func (ruleSet *TimeRuleSet) Apply(ctx context.Context, input any, output any) er
 			}
 		}
 		if !ok {
-			return errors.Error(errors.CodeType, ctx, "date time", "string")
+			return time.Time{}, errors.Error(errors.CodeType, ctx, "date time", "string")
 		}
 	default:
-		return errors.Error(errors.CodeType, ctx, "date time", reflect.TypeOf(input).String())
+		return time.Time{}, errors.Error(errors.CodeType, ctx, "date time", reflect.TypeOf(input).String())
 	}
 
-	// Overwrite layout if outputLayout is set
-	if ruleSet.outputLayout != "" {
-		layout = ruleSet.outputLayout
+	if errs := ruleSet.Evaluate(ctx, t); errs != nil {
+		return time.Time{}, errs
 	}
-
-	// Handle setting the value in output
-	outputElem := outputVal.Elem()
-
-	// If output is assignable from time.Time, set it directly to the new time value
-	if outputElem.Kind() == reflect.Interface && outputElem.IsNil() {
-		outputElem.Set(reflect.ValueOf(t))
-	} else if outputElem.Type().AssignableTo(reflect.TypeOf(t)) {
-		outputElem.Set(reflect.ValueOf(t))
-	} else if outputElem.Type().AssignableTo(reflect.TypeOf("")) { // Check if output is assignable from string
-		// Use the determined layout to format time as a string
-		formattedTime := t.Format(layout)
-		outputElem.Set(reflect.ValueOf(formattedTime))
-	} else {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", t, outputElem.Interface())
-	}
-
-	// Evaluate the time value and return any validation errors
-	return ruleSet.Evaluate(ctx, t)
+	return t, nil
 }
 
 // Evaluate performs validation of a RuleSet against a time.Time value and returns a ValidationError.

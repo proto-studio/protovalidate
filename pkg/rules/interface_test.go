@@ -155,6 +155,19 @@ func TestInterfaceRuleSet_WithCast(t *testing.T) {
 	})
 	testhelpers.MustApplyMutation(t, ruleSetWithError.Any(), 123, MyTestImplInt(123))
 	testhelpers.MustNotApply(t, ruleSetWithError.Any(), "abc", errors.CodeUnexpected)
+
+	// Cast succeeds but Evaluate fails (covers Apply path: cast returns (v, nil), then rule fails)
+	ruleSetCastOkEvalFail := ruleSet.WithRuleFunc(func(ctx context.Context, v MyTestInterface) errors.ValidationError {
+		if v == nil {
+			return nil
+		}
+		if i, ok := v.(MyTestImplInt); ok && i == 42 {
+			return errors.Errorf(errors.CodeUnexpected, ctx, "unexpected", "reject 42")
+		}
+		return nil
+	})
+	testhelpers.MustApplyMutation(t, ruleSetCastOkEvalFail.Any(), 123, MyTestImplInt(123))
+	testhelpers.MustNotApply(t, ruleSetCastOkEvalFail.Any(), 42, errors.CodeUnexpected)
 }
 
 // TestInterfaceRuleSet_WithNil tests:

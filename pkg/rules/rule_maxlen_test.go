@@ -16,23 +16,20 @@ import (
 func TestSlice_MaxLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMaxLen(2)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Apply with an array that is under the maximum length, expecting no error
-	err := ruleSet.Apply(context.TODO(), []int{1}, &output)
+	_, err := ruleSet.Apply(context.TODO(), []int{1})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Apply with an array that is exactly the maximum length, expecting no error
-	err = ruleSet.Apply(context.TODO(), []int{1, 2}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1, 2})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Apply with an array that exceeds the maximum length, expecting an error
-	err = ruleSet.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1, 2, 3})
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	} else if len(errors.Unwrap(err)) != 1 {
@@ -47,18 +44,15 @@ func TestSlice_MaxLen(t *testing.T) {
 func TestSlice_MaxLen_Conflict(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMaxLen(3).WithMinLen(1)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Apply with an array that exceeds the maximum length, expecting an error
-	err := ruleSet.Apply(context.TODO(), []int{1, 2, 3, 4}, &output)
+	_, err := ruleSet.Apply(context.TODO(), []int{1, 2, 3, 4})
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with an array that matches the maximum length, expecting no error
 	// Note: This also has WithMinLen(1), so we need at least 1 item
-	err = ruleSet.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -67,7 +61,7 @@ func TestSlice_MaxLen_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMaxLen(4)
 
 	// Apply with an array that matches the new maximum length, expecting no error
-	err = ruleSet2.Apply(context.TODO(), []int{1, 2, 3, 4}, &output)
+	_, err = ruleSet2.Apply(context.TODO(), []int{1, 2, 3, 4})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -106,20 +100,17 @@ func TestString_WithMaxLen(t *testing.T) {
 func TestString_WithMaxLen_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMaxLen(2).WithMinLen(1)
 
-	// Prepare the output variable for Apply
-	var out string
-
 	// First validation with max length 2
-	if err := ruleSet.Apply(context.TODO(), "abc", &out); err == nil {
+	if _, err := ruleSet.Apply(context.TODO(), "abc"); err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if err := ruleSet.Apply(context.TODO(), "ab", &out); err != nil {
+	if _, err := ruleSet.Apply(context.TODO(), "ab"); err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Update the rule set with max length 3 and validate
 	ruleSet2 := ruleSet.WithMaxLen(3)
-	if err := ruleSet2.Apply(context.TODO(), "abc", &out); err != nil {
+	if _, err := ruleSet2.Apply(context.TODO(), "abc"); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 

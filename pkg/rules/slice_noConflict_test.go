@@ -31,8 +31,7 @@ func TestSliceRuleSet_WithRule_NoConflict(t *testing.T) {
 	}
 
 	// Apply should call both rules
-	var output []int
-	err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -82,8 +81,7 @@ func TestSliceRuleSet_WithRule_Conflict(t *testing.T) {
 	}
 
 	// Apply should call mockRule2 and mockRule3, but not mockRule1
-	var output []int
-	err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -129,8 +127,7 @@ func TestSliceRuleSet_WithRule_ConflictMultiple(t *testing.T) {
 	}
 
 	// Apply should only call mockRule3
-	var output []int
-	err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -171,8 +168,7 @@ func TestSliceRuleSet_WithRule_ConflictWithNonConflicting(t *testing.T) {
 	}
 
 	// Apply should call mockRule2 and mockRule3, but not mockRule1
-	var output []int
-	err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet3.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -215,8 +211,7 @@ func TestSliceRuleSet_WithRule_ConflictRoot(t *testing.T) {
 	}
 
 	// Apply should only call mockRule2
-	var output []int
-	err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -252,8 +247,7 @@ func TestSliceRuleSet_WithRule_NoConflictKey(t *testing.T) {
 	}
 
 	// Apply should call both rules
-	var output []int
-	err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}
@@ -299,8 +293,7 @@ func TestSliceRuleSet_WithRule_ConflictPreservesProperties(t *testing.T) {
 	}
 
 	// Apply should work correctly with preserved properties
-	var output []int
-	err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet2.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected no errors, got %s", err)
 	}

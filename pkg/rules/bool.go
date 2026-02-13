@@ -134,73 +134,23 @@ func (v *BoolRuleSet) WithNil() *BoolRuleSet {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to bool, evaluates all rules, and returns the result.
+func (ruleSet *BoolRuleSet) Apply(ctx context.Context, input any) (bool, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return false, err
 	}
 
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Attempt to coerce the input value to a boolean
 	boolval, validationErr := ruleSet.coerceBool(input, ctx)
 	if validationErr != nil {
-		return validationErr
+		return false, validationErr
 	}
 
-	// Handle setting the value in output
-	outputElem := outputVal.Elem()
-
-	var assignable bool
-
-	// Format the boolean as a string
-	strVal := strconv.FormatBool(boolval)
-
-	// Check if output is a string type
-	if outputElem.Kind() == reflect.String {
-		outputElem.SetString(strVal)
-		assignable = true
-	} else if outputElem.Kind() == reflect.Ptr && outputElem.Type().Elem().Kind() == reflect.String {
-		// Handle pointer to string
-		if outputElem.IsNil() {
-			newStrPtr := reflect.New(outputElem.Type().Elem())
-			newStrPtr.Elem().SetString(strVal)
-			outputElem.Set(newStrPtr)
-		} else {
-			outputElem.Elem().SetString(strVal)
-		}
-		assignable = true
-	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
-		(outputElem.Kind() == reflect.Bool || outputElem.Type().AssignableTo(reflect.TypeOf(boolval))) {
-
-		// If output is a nil interface, or an assignable type, set it directly to the new boolean value
-		outputElem.Set(reflect.ValueOf(boolval))
-		assignable = true
+	if errs := ruleSet.Evaluate(ctx, boolval); errs != nil {
+		return false, errs
 	}
-
-	// If the types are incompatible, return an error
-	if !assignable {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", boolval, outputElem.Interface())
-	}
-
-	var errs errors.ValidationError
-	for currentRuleSet := ruleSet; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
-		if currentRuleSet.rule != nil {
-			if err := currentRuleSet.rule.Evaluate(ctx, boolval); err != nil {
-				errs = errors.Join(errs, err)
-			}
-		}
-	}
-	return errs
+	return boolval, nil
 }
 
 // Evaluate performs validation of a RuleSet against a boolean value and returns a ValidationError.

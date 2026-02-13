@@ -18,9 +18,9 @@ import (
 type RuleSet[T any] interface {
 	Rule[T]
 
-	// Apply coerces value into the correct type, evaluates all rules in the rule set, and assigns the result to out.
-	// Returns a ValidationError if coercion or validation fails. out must be a non-nil pointer to the output type.
-	Apply(ctx context.Context, value any, out any) errors.ValidationError
+	// Apply coerces value into the correct type, evaluates all rules in the rule set, and returns the result.
+	// Returns (value, nil) on success, or (zero value, ValidationError) if coercion or validation fails.
+	Apply(ctx context.Context, value any) (T, errors.ValidationError)
 
 	// Any returns a RuleSet[any] that wraps this rule set for use in nested objects and arrays.
 	Any() RuleSet[any]

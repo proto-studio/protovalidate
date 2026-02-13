@@ -17,11 +17,8 @@ import (
 func TestTimeRuleSet_Apply(t *testing.T) {
 	now := internalTime.Now()
 
-	// Prepare an output variable for Apply
-	var output internalTime.Time
-
 	// Use Apply to validate the current time
-	err := time.Time().Apply(context.TODO(), now, &output)
+	output, err := time.Time().Apply(context.TODO(), now)
 
 	if err != nil {
 		t.Fatal("Expected errors to be empty")
@@ -191,20 +188,19 @@ func TestTimeRuleSet_Apply_String(t *testing.T) {
 
 	ruleSet := time.Time()
 
-	var output string
-	errs := ruleSet.Apply(ctx, now, &output)
+	output, errs := ruleSet.Apply(ctx, now)
 	if errs != nil {
 		t.Errorf("Expected errors to be nil, got: %s", errs)
-	} else if output != rfcTime {
-		t.Errorf(`Expected output to be "%s", got "%s"`, rfcTime, output)
+	} else if !output.Equal(now) {
+		t.Errorf(`Expected output to equal now, got "%s"`, output)
 	}
 	ruleSet = ruleSet.WithLayouts(internalTime.RFC3339, internalTime.DateOnly)
 
-	errs = ruleSet.Apply(ctx, dateOnly, &output)
+	output, errs = ruleSet.Apply(ctx, dateOnly)
 	if errs != nil {
 		t.Errorf("Expected errors to be nil, got: %s", errs)
-	} else if output != dateOnly {
-		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	} else if output.Format(internalTime.DateOnly) != dateOnly {
+		t.Errorf(`Expected output to format as "%s", got "%s"`, dateOnly, output.Format(internalTime.DateOnly))
 	}
 
 	ruleSetWithOuputLayout := ruleSet.WithOutputLayout(internalTime.DateOnly)
@@ -213,11 +209,11 @@ func TestTimeRuleSet_Apply_String(t *testing.T) {
 		t.Errorf("Expected ruleSetWithOuputLayout to not equal ruleSet")
 	}
 
-	errs = ruleSetWithOuputLayout.Apply(ctx, rfcTime, &output)
+	output, errs = ruleSetWithOuputLayout.Apply(ctx, rfcTime)
 	if errs != nil {
 		t.Errorf("Expected errors to be nil, got: %s", errs)
-	} else if output != dateOnly {
-		t.Errorf(`Expected output to be "%s", got "%s"`, dateOnly, output)
+	} else if output.Format(internalTime.DateOnly) != dateOnly {
+		t.Errorf(`Expected output to format as "%s", got "%s"`, dateOnly, output.Format(internalTime.DateOnly))
 	}
 
 	ruleSet = ruleSetWithOuputLayout.WithOutputLayout(internalTime.DateOnly)

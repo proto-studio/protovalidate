@@ -16,11 +16,8 @@ import (
 func TestWrapWrapAnyRuleSet(t *testing.T) {
 	innerRuleSet := rules.Any()
 
-	// Prepare the output variable for Apply
-	var anyval any
-
 	// Use Apply instead of Validate
-	err := rules.WrapAny[any](innerRuleSet).Apply(context.TODO(), 123, &anyval)
+	anyval, err := rules.WrapAny[any](innerRuleSet).Apply(context.TODO(), 123)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)

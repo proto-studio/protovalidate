@@ -37,13 +37,14 @@ func TestRoundingFloatNone(t *testing.T) {
 	expected := float64(123.12)
 	ruleSet := rules.Float64()
 
-	var output float64
-
 	// Apply the rule set with the input value and check for errors
-	err := ruleSet.Any().Apply(context.TODO(), float32(expected), &output)
+	out, err := ruleSet.Any().Apply(context.TODO(), float32(expected))
 	if err != nil {
 		t.Errorf("Expected err to be nil, got: %s", err)
-	} else if delta := math.Abs(output - expected); delta > 10e-5 {
+		return
+	}
+	output := out.(float64)
+	if delta := math.Abs(output - expected); delta > 10e-5 {
 		t.Errorf("Expected result to be within tolerance, got: %f (%f - %f)", delta, expected, output)
 	}
 

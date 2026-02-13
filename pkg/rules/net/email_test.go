@@ -15,12 +15,10 @@ import (
 // - Implements interface.
 func TestEmailRuleSet_Apply(t *testing.T) {
 	// Prepare the output variable for Apply
-	var output string
-
 	example := "hello@example.com"
 
 	// Use Apply instead of Validate
-	err := net.Email().Apply(context.TODO(), example, &output)
+	output, err := net.Email().Apply(context.TODO(), example)
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -75,13 +73,10 @@ func TestEmailRuleSet_WithRequired(t *testing.T) {
 func TestEmailRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[string](1)
 
-	// Prepare the output variable for Apply
-	var output string
-
 	// Apply with a mock rule that should trigger an error
-	err := net.Email().
+	_, err := net.Email().
 		WithRuleFunc(mock.Function()).
-		Apply(context.TODO(), "name@example.com", &output)
+		Apply(context.TODO(), "name@example.com")
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -103,9 +98,9 @@ func TestEmailRuleSet_WithRuleFunc(t *testing.T) {
 	rule := testhelpers.NewMockRule[string]()
 
 	// Apply with a mock rule that should pass without errors
-	err = net.Email().
+	_, err = net.Email().
 		WithRuleFunc(rule.Function()).
-		Apply(context.TODO(), "name@example.com", &output)
+		Apply(context.TODO(), "name@example.com")
 
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
@@ -177,11 +172,8 @@ func TestEmailRuleSet_DomainContext(t *testing.T) {
 	ctx := rulecontext.WithPathString(context.Background(), "tests")
 	ctx = rulecontext.WithPathString(ctx, "email")
 
-	// Prepare the output variable for Apply
-	var output string
-
 	// Use Apply instead of Run
-	err := ruleSet.Apply(ctx, "hello@example.bogusbogus", &output)
+	_, err := ruleSet.Apply(ctx, "hello@example.bogusbogus")
 
 	expected := "/tests/email"
 

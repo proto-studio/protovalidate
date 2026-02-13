@@ -104,33 +104,33 @@ func (v *WrapAnyRuleSet[T]) evaluateRules(ctx context.Context, value any) errors
 	return errs
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply calls wrapped rules before any rules added directly to the WrapAnyRuleSet.
-// Apply returns a ValidationError if any validation errors occur.
-func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input via the wrapped RuleSet, evaluates wrap-level rules, and returns the result.
+func (v *WrapAnyRuleSet[T]) Apply(ctx context.Context, input any) (any, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, input); handled {
+		return nil, err
 	}
 
-	innerErrors := v.inner.Apply(ctx, input, output)
-	return errors.Join(v.evaluateRules(ctx, output), innerErrors)
+	t, innerErr := v.inner.Apply(ctx, input)
+	if innerErr != nil {
+		return nil, innerErr
+	}
+	if ruleErr := v.evaluateRules(ctx, t); ruleErr != nil {
+		return nil, ruleErr
+	}
+	return any(t), nil
 }
 
 // Evaluate performs validation of a RuleSet against a value of any type and returns a ValidationError.
 // Evaluate calls the wrapped RuleSet's Evaluate method directly if the input value implements the same type,
-// otherwise it calls Apply. This approach is usually more efficient since it does not need to allocate an output variable.
+// otherwise it calls Apply.
 func (ruleSet *WrapAnyRuleSet[T]) Evaluate(ctx context.Context, value any) errors.ValidationError {
 	if v, ok := value.(T); ok {
 		return errors.Join(ruleSet.evaluateRules(ctx, value), ruleSet.inner.Evaluate(ctx, v))
-	} else {
-		var out T
-		errs := ruleSet.Apply(ctx, value, &out)
-		return errs
 	}
+	_, errs := ruleSet.Apply(ctx, value)
+	return errs
 }
 
 // WithRule returns a new child rule set that applies a custom validation rule.

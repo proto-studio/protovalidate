@@ -68,8 +68,8 @@ func mustApplyErrorConfigWithMessage[T any, RS ruleSetWithErrorConfig[T, RS]](t 
 	ruleSetWithConfig := ruleSet.WithErrorMessage("custom short", "custom long")
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithErrorMessage: Expected validation error for nil input")
 		return
@@ -87,8 +87,8 @@ func mustApplyErrorConfigWithDocsURI[T any, RS ruleSetWithErrorConfig[T, RS]](t 
 	ruleSetWithConfig := ruleSet.WithDocsURI("https://example.com/docs")
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithDocsURI: Expected validation error for nil input")
 		return
@@ -106,8 +106,8 @@ func mustApplyErrorConfigWithTraceURI[T any, RS ruleSetWithErrorConfig[T, RS]](t
 	ruleSetWithConfig := ruleSet.WithTraceURI("https://example.com/trace/123")
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithTraceURI: Expected validation error for nil input")
 		return
@@ -125,8 +125,8 @@ func mustApplyErrorConfigWithCode[T any, RS ruleSetWithErrorConfig[T, RS]](t tes
 	ruleSetWithConfig := ruleSet.WithErrorCode(errors.CodeForbidden)
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithErrorCode: Expected validation error for nil input")
 		return
@@ -144,8 +144,8 @@ func mustApplyErrorConfigWithMeta[T any, RS ruleSetWithErrorConfig[T, RS]](t tes
 	ruleSetWithConfig := ruleSet.WithErrorMeta("field", "testvalue")
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithErrorMeta: Expected validation error for nil input")
 		return
@@ -173,8 +173,8 @@ func mustApplyErrorConfigWithCallback[T any, RS ruleSetWithErrorConfig[T, RS]](t
 	ruleSetWithConfig := ruleSet.WithErrorCallback(callback)
 
 	// Trigger an error by passing nil without WithNil
-	var output T
-	errs := errors.Unwrap(ruleSetWithConfig.Apply(context.Background(), nil, &output))
+	_, err := ruleSetWithConfig.Apply(context.Background(), nil)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("WithErrorCallback: Expected validation error for nil input")
 		return
@@ -207,8 +207,8 @@ func mustApplyErrorConfigWithCallback[T any, RS ruleSetWithErrorConfig[T, RS]](t
 func MustApplyErrorConfigWithCustomRule[T any](t testing.TB, ruleSet rules.RuleSet[T], triggerInput any, expectedDocsURI string) {
 	t.Helper()
 
-	var output T
-	errs := errors.Unwrap(ruleSet.Apply(context.Background(), triggerInput, &output))
+	_, err := ruleSet.Apply(context.Background(), triggerInput)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("Expected validation error from custom rule")
 		return
@@ -224,8 +224,8 @@ func MustApplyErrorConfigWithCustomRule[T any](t testing.TB, ruleSet rules.RuleS
 func MustApplyErrorConfigWithMetaOnInput[T any](t testing.TB, ruleSet rules.RuleSet[T], triggerInput any, expectedKey string, expectedValue any) {
 	t.Helper()
 
-	var output T
-	errs := errors.Unwrap(ruleSet.Apply(context.Background(), triggerInput, &output))
+	_, err := ruleSet.Apply(context.Background(), triggerInput)
+	errs := errors.Unwrap(err)
 	if len(errs) == 0 {
 		t.Error("Expected validation error")
 		return

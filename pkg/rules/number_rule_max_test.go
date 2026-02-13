@@ -41,16 +41,14 @@ func TestFloatRuleSet_WithMax(t *testing.T) {
 func TestIntRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMax(10).WithMin(3)
 
-	var output int
-
 	// Test validation with a value that exceeds the max (should return an error)
-	err := ruleSet.Apply(context.TODO(), 15, &output)
+	_, err := ruleSet.Apply(context.TODO(), 15)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value within the range (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 5, &output)
+	_, err = ruleSet.Apply(context.TODO(), 5)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -59,7 +57,7 @@ func TestIntRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMax(20)
 
 	// Test validation with a value that is within the new max (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 15, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 15)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -85,16 +83,14 @@ func TestIntRuleSet_WithMax_Conflict(t *testing.T) {
 func TestFloatRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMax(10.0).WithMin(3.0)
 
-	var output float64
-
 	// Test validation with a value that exceeds the max (should return an error)
-	err := ruleSet.Apply(context.TODO(), 15.0, &output)
+	_, err := ruleSet.Apply(context.TODO(), 15.0)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value within the range (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 5.0, &output)
+	_, err = ruleSet.Apply(context.TODO(), 5.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -103,7 +99,7 @@ func TestFloatRuleSet_WithMax_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMax(20.0)
 
 	// Test validation with a value that is within the new max (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 15.0, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 15.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}

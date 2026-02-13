@@ -13,26 +13,12 @@ import (
 // TestIPRuleSet_Apply tests:
 // - Default configuration doesn't return errors on valid value.
 // - Implements interface.
-// - Supports both string and stdnet.IP input/output.
+// - Accepts string or stdnet.IP input and returns stdnet.IP.
 func TestIPRuleSet_Apply(t *testing.T) {
-	// Test with string input and string output
-	var outputStr string
 	example := "192.168.1.1"
 
-	err := net.IP().Apply(context.TODO(), example, &outputStr)
-	if err != nil {
-		t.Errorf("Expected errors to be empty, got: %s", err)
-		return
-	}
-
-	if outputStr != example {
-		t.Errorf("Expected output to be %s, got %s", example, outputStr)
-		return
-	}
-
-	// Test with string input and net.IP output
-	var outputIP stdnet.IP
-	err = net.IP().Apply(context.TODO(), example, &outputIP)
+	// Test with string input
+	outputIP, err := net.IP().Apply(context.TODO(), example)
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
@@ -43,23 +29,9 @@ func TestIPRuleSet_Apply(t *testing.T) {
 		return
 	}
 
-	// Test with net.IP input and string output
+	// Test with net.IP input
 	inputIP := stdnet.ParseIP(example)
-	var outputStr2 string
-	err = net.IP().Apply(context.TODO(), inputIP, &outputStr2)
-	if err != nil {
-		t.Errorf("Expected errors to be empty, got: %s", err)
-		return
-	}
-
-	if outputStr2 != example {
-		t.Errorf("Expected output to be %s, got %s", example, outputStr2)
-		return
-	}
-
-	// Test with net.IP input and net.IP output
-	var outputIP2 stdnet.IP
-	err = net.IP().Apply(context.TODO(), inputIP, &outputIP2)
+	outputIP2, err := net.IP().Apply(context.TODO(), inputIP)
 	if err != nil {
 		t.Errorf("Expected errors to be empty, got: %s", err)
 		return
@@ -372,12 +344,11 @@ func TestIPRuleSet_String(t *testing.T) {
 func TestIPRuleSet_WithRuleFunc(t *testing.T) {
 	mock := testhelpers.NewMockRuleWithErrors[stdnet.IP](1)
 
-	var output stdnet.IP
 	testIP := stdnet.ParseIP("192.168.1.1")
 
-	err := net.IP().
+	_, err := net.IP().
 		WithRuleFunc(mock.Function()).
-		Apply(context.TODO(), testIP, &output)
+		Apply(context.TODO(), testIP)
 
 	if err == nil {
 		t.Error("Expected errors to not be empty")
@@ -391,9 +362,9 @@ func TestIPRuleSet_WithRuleFunc(t *testing.T) {
 
 	rule := testhelpers.NewMockRule[stdnet.IP]()
 
-	err = net.IP().
+	_, err = net.IP().
 		WithRuleFunc(rule.Function()).
-		Apply(context.TODO(), testIP, &output)
+		Apply(context.TODO(), testIP)
 
 	if err != nil {
 		t.Error("Expected errors to be empty")
@@ -411,14 +382,17 @@ func TestIPRuleSet_WithRuleFunc(t *testing.T) {
 func TestIPRuleSet_Apply_ParseIP_StringPtr(t *testing.T) {
 	ruleSet := net.IP().Any()
 	str := "192.168.1.1"
-	var output string
 
-	err := ruleSet.Apply(context.TODO(), &str, &output)
+	output, err := ruleSet.Apply(context.TODO(), &str)
 	if err != nil {
 		t.Errorf("Expected no error, got: %s", err)
 	}
-	if output != str {
-		t.Errorf("Expected output %s, got %s", str, output)
+	if output == nil {
+		t.Error("Expected non-nil output")
+		return
+	}
+	if ip, ok := output.(stdnet.IP); !ok || ip.String() != str {
+		t.Errorf("Expected output %s, got %v", str, output)
 	}
 }
 
@@ -427,21 +401,19 @@ func TestIPRuleSet_Apply_ParseIP_StringPtr(t *testing.T) {
 func TestIPRuleSet_Apply_ParseIP_NilIP(t *testing.T) {
 	ruleSet := net.IP().Any()
 	var nilIP stdnet.IP
-	var output string
 
-	err := ruleSet.Apply(context.TODO(), nilIP, &output)
+	_, err := ruleSet.Apply(context.TODO(), nilIP)
 	if err == nil {
 		t.Error("Expected error for nil IP")
 	}
 }
 
 // TestIPRuleSet_Apply_SetOutput_Interface tests:
-// - setOutput handles interface output that doesn't match net.IP
+// - Apply returns value that can be received as any
 func TestIPRuleSet_Apply_SetOutput_Interface(t *testing.T) {
 	ruleSet := net.IP().Any()
-	var output interface{}
 
-	err := ruleSet.Apply(context.TODO(), "192.168.1.1", &output)
+	output, err := ruleSet.Apply(context.TODO(), "192.168.1.1")
 	if err != nil {
 		t.Errorf("Expected no error, got: %s", err)
 	}

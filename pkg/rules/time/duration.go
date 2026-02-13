@@ -167,48 +167,31 @@ func (ruleSet *DurationRuleSet) WithRounding(rounding rules.Rounding) *DurationR
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to time.Duration, applies rounding if configured, evaluates all rules, and returns the result.
+func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any) (time.Duration, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return 0, err
 	}
 
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
+	unit := ruleSet.unit
 	var d time.Duration
 	ok := false
 
-	// Get the unit from the current node (tail node)
-	// The unit is copied to each clone, so it's always on the current node
-	unit := ruleSet.unit
-
-	// Handle different types of input
 	switch x := input.(type) {
 	case time.Duration:
-		// Input is explicitly time.Duration - use it directly without unit conversion
 		d = x
 		ok = true
 	case *time.Duration:
-		// Input is *time.Duration - use it directly without unit conversion
 		if x != nil {
 			d = *x
 			ok = true
 		}
 	case int64:
-		// int64 (not time.Duration) - multiply by unit to convert from specified unit to nanoseconds
 		d = time.Duration(x) * unit
 		ok = true
 	case int:
-		// int - multiply by unit to convert from specified unit to nanoseconds
 		d = time.Duration(x) * unit
 		ok = true
 	case string:
@@ -217,129 +200,49 @@ func (ruleSet *DurationRuleSet) Apply(ctx context.Context, input any, output any
 		if err == nil {
 			ok = true
 		} else {
-			// String parsing failed - this is a format/pattern error, not a type error
-			return errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid duration format: %v", err)
+			return 0, errors.Errorf(errors.CodePattern, ctx, "invalid format", "invalid duration format: %v", err)
 		}
 	default:
-		return errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
+		return 0, errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
 	}
 
 	if !ok {
-		return errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
-	}
-
-	// Handle setting the value in output
-	outputElem := outputVal.Elem()
-
-	var assignable bool
-
-	// If output is an interface, get the underlying element to check its type
-	// This allows `var output any = int64(0)` to be treated as int64
-	actualOutputElem := outputElem
-	if outputElem.Kind() == reflect.Interface && !outputElem.IsNil() {
-		actualOutputElem = outputElem.Elem()
+		return 0, errors.Error(errors.CodeType, ctx, "duration", reflect.TypeOf(input).String())
 	}
 
 	// Apply rounding to d if rounding is set
 	remainder := d % unit
 	if remainder != 0 {
 		if ruleSet.rounding == rules.RoundingNone {
-			// Only error if output is numeric (not duration)
-			// Duration output can accept any value
-			if actualOutputElem.Type() != reflect.TypeOf(d) {
-				return errors.Errorf(errors.CodeRange, ctx, "duration", "Duration %s is not evenly divisible by unit %s", d, unit)
-			}
-		} else {
-			// Apply rounding based on the remainder
-			quotient := int64(d / unit)
-			halfUnit := unit / 2
-			switch ruleSet.rounding {
-			case rules.RoundingDown:
-				// Floor - use quotient as-is
-			case rules.RoundingUp:
-				if remainder > 0 {
-					quotient++
-				}
-			case rules.RoundingHalfUp:
-				if remainder >= halfUnit {
-					quotient++
-				}
-			case rules.RoundingHalfEven:
-				if remainder > halfUnit {
-					quotient++
-				} else if remainder == halfUnit && quotient%2 != 0 {
-					quotient++
-				}
-			}
-			d = time.Duration(quotient) * unit
+			return 0, errors.Errorf(errors.CodeRange, ctx, "duration", "Duration %s is not evenly divisible by unit %s", d, unit)
 		}
-	}
-
-	// Now set d to output based on output type
-	// Check if output is time.Duration first (before numeric check because Duration has Kind() == Int64)
-	if actualOutputElem.Type() == reflect.TypeOf(d) {
-		if outputElem.Kind() == reflect.Interface {
-			outputElem.Set(reflect.ValueOf(d))
-		} else {
-			actualOutputElem.Set(reflect.ValueOf(d))
-		}
-		assignable = true
-	} else if outputKind := actualOutputElem.Kind(); outputKind >= reflect.Int && outputKind <= reflect.Uintptr {
-		// Numeric output - convert duration to numeric by dividing by unit
 		quotient := int64(d / unit)
-
-		// Use reflection to set the value - check bounds first
-		if outputKind >= reflect.Uint && outputKind <= reflect.Uintptr {
-			// For unsigned types, check if value is non-negative and fits
-			if quotient < 0 {
-				return errors.NewRangeError(ctx, "duration")
+		halfUnit := unit / 2
+		switch ruleSet.rounding {
+		case rules.RoundingDown:
+			// Floor - use quotient as-is
+		case rules.RoundingUp:
+			if remainder > 0 {
+				quotient++
 			}
-			// Check if the value fits in the target type by converting and checking if we lose information
-			targetType := actualOutputElem.Type()
-			testValue := reflect.New(targetType).Elem()
-			testValue.SetUint(uint64(quotient))
-			// Convert back to see if we lost information
-			convertedBack := int64(testValue.Uint())
-			if convertedBack != quotient {
-				return errors.NewRangeError(ctx, "duration")
+		case rules.RoundingHalfUp:
+			if remainder >= halfUnit {
+				quotient++
 			}
-			// Set the value - if output was an interface, set the new value into it
-			if outputElem.Kind() == reflect.Interface {
-				outputElem.Set(testValue)
-			} else {
-				outputElem.SetUint(uint64(quotient))
-			}
-		} else {
-			// Signed integer types - check if the value fits by converting and checking
-			targetType := actualOutputElem.Type()
-			testValue := reflect.New(targetType).Elem()
-			testValue.SetInt(quotient)
-			// Convert back to see if we lost information (same pattern as number_coerce.go)
-			convertedBack := int64(testValue.Int())
-			if convertedBack != quotient {
-				return errors.NewRangeError(ctx, "duration")
-			}
-			// Set the value - if output was an interface, set the new value into it
-			if outputElem.Kind() == reflect.Interface {
-				outputElem.Set(testValue)
-			} else {
-				outputElem.SetInt(quotient)
+		case rules.RoundingHalfEven:
+			if remainder > halfUnit {
+				quotient++
+			} else if remainder == halfUnit && quotient%2 != 0 {
+				quotient++
 			}
 		}
-		assignable = true
-	} else if outputElem.Kind() == reflect.Interface && outputElem.IsNil() {
-		// If output is a nil interface, set it to the duration value
-		outputElem.Set(reflect.ValueOf(d))
-		assignable = true
+		d = time.Duration(quotient) * unit
 	}
 
-	// If the types are incompatible, return an error
-	if !assignable {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", d, outputElem.Interface())
+	if errs := ruleSet.Evaluate(ctx, d); errs != nil {
+		return 0, errs
 	}
-
-	// Evaluate the duration value and return any validation errors
-	return ruleSet.Evaluate(ctx, d)
+	return d, nil
 }
 
 // Evaluate performs validation of a RuleSet against a time.Duration value and returns a ValidationError.

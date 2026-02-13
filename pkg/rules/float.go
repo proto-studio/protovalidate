@@ -160,27 +160,18 @@ func (v *FloatRuleSet[T]) WithNil() *FloatRuleSet[T] {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the result to the output parameter.
-// Apply returns a ValidationError if any validation errors occur.
-func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to T, evaluates all rules, and returns the result.
+func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any) (T, errors.ValidationError) {
+	var zero T
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, input); handled {
+		return zero, err
 	}
 
-	// Ensure output is a non-nil pointer
-	outputVal := reflect.ValueOf(output)
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Attempt to coerce the input value to the correct float type
 	floatval, validationErr := v.coerceFloat(input, ctx)
 	if validationErr != nil {
-		return validationErr
+		return zero, validationErr
 	}
 
 	// Apply rounding if specified
@@ -203,61 +194,30 @@ func (v *FloatRuleSet[T]) Apply(ctx context.Context, input any, output any) erro
 		floatval = T(tempFloatval)
 	}
 
-	// Handle setting the value in output
-	outputElem := outputVal.Elem()
-
-	var assignable bool
-
-	// Format the float as a string with the appropriate precision
-	strVal := formatFloat(v, floatval)
-
-	// Check if output is a string type
-	if outputElem.Kind() == reflect.String {
-		outputElem.SetString(strVal)
-		assignable = true
-	} else if outputElem.Kind() == reflect.Ptr && outputElem.Type().Elem().Kind() == reflect.String {
-		// Handle pointer to string
-		if outputElem.IsNil() {
-			newStrPtr := reflect.New(outputElem.Type().Elem())
-			newStrPtr.Elem().SetString(strVal)
-			outputElem.Set(newStrPtr)
-		} else {
-			outputElem.Elem().SetString(strVal)
-		}
-		assignable = true
-	} else if outputElem.Kind() == reflect.Bool {
-		// Handle bool output: non-zero values are true, zero is false
-		outputElem.SetBool(floatval != 0)
-		assignable = true
-	} else if (outputElem.Kind() == reflect.Interface && outputElem.IsNil()) ||
-		(outputElem.Kind() == reflect.Float32 || outputElem.Kind() == reflect.Float64 ||
-			outputElem.Type().AssignableTo(reflect.TypeOf(floatval))) {
-
-		// If output is a nil interface, or an assignable type, set it directly to the new float value
-		outputElem.Set(reflect.ValueOf(floatval))
-		assignable = true
+	// Apply fixed output precision (round to N decimal places) when set
+	if v.outputPrecision >= 0 {
+		mul := math.Pow10(v.outputPrecision)
+		tempFloatval := math.Round(float64(floatval)*mul) / mul
+		floatval = T(tempFloatval)
 	}
 
-	// If the types are incompatible, return an error
-	if !assignable {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign %T to %T", floatval, outputElem.Interface())
+	if errs := v.Evaluate(ctx, floatval); errs != nil {
+		return zero, errs
 	}
+	return floatval, nil
+}
 
+// Evaluate performs validation of a RuleSet against a float value and returns a ValidationError.
+func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
 	var errs errors.ValidationError
 	for currentRuleSet := v; currentRuleSet != nil; currentRuleSet = currentRuleSet.parent {
 		if currentRuleSet.rule != nil {
-			if err := currentRuleSet.rule.Evaluate(ctx, floatval); err != nil {
+			if err := currentRuleSet.rule.Evaluate(ctx, value); err != nil {
 				errs = errors.Join(errs, err)
 			}
 		}
 	}
 	return errs
-}
-
-// Evaluate performs validation of a RuleSet against a float value and returns a ValidationError.
-func (v *FloatRuleSet[T]) Evaluate(ctx context.Context, value T) errors.ValidationError {
-	var out T
-	return v.Apply(ctx, value, &out)
 }
 
 // noConflict returns the new array rule set with all conflicting rules removed.

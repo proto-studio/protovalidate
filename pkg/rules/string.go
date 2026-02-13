@@ -2,7 +2,6 @@ package rules
 
 import (
 	"context"
-	"reflect"
 
 	"proto.zip/studio/validate/internal/util"
 	"proto.zip/studio/validate/pkg/errors"
@@ -126,52 +125,23 @@ func (v *StringRuleSet) WithNil() *StringRuleSet {
 	return newRuleSet
 }
 
-// Apply performs validation of a RuleSet against a value and assigns the resulting string to the output pointer.
-// Apply returns a ValidationError.
-func (v *StringRuleSet) Apply(ctx context.Context, value, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces value to a string, evaluates all rules, and returns the result.
+func (v *StringRuleSet) Apply(ctx context.Context, value any) (string, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, v.errorConfig)
 
-	// Check if withNil is enabled and value is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, v.withNil, value, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, v.withNil, value); handled {
+		return "", err
 	}
 
-	// Ensure output is a pointer that can be set
-	rv := reflect.ValueOf(output)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Output must be a non-nil pointer")
-	}
-
-	// Attempt to coerce the input to a string
 	str, validationErr := v.coerce(value, ctx)
-
 	if validationErr != nil {
-		return validationErr
+		return "", validationErr
 	}
 
-	verrs := v.Evaluate(ctx, str)
-	if verrs != nil {
-		return verrs
+	if verrs := v.Evaluate(ctx, str); verrs != nil {
+		return "", verrs
 	}
-
-	// Set the string result in the output parameter
-	elem := rv.Elem()
-
-	// Check if the output is an interface
-	if elem.Kind() == reflect.Interface {
-		// Create a new string value and set the interface to point to it
-		elem.Set(reflect.ValueOf(str))
-		return nil
-	}
-
-	// If the element is a string, replace it with the new string value
-	if elem.Kind() == reflect.String {
-		elem.SetString(str)
-		return nil
-	}
-
-	return errors.Errorf(errors.CodeInternal, ctx, "internal error", "Cannot assign string to %T", output)
+	return str, nil
 }
 
 // Evaluate performs validation of a RuleSet against a string value and returns a ValidationError.

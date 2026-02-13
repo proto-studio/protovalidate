@@ -51,22 +51,20 @@ func TestFloatRuleSet_WithMaxExclusive(t *testing.T) {
 func TestIntRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Int().WithMaxExclusive(10).WithMinExclusive(3)
 
-	var output int
-
 	// Test validation with a value equal to the threshold (should return an error - exclusive)
-	err := ruleSet.Apply(context.TODO(), 10, &output)
+	_, err := ruleSet.Apply(context.TODO(), 10)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value above the threshold (should return an error)
-	err = ruleSet.Apply(context.TODO(), 11, &output)
+	_, err = ruleSet.Apply(context.TODO(), 11)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value below the threshold (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 9, &output)
+	_, err = ruleSet.Apply(context.TODO(), 9)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -75,13 +73,13 @@ func TestIntRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMaxExclusive(9)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
-	err = ruleSet2.Apply(context.TODO(), 9, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 9)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value below the new threshold (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 8, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 8)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -107,22 +105,20 @@ func TestIntRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 func TestFloatRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet := rules.Float64().WithMaxExclusive(10.0).WithMinExclusive(3.0)
 
-	var output float64
-
 	// Test validation with a value equal to the threshold (should return an error - exclusive)
-	err := ruleSet.Apply(context.TODO(), 10.0, &output)
+	_, err := ruleSet.Apply(context.TODO(), 10.0)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value above the threshold (should return an error)
-	err = ruleSet.Apply(context.TODO(), 11.0, &output)
+	_, err = ruleSet.Apply(context.TODO(), 11.0)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value below the threshold (should not return an error)
-	err = ruleSet.Apply(context.TODO(), 9.0, &output)
+	_, err = ruleSet.Apply(context.TODO(), 9.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -131,13 +127,13 @@ func TestFloatRuleSet_WithMaxExclusive_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMaxExclusive(9.0)
 
 	// Test validation with a value at the new threshold (should return an error - exclusive)
-	err = ruleSet2.Apply(context.TODO(), 9.0, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 9.0)
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Test validation with a value below the new threshold (should not return an error)
-	err = ruleSet2.Apply(context.TODO(), 8.0, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 8.0)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -162,16 +158,14 @@ func TestIntRuleSet_WithMax_WithMaxExclusiveConflict(t *testing.T) {
 	// Adding WithMaxExclusive should conflict and replace WithMax
 	ruleSet2 := ruleSet.WithMaxExclusive(9)
 
-	var output int
-
 	// Original rule set should still have WithMax
-	err := ruleSet.Apply(context.TODO(), 10, &output)
+	_, err := ruleSet.Apply(context.TODO(), 10)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}
 
 	// New rule set should have WithMaxExclusive (exclusive, so 9 should fail)
-	err = ruleSet2.Apply(context.TODO(), 9, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 9)
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
@@ -190,16 +184,14 @@ func TestIntRuleSet_WithMaxExclusive_WithMaxConflict(t *testing.T) {
 	// Adding WithMax should conflict and replace WithMaxExclusive
 	ruleSet2 := ruleSet.WithMax(9)
 
-	var output int
-
 	// Original rule set should still have WithMaxExclusive
-	err := ruleSet.Apply(context.TODO(), 10, &output)
+	_, err := ruleSet.Apply(context.TODO(), 10)
 	if err == nil {
 		t.Errorf("Expected error for WithMaxExclusive at threshold (exclusive)")
 	}
 
 	// New rule set should have WithMax (inclusive, so 9 should pass)
-	err = ruleSet2.Apply(context.TODO(), 9, &output)
+	_, err = ruleSet2.Apply(context.TODO(), 9)
 	if err != nil {
 		t.Errorf("Expected error to be nil for WithMax at threshold, got %s", err)
 	}

@@ -35,11 +35,8 @@ func TestInterfaceStruct(t *testing.T) {
 		WithKey("StringTest", innerRuleSet.Any()).
 		WithJson()
 
-	// Prepare the output variable for Apply
-	var out InterfaceTest
-
 	// Use Apply instead of Run
-	errs := ruleSet.Apply(context.TODO(), `{"IntTest":123, "StringTest":"abc"}`, &out)
+	out, errs := ruleSet.Apply(context.TODO(), `{"IntTest":123, "StringTest":"abc"}`)
 
 	if errs != nil {
 		t.Errorf("Expected errors to be empty %s", errs.Error())

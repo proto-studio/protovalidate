@@ -16,23 +16,20 @@ import (
 func TestSlice_MinLen(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMinLen(2)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Apply with an array that exceeds the minimum length, expecting no error
-	err := ruleSet.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err := ruleSet.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Apply with an array that matches the minimum length, expecting no error
-	err = ruleSet.Apply(context.TODO(), []int{1, 2}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1, 2})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Apply with an array that is below the minimum length, expecting an error
-	err = ruleSet.Apply(context.TODO(), []int{1}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1})
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	} else if len(errors.Unwrap(err)) != 1 {
@@ -47,17 +44,14 @@ func TestSlice_MinLen(t *testing.T) {
 func TestSlice_MinLen_Conflict(t *testing.T) {
 	ruleSet := rules.Slice[int]().WithMinLen(3).WithMaxLen(10)
 
-	// Prepare an output variable for Apply
-	var output []int
-
 	// Apply with an array that is below the minimum length, expecting an error
-	err := ruleSet.Apply(context.TODO(), []int{1, 2}, &output)
+	_, err := ruleSet.Apply(context.TODO(), []int{1, 2})
 	if err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
 
 	// Apply with an array that matches the minimum length, expecting no error
-	err = ruleSet.Apply(context.TODO(), []int{1, 2, 3}, &output)
+	_, err = ruleSet.Apply(context.TODO(), []int{1, 2, 3})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
@@ -66,7 +60,7 @@ func TestSlice_MinLen_Conflict(t *testing.T) {
 	ruleSet2 := ruleSet.WithMinLen(2)
 
 	// Apply with an array that matches the new minimum length, expecting no error
-	err = ruleSet2.Apply(context.TODO(), []int{1, 2}, &output)
+	_, err = ruleSet2.Apply(context.TODO(), []int{1, 2})
 	if err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
@@ -104,20 +98,17 @@ func TestString_WithMinLen(t *testing.T) {
 func TestString_WithMinLen_Conflict(t *testing.T) {
 	ruleSet := rules.String().WithMinLen(3).WithMaxLen(10)
 
-	// Prepare the output variable for Apply
-	var out string
-
 	// First validation with min length 3
-	if err := ruleSet.Apply(context.TODO(), "ab", &out); err == nil {
+	if _, err := ruleSet.Apply(context.TODO(), "ab"); err == nil {
 		t.Errorf("Expected error to not be nil")
 	}
-	if err := ruleSet.Apply(context.TODO(), "abc", &out); err != nil {
+	if _, err := ruleSet.Apply(context.TODO(), "abc"); err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
 	}
 
 	// Update the rule set with min length 2 and validate
 	ruleSet2 := ruleSet.WithMinLen(2)
-	if err := ruleSet2.Apply(context.TODO(), "ab", &out); err != nil {
+	if _, err := ruleSet2.Apply(context.TODO(), "ab"); err != nil {
 		t.Errorf("Expected error to be nil, got: %s", err)
 	}
 

@@ -38,14 +38,13 @@ func TestEmailRuleSet_WithRuleFunc_Conflict(t *testing.T) {
 
 	mockB := testhelpers.NewMockRule[string]()
 
-	var output string
-	err := Email().
+	_, err := Email().
 		WithRule(mockB).
 		WithRule(mockA).
 		WithRule(mockB).
 		WithRule(mockA).
 		WithRule(mockB).
-		Apply(context.TODO(), testVal, &output)
+		Apply(context.TODO(), testVal)
 
 	if err != nil {
 		t.Errorf("Expected errors to be nil, got: %s", err)

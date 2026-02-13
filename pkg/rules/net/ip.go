@@ -140,63 +140,23 @@ func parseIP(ctx context.Context, input any) (net.IP, errors.ValidationError) {
 	return nil, errors.Error(errors.CodeType, ctx, "string or net.IP", reflect.ValueOf(input).Kind().String())
 }
 
-// setOutput sets the output value to the given IP address.
-func setOutput(ctx context.Context, output any, ip net.IP) errors.ValidationError {
-	outputVal := reflect.ValueOf(output)
-
-	// Check if the output is a non-nil pointer
-	if outputVal.Kind() != reflect.Ptr || outputVal.IsNil() {
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "output must be a non-nil pointer")
-	}
-
-	// Dereference the pointer to get the actual value that needs to be set
-	outputElem := outputVal.Elem()
-	outputType := outputElem.Type()
-
-	// Check if it's net.IP type (net.IP is []byte, so we check for slice of uint8)
-	if outputType == reflect.TypeOf(net.IP{}) {
-		outputElem.Set(reflect.ValueOf(ip))
-		return nil
-	}
-
-	switch outputElem.Kind() {
-	case reflect.String:
-		outputElem.SetString(ip.String())
-	case reflect.Interface:
-		// Set as net.IP for interface types
-		outputElem.Set(reflect.ValueOf(ip))
-	default:
-		return errors.Errorf(errors.CodeInternal, ctx, "internal error", "cannot assign IP to %T", output)
-	}
-
-	return nil
-}
-
-// Apply performs a validation of a RuleSet against a value and assigns the result to the output parameter.
-// It returns a ValidationError if any validation errors occur.
-// Input can be either a string or net.IP, and output can be either *string or *net.IP.
-func (ruleSet *IPRuleSet) Apply(ctx context.Context, input any, output any) errors.ValidationError {
-	// Add error config to context for error customization
+// Apply coerces input to net.IP, evaluates all rules, and returns the result.
+func (ruleSet *IPRuleSet) Apply(ctx context.Context, input any) (net.IP, errors.ValidationError) {
 	ctx = errors.WithErrorConfig(ctx, ruleSet.errorConfig)
 
-	// Check if withNil is enabled and input is nil
-	if handled, err := util.TrySetNilIfAllowed(ctx, ruleSet.withNil, input, output); handled {
-		return err
+	if handled, err := util.TryNilIfAllowed(ctx, ruleSet.withNil, input); handled {
+		return nil, err
 	}
 
-	// Parse the input to net.IP
 	ip, err := parseIP(ctx, input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Perform the validation
 	if err := ruleSet.Evaluate(ctx, ip); err != nil {
-		return err
+		return nil, err
 	}
-
-	// Set the output
-	return setOutput(ctx, output, ip)
+	return ip, nil
 }
 
 // validateBasicIP performs general IP validation that is valid for any and all IP addresses.
