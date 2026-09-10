@@ -114,10 +114,10 @@ func (q *QueryRuleSet) copyParamRules() map[string]*paramSpec {
 type queryCloneOption func(*QueryRuleSet)
 
 func (q *QueryRuleSet) clone(options ...queryCloneOption) *QueryRuleSet {
+	// Do not copy rule: Evaluate walks parents, so copying would re-run rules after later clones.
 	newRuleSet := &QueryRuleSet{
 		parent:      q,
 		paramRules:  q.paramRules,
-		rule:        q.rule,
 		label:       q.label,
 		errorConfig: q.errorConfig,
 		required:    q.required,
