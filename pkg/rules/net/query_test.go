@@ -115,6 +115,35 @@ func TestQueryRuleSet_WithRule_WithRuleFunc(t *testing.T) {
 	}
 }
 
+// TestQueryRuleSet_CloneDoesNotDuplicateRules ensures clone does not copy rule.
+// Evaluate walks parents, so copying rule would re-run WithRule after WithParam/etc.
+func TestQueryRuleSet_CloneDoesNotDuplicateRules(t *testing.T) {
+	ctx := context.Background()
+	var a, b int
+	rs := net.Query().
+		WithRuleFunc(func(context.Context, url.Values) errors.ValidationError { a++; return nil }).
+		WithRuleFunc(func(context.Context, url.Values) errors.ValidationError { b++; return nil }).
+		WithParam("q", rules.String().Any())
+	if err := rs.Evaluate(ctx, url.Values{"q": {"1"}}); err != nil {
+		t.Fatal(err)
+	}
+	if a != 1 || b != 1 {
+		t.Fatalf("WithRule funcs ran a=%d b=%d, want 1 each", a, b)
+	}
+
+	var c int
+	rs2 := net.Query().
+		WithRuleFunc(func(context.Context, url.Values) errors.ValidationError { c++; return nil }).
+		WithRequired().
+		WithErrorMessage("s", "l")
+	if err := rs2.Evaluate(ctx, url.Values{}); err != nil {
+		t.Fatal(err)
+	}
+	if c != 1 {
+		t.Fatalf("WithRule after WithRequired/WithErrorMessage ran %d times, want 1", c)
+	}
+}
+
 func TestQueryRuleSet_Apply_inputOutputBranches(t *testing.T) {
 	ctx := context.Background()
 	rs := net.Query()
