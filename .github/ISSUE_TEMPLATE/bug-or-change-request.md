@@ -20,3 +20,12 @@ Please don't include passwords, keys, or other private information.
 ## How can we reproduce or test it?
 
 Include the steps to follow and the version you're using, if you can.
+
+## Does this affect any of these?
+
+Leave these blank if not, or if you're not sure.
+
+- [ ] Checking or rejecting input
+- [ ] Parsing data from untrusted sources
+- [ ] What's returned to clients, including error messages
+- [ ] A breaking change to the public API
